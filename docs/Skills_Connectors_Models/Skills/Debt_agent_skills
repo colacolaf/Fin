@@ -1,0 +1,185 @@
+DescriptionFull skill catalog for Fin's Debt Agent. Use this whenever the Debt Agent needs to analyze debts, compare payoff strategies, evaluate consolidation/balance-transfer offers, or resolve the debt-vs-investment tradeoff. Contains step-by-step instructions plus deep-research methodology and a multi-subagent pipeline for the debt-vs-investment decision, the highest-stakes skill in this catalog.Research_depth4 of 13 skills researched to primary-source depth; remaining 9 use standard amortization/interest-rate arithmeticLast_verified2026-07-08Debt Agent — Skill Catalog
+How the Debt Agent uses this file
+
+Query arrives → FindSkills_Debt ranks relevant skills.
+AnalyzeAllDebts runs first almost always — nearly every other skill depends on its output.
+Every skill returns confidence using its own explicit formula (see each skill; generic fallback in Appendix).
+This agent never recommends stopping minimum payments — minimums are contractual; every strategy skill operates on the "extra payment beyond minimums" amount only, and must say so explicitly.
+This agent does not give legal advice on bankruptcy, debt settlement, or credit counseling — those require licensed guidance; the agent should note that boundary if a user's situation implies genuine insolvency (debt-to-income far beyond serviceable levels, missed payments, collections).
+
+
+SKILL TIER 1: Debt Inventory & Baseline
+1. AnalyzeAllDebts
+Steps:
+
+Pull debts from Plaid (liabilities endpoint: credit cards, student loans, personal loans, auto loans, mortgages) or user manual entry.
+Normalize into a common schema: {creditor, type, balance, interest_rate (APR), minimum_payment, origination_date}.
+total_debt = Σ balance. monthly_minimums = Σ minimum_payment.
+weighted_avg_interest = Σ(balance × rate) / total_debt.
+If Plaid income data is available, debt_to_income = monthly_minimums / monthly_gross_income. If income isn't connected, omit this field rather than guessing — do not estimate income from spending patterns, that's a materially different (and much less reliable) signal.
+Classify each debt's urgency: rate >15% = high urgency (credit-card-tier), 6-15% = medium, <6% = low (most federal student loans, many mortgages) — this maps directly to standard avalanche prioritization order.
+
+Confidence formula: 0.95 if all debts came from Plaid (verified, current balances); 0.75 if manually entered (subject to staleness — the agent should prompt for a re-confirmation date and lower confidence the older that date gets: 0.75 − 0.05 per 30 days since last manual confirmation, floored at 0.4).
+
+12. ProjectedDebtFreeDate
+Steps: Given all debts, a chosen strategy (avalanche/snowball/custom), and monthly payment capacity → amortize forward month-by-month, allocating minimums to every debt plus the full "extra" amount to the priority debt (per the chosen strategy's ordering) until each balance hits zero, then rolling that debt's freed-up payment into the next priority debt (the "debt snowball/avalanche roll-forward" mechanic — this rollover, not just the extra payment itself, is what compounds the acceleration over time and is worth explaining to the user, since it's the part people most often don't intuit). Output the payoff date and the specific milestone date for each individual debt.
+Confidence formula: 0.92 — this is deterministic amortization math given stated inputs; the only uncertainty is whether the user actually sustains the assumed extra-payment amount every month, which the agent should flag as the real-world variable ("this assumes you consistently pay the extra $X/month — missed months push this date back").
+
+SKILL TIER 2: Payoff Strategy Comparison (Deep Research)
+2. CalculateAvalanchePayoff / 3. CalculateSnowballPayoff / 4. CompareAvalancheVsSnowball — DEEP RESEARCH SKILLS
+Research & Methodology:
+
+Avalanche method: allocate all extra payment to the debt with the highest interest rate first, paying minimums on everything else; once the highest-rate debt is cleared, roll its full payment into the next-highest-rate debt. This is mathematically optimal — it minimizes total interest paid and minimizes total time to debt-free for any fixed extra-payment budget, because it always attacks the debt costing the most per dollar-month outstanding first. This is not a matter of opinion; it follows directly from the amortization math (a dollar directed at the highest-rate debt always earns a larger guaranteed "return" — the avoided interest — than a dollar directed anywhere else).
+Snowball method: allocate all extra payment to the debt with the smallest balance first, regardless of rate. Popularized and studied in behavioral-finance-adjacent personal finance literature (most prominently associated with Dave Ramsey's framework), snowball is mathematically suboptimal by definition — it will always cost equal or more total interest than avalanche for the same debt set and payment schedule, and the gap grows with the disparity between the smallest-balance debt's rate and the highest-rate debt's rate. Academic and behavioral research on debt repayment (e.g., published behavioral-economics studies on "debt account aversion" and early-win motivation) has found that some individuals are meaningfully more likely to complete a snowball plan than an avalanche plan because the early psychological win of eliminating a full account increases follow-through — meaning snowball can, for some people, produce a better real-world outcome than a mathematically superior plan that gets abandoned in month four. This is the load-bearing nuance the agent must convey: avalanche is the correct default recommendation on pure math, but snowball is a legitimate, evidence-informed alternative for a user whose behavioral pattern (visible in Agent Memory — e.g., history of abandoning multi-month financial plans) suggests they need the early win more than they need the optimal dollar amount.
+A hybrid approach — snowball the smallest 1-2 debts for early motivation, then switch to avalanche for the remainder — is a common practitioner compromise and should be offered as a third option, not just avalanche-vs-snowball as a binary.
+
+Steps the agent follows:
+
+Take AnalyzeAllDebts output and the user's stated extra-monthly-payment capacity.
+Sort debts two ways: by interest rate descending (avalanche order) and by balance ascending (snowball order).
+Amortize both schedules forward identically (same engine as ProjectedDebtFreeDate, run twice with different priority orderings) to get total_interest_paid and payoff_months for each.
+CompareAvalancheVsSnowball computes the delta: interest_saved_by_avalanche = snowball_total_interest − avalanche_total_interest, time_saved_by_avalanche = snowball_months − avalanche_months.
+Check Agent Memory for the user's behavioral pattern (has the user previously abandoned a payoff plan, or accepted/executed one to completion?). If no history exists yet, present both numbers neutrally and let the user choose. If history shows a pattern of abandonment, actively surface the hybrid or snowball option alongside the math, framed honestly: "avalanche saves you $X and Y months, but a plan you stick with beats a better plan you abandon — worth considering snowball or hybrid given your history."
+Never silently default to snowball without showing the avalanche numbers first — the user must see the true cost of the behavioral tradeoff, not have it hidden from them.
+
+Confidence formula: 0.95 for the interest/time numbers themselves (deterministic amortization); the behavioral-fit recommendation carries its own separate, explicitly lower confidence (0.6) since it's a judgment call based on limited history, and the two numbers should never be blended into one.
+
+5. AnalyzeConsolidationOpportunity — DEEP RESEARCH SKILL
+Research & Methodology:
+
+Debt consolidation replaces multiple debts with a single new loan, typically at a lower blended rate if the borrower's credit has improved since the original debts were taken on, or if moving unsecured high-rate debt (credit cards) into a lower-rate personal loan or home-equity product. The math is a straightforward net-present-value comparison, but two costs are commonly underweighted by borrowers: the origination fee (often 1-8% of the loan amount for personal-loan consolidation, charged upfront) and the psychological reset risk — consolidating credit card debt into a personal loan clears the card balances but does not close the cards, and without a spending-behavior change, borrowers not infrequently re-accumulate card debt on top of the new consolidation loan, ending up worse off than before. This is a well-documented pattern in consumer-finance research and the agent must include this caution whenever recommending consolidation, not as boilerplate but as a genuine, specific risk tied to the mechanics of the product.
+Break-even calculation: payback_period_months = origination_fee / monthly_interest_savings. If the payback period is longer than the user is likely to keep the loan (e.g., they might pay it off early, or the loan term itself is shorter than the payback period), consolidation may not be worth it even with a lower headline rate.
+
+Steps:
+
+Take current debts' weighted_avg_interest and total_interest_over_N_years (from an amortization run at minimum-plus-typical-extra payment) as the baseline.
+Take the proposed consolidation loan's rate, term, and origination fee as input (user-provided or from a specific offer they're evaluating — this skill does not invent hypothetical offers).
+Amortize the consolidation loan the same way.
+interest_saved = baseline_total_interest − consolidation_total_interest. net_savings = interest_saved − origination_fee.
+payback_period_months = origination_fee / (baseline_monthly_interest − consolidation_monthly_interest).
+Attach the behavioral caution above whenever any of the consolidated debts were revolving credit cards (not needed for consolidating, say, two fixed installment loans — the reset risk is specific to revolving credit).
+
+Confidence formula: 0.85 when the borrower's actual approved rate/fee is known (they have a real offer in hand); 0.5 if the agent is estimating what rate the user might qualify for (credit-score-to-rate mapping is genuinely uncertain without a hard credit pull) — never present an estimated hypothetical rate with the same confidence as an actual offer, and label which one it is every time.
+
+6. AnalyzeBalanceTransferOpportunity — DEEP RESEARCH SKILL
+Research & Methodology:
+
+0% intro-APR balance transfer cards are a genuine, well-established tool: the borrower moves a high-rate card balance to a new card offering a temporary 0% (or low) rate, typically for 12-21 months, in exchange for a one-time transfer fee (commonly 3-5% of the transferred balance, occasionally 0% as a promotional hook on some cards). The math favors the transfer whenever transfer_fee < interest_that_would_accrue_during_the_promo_period_on_the_old_card.
+The critical risk, and the one borrowers most commonly underweight: if the balance is not fully paid off by the end of the promotional period, the entire remaining balance typically reverts to the card's standard purchase APR — which for balance-transfer cards is very frequently in the 20-29% range, sometimes higher than the original card. Some issuers also apply deferred interest retroactively on any remaining balance (charging interest back to the original transfer date, not just going forward) — this is a materially worse outcome than a simple rate-reset, and the agent must check (or ask the user to check) which type of promotional terms apply before recommending a transfer, since the two structures have very different worst-case downside.
+The agent should always compute the required monthly payment to fully retire the balance within the promo window and present that number explicitly ("to be debt-free before the 0% period ends, you need to pay at least $X/month") rather than just noting the opportunity in the abstract.
+
+Steps:
+
+Take the current card's balance and APR.
+Take the offer's promo rate, promo duration, transfer fee (flat or %), and post-promo standard APR.
+interest_avoided_during_promo = balance × current_APR × (promo_months / 12) (simplified; a full amortization run is more accurate if the user is also paying down principal during the period, which they should be).
+net_savings = interest_avoided_during_promo − transfer_fee − new_card_annual_fee_if_any.
+required_monthly_payment_to_clear_in_time = balance / promo_months (plus fee if the fee itself is added to the balance rather than paid separately).
+Explicit warning block, always included: what happens to the remaining balance if not paid off in time — the reset APR, and whether deferred interest applies (ask the user to confirm from their card's terms if not already known; do not assume the friendlier "simple reset" structure by default).
+
+Confidence formula: 0.9 for the arithmetic given a specific real offer; the skill must refuse to fabricate a "typical" balance transfer offer if the user hasn't provided one — send them to check available offers rather than presenting hypothetical numbers as if they were real.
+
+11. AnalyzeRefinancingOpportunity
+Steps: Same net-present-value/break-even structure as consolidation, applied to a single existing loan (personal, auto, or private student loan — not federal loans, which have their own separate AnalyzeIncome_DrivenStudentLoanRepayment skill below) being replaced by a new loan at a different rate/term. monthly_savings = old_payment − new_payment; breakeven_months = origination_fee / monthly_savings; recommend refinancing when breakeven_months < remaining_loan_term with meaningful margin (a break-even at month 47 of a 48-month remaining term is not a real win once uncertainty is accounted for).
+Confidence formula: 0.9 with a real offer in hand; same "do not fabricate hypothetical offers" rule as balance transfer.
+
+SKILL TIER 3: Credit & Behavioral Skills
+8. CalculateCreditScoreImpact
+Research note: Credit scoring models (FICO, VantageScore) are proprietary and not fully disclosed, so this skill produces directional estimates, not precise point predictions. What is publicly documented and reliable: credit utilization (balance ÷ limit, both per-card and aggregate) is one of the most heavily-weighted factors after payment history; utilization below 30% is broadly cited as favorable, below 10% as excellent. Paying down a card meaningfully lowers utilization and, all else equal, tends to help score — but the exact point magnitude the agent should never state as precise ("+15 points") without heavy caveats, since it depends on the individual's full file.
+Steps: Compute current aggregate and per-card utilization → estimate post-paydown utilization for a proposed payment → describe directionally ("utilization drops from 60% to 45%, which is generally favorable for score") rather than promising a specific point gain.
+Confidence formula: 0.5 fixed ceiling on any point-estimate language — this reflects genuine model opacity, not a data-quality problem the agent can fix with better inputs.
+
+10. AnalyzeMinimumPaymentTrap
+Steps: Standard amortization at minimum-payment-only vs. several accelerated scenarios, showing months-to-payoff and total interest for each → this is the clearest, most motivating visualization in the Debt Agent's toolkit and should default to producing a chart, not just numbers (see chart spec below).
+Chart spec: bar or line comparison — x-axis = "monthly payment amount" (a few scenarios: minimum, +$100, +$300, +$500), y-axis dual-purpose: months-to-payoff (line) and total interest paid (bars). This pairs the two costs of minimum-payment-only behavior (time and money) in one glance, which is more persuasive than either number alone.
+Confidence formula: 0.97 — pure deterministic amortization arithmetic, the highest-confidence skill in this catalog.
+
+13. AnalyzeHyperbolicDiscountingBias
+Research note: Hyperbolic discounting — the well-documented behavioral-economics finding that people disproportionately undervalue future costs/benefits relative to immediate ones — is the academic underpinning for why "only paying the minimum" is a common, predictable pattern rather than a purely rational choice given the numbers in AnalyzeMinimumPaymentTrap. This skill exists to flag the pattern, not to diagnose the user; the agent must never present this as a psychological assessment of the individual ("you have hyperbolic discounting bias") — it should describe the observed payment behavior pattern only ("your payment history shows minimum-only payments in 8 of the last 10 months") and offer a behavioral countermeasure (automatic extra payment enrollment, milestone gamification) without any claim about the user's internal psychology.
+Steps: Pull payment history from Plaid (or logged manual payments) → compute ratio of minimum-only months to total months → if the ratio is high, surface the automatic-payment and milestone-tracking countermeasures from ProjectedDebtFreeDate's milestone output, reframed as an opt-in behavioral tool.
+Confidence formula: 0.6 — this is a pattern-detection heuristic on payment history, not a hard financial calculation, and should be labeled as observational, not diagnostic.
+
+9. AnalyzeIncome_DrivenStudentLoanRepayment
+Research note: Federal income-driven repayment (IDR) plans base the monthly payment on income and family size rather than the loan balance, and can meaningfully lower monthly cash-flow burden — but at the cost of a longer repayment term and, because interest continues accruing on a smaller payment, typically more total interest paid over the life of the loan than the standard 10-year plan, unless the borrower qualifies for and receives loan forgiveness at the end of the IDR term (20-25 years depending on plan and loan type, or via Public Service Loan Forgiveness for qualifying employment, which is a substantially shorter 10-year path). Because federal student loan program rules have changed multiple times in recent years and forgiveness terms are politically and legislatively contested, the agent must not assert a specific forgiveness outcome as guaranteed — it should present the potential forgiveness path as a real but uncertain factor and recommend the user verify current plan terms directly at the federal loan servicer / studentaid.gov before deciding, rather than relying on the agent's static knowledge of program rules.
+Steps: Compare standard 10-year fixed payment vs. an IDR-estimated payment (using the standard IDR formula: payment based on a percentage of discretionary income, discretionary income defined as AGI minus a poverty-line-based exemption, exact percentage varies by plan) → show monthly cash-flow difference and estimated total-interest difference over the standard term → flag the caveat above explicitly every time.
+Confidence formula: 0.65 — the monthly payment estimate itself is a standard formula and reasonably precise given accurate income input, but the long-run outcome (forgiveness or not) carries genuine external uncertainty this skill cannot resolve, so the combined confidence stays capped there.
+
+SKILL TIER 4: The Core Decision (Deep Research, Multi-Subagent)
+7. AnalyzeDebtVsInvestmentTrade — DEEP RESEARCH, MULTI-SUBAGENT SKILL
+This is the single most consequential recommendation the Debt Agent makes, because it routes real dollars between two entirely different systems (debt payoff vs. investment agent), and because getting the sequencing wrong (e.g., missing free employer match money) has a large, quantifiable, permanent cost. It runs as a 3-subagent pipeline that deliberately separates "guaranteed math" from "probabilistic math" so the two are never silently blended into one confidence-washed number.
+Research & Methodology:
+
+The standard, widely-taught prioritization waterfall among fee-only fiduciary planners for allocating a limited extra-dollar budget is, in order:
+
+Capture the full employer 401(k)/403(b) match, if any. A typical match (e.g., 50% up to 6% of pay) is an instant, risk-free 50% return on the matched dollars — no market investment return, however good, reliably beats a guaranteed, immediate 50% return. This step is treated as non-negotiable first priority in essentially all mainstream planning frameworks, and this skill must never recommend skipping an available match in favor of debt payoff, even high-rate debt, without at minimum flagging that this is a deviation from standard practice and asking the user to confirm they understand the tradeoff.
+Pay off high-interest debt (commonly defined as anything above roughly 7-8%, which is in the neighborhood of a reasonable long-run expected equity return — credit cards at 18-29% are the clearest case). This is because paying down debt at rate R is mathematically equivalent to earning a guaranteed R% return, and a guaranteed 20% "return" from eliminating a credit card is not something any invest-instead strategy can reliably beat on a risk-adjusted basis. This is guaranteed math, not probabilistic — there is no scenario analysis needed here, the comparison is deterministic.
+Build a starter emergency fund (commonly 1 month of expenses at minimum, before aggressively attacking lower-rate debt or investing further) is often inserted before or interleaved with step 2 in many planning frameworks, to avoid the user going back into high-rate debt the moment an unexpected expense hits — this agent should ask whether the user has this baseline covered and flag it as a gap if not, even though Fin's Investment Agent doesn't explicitly track a cash emergency fund as a holding.
+Beyond that, the debt-vs-invest decision for moderate-rate debt (roughly 4-7%: many student loans, some mortgages, some auto loans) is genuinely probabilistic rather than guaranteed — it depends on comparing the debt's fixed guaranteed rate against the uncertain, probabilistic expected return of investing instead. This is where the pipeline below does real Monte-Carlo-informed work rather than simple deterministic comparison, because comparing a guaranteed 5% to an uncertain "expected 8%" is not an apples-to-apples comparison without accounting for the variance and downside risk of the uncertain leg.
+
+
+Tax treatment matters and is commonly under-modeled: interest on some debt (e.g., mortgage interest, in some cases student loan interest up to IRS limits) may be tax-deductible, which lowers its effective rate below the stated rate for a taxpayer who itemizes or otherwise qualifies — the skill should account for this rather than comparing stated nominal debt rates uniformly.
+
+Multi-subagent pipeline:
+SUBAGENT 1 — Guaranteed-Math Triage
+  Input:  AnalyzeAllDebts output, user's employer match terms (if on file / user-provided),
+          user's emergency-fund status (user-provided, since Fin doesn't auto-track cash)
+  Job:    - Check: is there unclaimed employer match available? If yes, compute its
+            dollar value and flag as mandatory-first priority (this is guaranteed math,
+            resolved with certainty — no simulation needed).
+          - Check: is there any debt above ~15% (credit-card-tier)? If yes, flag as
+            mandatory-near-first priority (also guaranteed math — the comparison is
+            deterministic against any reasonable investment-return assumption).
+          - Check: is there a starter emergency fund? If not, flag the gap.
+          - Adjust each debt's *effective* rate downward for any known tax-deductibility
+            (mortgage interest, qualifying student loan interest) using the user's
+            marginal tax rate if known, else leave un-adjusted and disclose the omission.
+  Output: { unclaimed_match_value, high_rate_debts_needing_priority,
+            emergency_fund_gap_flag, tax_adjusted_debt_rates,
+            remaining_moderate_rate_debts_for_probabilistic_comparison }
+  This subagent's output is high-confidence (0.9+) because it deals only in
+  deterministic/guaranteed comparisons.
+
+SUBAGENT 2 — Probabilistic Comparison (for moderate-rate debt only)
+  Input:  Subagent 1's remaining_moderate_rate_debts, user's risk tolerance,
+          time horizon
+  Job:    - For each moderate-rate debt, compare its guaranteed rate against a
+            probability distribution of investment outcomes over the same horizon
+            (reuse the Investment Agent's ProjectedPerformanceMonteCarloSimulation
+            subagent pipeline, or a lighter simplified version of it, rather than
+            re-deriving return assumptions independently — single source of truth
+            for capital market assumptions across agents)
+          - Compute the probability that investing outperforms paying down this
+            specific debt over this specific horizon, not just the expected-value
+            comparison (a debt at 5% vs. an investment with expected return 8% but
+            wide variance might still have a meaningful chance of underperforming
+            5% over a short horizon — that probability matters to a risk-averse user
+            more than the expected value alone)
+  Output: { per_debt: [{debt_id, guaranteed_rate, probability_investing_wins,
+            expected_value_gap}] }
+
+SUBAGENT 3 — Hybrid Recommendation Synthesizer
+  Input:  Subagent 1 + Subagent 2 outputs, user's extra monthly cash amount
+  Job:    - Allocate the user's stated extra monthly cash across the priority
+            waterfall: unclaimed match first (up to the match cap), then high-rate
+            debt, then split remaining cash between emergency fund gap (if any)
+            and the moderate-rate-debt-vs-invest question using Subagent 2's
+            probabilities as a guide (higher probability investing wins + higher
+            user risk tolerance = more toward investing; lower probability or
+            lower risk tolerance = more toward debt)
+          - Produce a specific dollar allocation, not just a philosophy
+          - Attach confidence separately for the guaranteed-math portion (high)
+            and the probabilistic portion (bounded by Subagent 2's own uncertainty,
+            never inflated to match the guaranteed portion's confidence)
+  Output: final allocation recommendation + reasoning trace citing which subagent
+          produced each piece of the recommendation
+Example Subagent 1 prompt (illustrative):
+
+"Given this debt list and the user's employer 401(k) match formula (e.g., '50% up to 6% of $95,000 salary'), compute the exact dollar value of any match the user is not currently capturing at their present contribution rate. Separately, list every debt with a stated APR above 15%. Do not make an investment-return comparison in this step — this step only resolves guaranteed, deterministic comparisons. Pass anything requiring a probabilistic investment-return comparison to the next stage untouched."
+
+Confidence formula: reported as two numbers, never merged — guaranteed_portion_confidence (typically 0.9+, from Subagent 1) and probabilistic_portion_confidence (bounded by whatever confidence the reused Monte Carlo pipeline produced, typically ≤0.68 per the Investment Agent's own cap on that skill). The final synthesized recommendation must show both, so the user can see clearly which parts of the advice are near-certain and which parts are genuinely a judgment call under uncertainty.
+
+FindSkills_Debt (meta-skill)
+Steps: Same rules-based keyword/intent matching approach as FindSkills_Investment (see Investment Agent skill catalog for the shared methodology) — extract debt-type entities (credit card, student loan, mortgage, personal loan), extract intent (payoff timing, strategy comparison, consolidation/refinance evaluation, debt-vs-invest), score against each skill's Purpose line, return top 3-5 ranked matches with one-line reasons.
+
+Appendix: Generic Confidence Formula (fallback only)
+confidence = 0.9 × data_source_reliability × input_recency_factor, where data_source_reliability = 1.0 for Plaid-verified data, 0.75 for manually-entered data; input_recency_factor decays as in AnalyzeAllDebts above. Every skill in this file specifies its own formula and this fallback should rarely be needed.
