@@ -10,8 +10,8 @@
 |------|---------|--------------|
 | `README.md` | Project overview, stack | Always first |
 | `GitHub_References.md` | Repo-per-feature map | Need repo URL |
-| `Features_reccomendations` | Feature priority & dependency order | Planning work |
-| `Frontend_reccomendations` | UI component tree, animations, a11y | Frontend work |
+| `Features_Specification.md` | Feature priority & dependency order | Planning work |
+| `Frontend_Architecture.md` | UI component tree, animations, a11y | Frontend work |
 | `Features/Recommendation_engine.md` | C.O.R.E. framework, confidence scoring, multi-agent | Recommendation logic |
 | `Features/Voting_and_feedback_system.md` | Vote lifecycle, past_decisions, behavioral calc | Feedback, votes |
 | `Features/Community_voting_and_benchmarks.md` | Anonymous aggregation, k-anonymity, cohorts | Community (Phase 2) |
@@ -61,7 +61,7 @@ IF task contains "connector" | "alpaca" | "plaid" | "finnhub" | "data refresh"
   → Features/Data_refresh_pipeline.md
 
 IF task contains "frontend" | "ui" | "visualization" | "3d" | "chart"
-  → Frontend_reccomendations
+  → Frontend_Architecture.md
   → Features/Portfolio_visualization.md
 
 IF task contains "mobile" | "offline" | "pwa" | "service worker"

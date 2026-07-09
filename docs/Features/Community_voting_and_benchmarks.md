@@ -1,12 +1,12 @@
 # Community Voting & Benchmarks
 
-**Version:** 1.1 | **Status:** Draft | **Phase:** 4 (per `docs/Features_reccomendations`)
+**Version:** 1.1 | **Status:** Draft | **Phase:** 4 (per `docs/Features_Specification.md`)
 
 ## Overview
 
 Opt-in anonymous aggregation of recommendation quality across all Fin users. Users see how their agent's recommendations compare to community benchmarks. No PII, no portfolio data — only anonymized vote patterns and confidence scores. This is the last major feature phase, building on the voting system.
 
-Reference: `docs/Features/Voting_and_feedback_system.md` (prerequisite), `docs/Features_reccomendations` (Phase 4 mention)
+Reference: `docs/Features/Voting_and_feedback_system.md` (prerequisite), `docs/Features_Specification.md` (Phase 4 mention)
 
 ## What Gets Shared (Opt-In Only)
 

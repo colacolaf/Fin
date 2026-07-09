@@ -500,7 +500,7 @@ const swipeGestures = {
 
 ### State Management
 
-From `docs/Frontend_reccomendations`, the state management approach uses **Zustand** with slices. The local-first architecture extends this by persisting slices to IndexedDB and using the server as a synchronization target (not the source of truth during active use).
+From `docs/Frontend_Architecture.md`, the state management approach uses **Zustand** with slices. The local-first architecture extends this by persisting slices to IndexedDB and using the server as a synchronization target (not the source of truth during active use).
 
 ```typescript
 // store/index.ts

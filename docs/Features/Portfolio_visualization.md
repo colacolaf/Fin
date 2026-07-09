@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Portfolio Visualization is the primary user-facing interface for Fin. It renders an ocean-themed scene using Three.js (WebGL particle ocean) and D3.js (force-directed memory graph), with animated agent fins circling the user's portfolio like marine life. The design follows the "Ocean" metaphor from `docs/Frontend_reccomendations`: calm, deep, alive. Agents are fins — each with distinct motion character — moving through a data ocean that pulses with portfolio activity.
+The Portfolio Visualization is the primary user-facing interface for Fin. It renders an ocean-themed scene using Three.js (WebGL particle ocean) and D3.js (force-directed memory graph), with animated agent fins circling the user's portfolio like marine life. The design follows the "Ocean" metaphor from `docs/Frontend_Architecture.md`: calm, deep, alive. Agents are fins — each with distinct motion character — moving through a data ocean that pulses with portfolio activity.
 
 ---
 
