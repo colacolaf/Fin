@@ -1,5 +1,5 @@
 # FIN SETUP WIZARD — FRONTEND SPECIFICATION
-**Version**: 1.0 | **Purpose**: UI/UX specification for implementing the Setup Wizard | **Last Updated**: July 2026
+**Version**: 1.1 | **Purpose**: UI/UX specification for implementing the Setup Wizard | **Last Updated**: July 2026
 
 ---
 
@@ -15,6 +15,10 @@ This document describes what the user sees, how they interact with each step, an
 - Ocean theme is felt through spacing, motion, and metaphor — not literal water graphics everywhere
 - Mobile-first responsive design (wizard works on desktop, tablet, phone)
 
+**Updates in v1.1:**
+- Added Step 4: Choose Your AI Models (re-numbered former Step 4 → Step 5, Step 5 → Step 6)
+- Total steps: 6 (plus intro/outro)
+
 ---
 
 ## GLOBAL WIZARD STRUCTURE
@@ -22,7 +26,7 @@ This document describes what the user sees, how they interact with each step, an
 ### Layout Skeleton
 ```
 ┌─────────────────────────────────────────────────────┐
-│  [Back ←]                    Step 2 of 5            │
+│  [Back ←]                    Step 2 of 6            │
 │                                                      │
 │  ┌──────────────────────────────────────────────┐   │
 │  │                                              │   │
@@ -41,10 +45,10 @@ This document describes what the user sees, how they interact with each step, an
 | Element | Position | Behavior |
 |---------|----------|----------|
 | **Back button (←)** | Top-left | Returns to previous step. Styled as a subtle text link or icon, not a heavy button. |
-| **Progress indicator** | Top-center | "Step X of 5" with visual dots or a thin progress bar underneath. Fills left-to-right as user advances. |
+| **Progress indicator** | Top-center | "Step X of 6" with visual dots or a thin progress bar underneath. Fills left-to-right as user advances. |
 | **Step title + subheader** | Top of content area | Clear, friendly header. Subheader is one line, muted tone. |
 | **CTA Button** | Bottom-right | Primary action. Warm but not aggressive color. Says "Continue →" or context-specific text. |
-| **Skip link (conditional)** | Below CTA or bottom-left | Only on optional steps (Goals, Connectors). Styled as a subtle text link. |
+| **Skip link (conditional)** | Below CTA or bottom-left | Only on optional steps (Goals, Connectors, Models). Styled as a subtle text link. |
 
 ### Transitions Between Steps
 - **Direction:** Steps slide in from the right (user is moving forward). Going back slides in from the left.
@@ -77,7 +81,7 @@ This document describes what the user sees, how they interact with each step, an
 │  └──────────┘  └──────────┘  └──────────┘         │
 │                                                      │
 │     Let's get your financial world in order.         │
-│         This takes about 5 minutes.                  │
+│         This takes about 7–10 minutes.               │
 │                                                      │
 │               [ Get Started → ]                      │
 │                                                      │
@@ -105,7 +109,7 @@ This document describes what the user sees, how they interact with each step, an
 #### Layout
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [←]                           Step 1 of 5           │
+│ [←]                           Step 1 of 6           │
 │                                                      │
 │  Tell us about yourself                             │
 │  This helps agents understand your financial         │
@@ -180,7 +184,7 @@ This document describes what the user sees, how they interact with each step, an
 #### Layout
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [←]                           Step 2 of 5           │
+│ [←]                           Step 2 of 6           │
 │                                                      │
 │  What are you working toward?                       │
 │  Add up to 5 goals. Agents use these               │
@@ -256,7 +260,7 @@ This document describes what the user sees, how they interact with each step, an
 #### Layout
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [←]                           Step 3 of 5           │
+│ [←]                           Step 3 of 6           │
 │                                                      │
 │  Connect your financial accounts                    │
 │  Optional — but highly recommended. Connected       │
@@ -343,14 +347,171 @@ This document describes what the user sees, how they interact with each step, an
 
 ---
 
-### STEP 4: AGENT MODES & PERMISSIONS
+### STEP 4: CHOOSE YOUR AI MODELS
 
-**Visual priority:** This is the most complex step. Needs clear organization so user doesn't feel overwhelmed. Accordion or tab-based layout for the three agent configs.
+**Visual priority:** A critical decision presented clearly. Three distinct paths the user can understand at a glance. The UI should guide without overwhelming — this step decides cost, speed, and privacy for the entire system.
 
 #### Layout
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [←]                           Step 4 of 5           │
+│ [←]                           Step 4 of 6           │
+│                                                      │
+│  Choose your AI models                              │
+│  Pick where and how your agents think.              │
+│  You can change models anytime from Settings.       │
+│                                                      │
+│  ┌─────────────────────────────────────────────┐    │
+│  │  ☁️  Cloud Excellence                        │    │
+│  │  Best quality. Easiest setup.                │    │
+│  │  Claude Sonnet 5 or GPT-5.5                  │    │
+│  │  ~$50–200/month · 2–3s · API key only        │    │
+│  │  Privacy: Medium (cloud)                     │    │
+│  │                                    [Select]  │    │
+│  └─────────────────────────────────────────────┘    │
+│                                                      │
+│  ┌─────────────────────────────────────────────┐    │
+│  │  💰  Cloud Frugality                    ← SELECTED│
+│  │  Frontier capability at bargain pricing.    │    │
+│  │  DeepSeek V4 Pro or Gemini 3.5 Flash        │    │
+│  │  ~$10–30/month · 1–3s · API key only        │    │
+│  │  Privacy: Medium (cloud)                     │    │
+│  │  ┌──────────────────────────────────────┐    │    │
+│  │  │ Per-agent models:                    │    │    │
+│  │  │ 🏦 Investment → [▼ DeepSeek V4 Pro]  │    │    │
+│  │  │ 💳 Debt       → [▼ Gemini 3.5 Flash] │    │    │
+│  │  │ 📅 Retirement → [▼ DeepSeek V4 Pro]  │    │    │
+│  │  │                                      │    │    │
+│  │  │ API Keys:                            │    │    │
+│  │  │ ☑ DeepSeek  [••••••••••••••] [Test] │    │    │
+│  │  │ ☐ Google    [                  ]     │    │    │
+│  │  │                                      │    │    │
+│  │  │ Est. monthly cost: ~$15–25           │    │    │
+│  │  └──────────────────────────────────────┘    │    │
+│  │                                    [Select]  │    │
+│  └─────────────────────────────────────────────┘    │
+│                                                      │
+│  ┌─────────────────────────────────────────────┐    │
+│  │  🔒  Local Privacy                           │    │
+│  │  Everything runs on your machine. $0/month.  │    │
+│  │  Qwen 3.6 35B or Mistral 7B                  │    │
+│  │  $0/month · 1–5s (GPU) · Install Ollama      │    │
+│  │  Privacy: Maximum (local)                     │    │
+│  │                                    [Select]  │    │
+│  └─────────────────────────────────────────────┘    │
+│                                                      │
+│  ┌─ Advanced: Hybrid Mode (collapsed) ──────────┐   │
+│  │  [Tap to expand ▼]                            │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  Summary:                                            │
+│  🏦 Investment → DeepSeek V4 Pro (Cloud, ~$10/mo)   │
+│  💳 Debt       → Gemini 3.5 Flash (Cloud, ~$5/mo)   │
+│  📅 Retirement → DeepSeek V4 Pro (Cloud, ~$10/mo)   │
+│  Est. total: ~$25/month                             │
+│                                                      │
+│     [Use recommended defaults]    [Continue →]      │
+└─────────────────────────────────────────────────────┘
+```
+
+#### Interaction Details
+
+**Three-Path Selector Cards:**
+- Three large cards, vertically stacked, equal prominence
+- Only ONE path can be selected at a time (radio-button behavior)
+- Unselected cards: subtle border, normal elevation, collapsed state showing summary info
+- Selected card: highlighted border (ocean-toned accent), slightly elevated, expands to show per-agent customization
+
+**Card Content (collapsed state):**
+- Path icon (☁️ / 💰 / 🔒) + name
+- One-line tagline
+- Primary model names
+- Key stats: cost range, speed, setup requirement, privacy level
+- A "Select" button on the right
+
+**Card Content (expanded state — when selected):**
+- Same header info
+- Additional section slides down (animated, ~250ms):
+  - **Per-agent model dropdowns:** Three rows, one per agent. Each row shows: agent emoji + name, a dropdown select with the recommended default pre-selected, and a small label showing cost/speed.
+    - Cloud paths: dropdown contains the cloud model options (Claude Sonnet 5, GPT-5.5, Claude Opus 4.7, etc.)
+    - Local path: dropdown contains local model options (Mistral 7B, Phi-4, Qwen 3.6 35B, DeepSeek-R1, Gemma 4 27B)
+  - **Per-model info:** Below each dropdown, a small line showing: download size + VRAM needed + quality rating (for local models) or cost/speed (for cloud models)
+  - **API Key field (Cloud paths only):** Masked input field per selected provider. "Test Connection" button beside each. Green checkmark or red X inline after test.
+    - Cloud Excellence: provider checkboxes (Anthropic / OpenAI / Both), with key fields appearing for each checked provider
+    - Cloud Frugality: provider checkboxes (DeepSeek / Google / Both)
+  - **Ollama status (Local path only):** See "Ollama Detection" section below
+  - **Estimated monthly cost:** Calculated dynamically based on selected models and providers (Cloud paths only)
+
+**Ollama Detection (for Local Privacy path):**
+
+**State A: Ollama not detected**
+```
+⚠️ Ollama is not running.
+
+Setup instructions:
+  1. Install: brew install ollama && ollama serve
+  2. Pull models: ollama pull qwen3:35b
+  3. Verify: ollama list
+
+[Test Ollama Connection] [Copy install commands]
+```
+- Code blocks with copy buttons for each command
+- "Test Ollama Connection" button that pings localhost:11434
+
+**State B: Ollama detected ✅**
+```
+✅ Ollama is running (v0.x.x)
+
+Installed models:
+  ✅ qwen3:35b (20 GB)
+  ⚠️ deepseek-r1:32b — not pulled yet
+  ✅ mistral:7b (4 GB)
+
+[Pull Missing Models] [Refresh]
+```
+- Model list shows installed models with checkmarks
+- "Pull Missing Models" button triggers `ollama pull` for each unchecked model, with progress feedback
+
+**CPU-Only Warning (Local path only):**
+- If no GPU detected, show a yellow warning banner within the expanded card:
+  > "⚠️ No GPU detected. Models will run on CPU only — expect 5–30 seconds per response. A GPU with 12+ GB VRAM (RTX 4090) is recommended for the best experience."
+
+**Hybrid Mode (Advanced) — Collapsible Section:**
+- Below the three main path cards
+- Collapsed by default: "Advanced: Hybrid Mode ▼"
+- Expanded: allows per-agent mixing of cloud and local models
+- Three rows (one per agent), each with a dropdown containing ALL models (cloud + local)
+- Dropdown items show provider badge + model name + cost indicator
+- Example: "☁️ Claude Sonnet 5 ($15/M output)" or "🔒 Qwen 3.6 35B (Local, $0)"
+- When mixing cloud + local, API key fields AND Ollama status section both appear
+
+**Model Selection Summary:**
+- Sticky section at the bottom of the step (always visible even when scrolling)
+- Shows each agent's chosen model with provider badge + estimated cost
+- Total estimated monthly cost (for cloud models)
+- Setup requirements line: "2 API keys needed" or "1 local model to pull" or "2 API keys + 1 local model"
+
+**Default Model Behavior:**
+- On first visit to this step, Cloud Frugality (DeepSeek V4 Pro) is pre-selected as the sensible default
+- User can change by tapping any other card
+- "Use recommended defaults" skip link at bottom: selects Cloud Frugality, DeepSeek V4 Pro for all agents, skips API key entry (prompted later)
+
+#### Mobile Adaptation
+- Three path cards stack vertically full-width
+- Expanded content scrolls within the card
+- Per-agent dropdowns go full-width
+- Ollama code blocks scroll horizontally
+- Summary section becomes sticky at bottom
+
+---
+
+### STEP 5: AGENT MODES & PERMISSIONS
+
+**Visual priority:** This is a complex step. Needs clear organization so user doesn't feel overwhelmed. Accordion or tab-based layout for the three agent configs.
+
+#### Layout
+```
+┌─────────────────────────────────────────────────────┐
+│ [←]                           Step 5 of 6           │
 │                                                      │
 │  How should your agents behave?                     │
 │  Set thinking depth, permissions, and data          │
@@ -451,14 +612,14 @@ This document describes what the user sees, how they interact with each step, an
 
 ---
 
-### STEP 5: REVIEW & LAUNCH
+### STEP 6: REVIEW & LAUNCH
 
 **Visual priority:** Clean summary, celebration-adjacent but not over-the-top. This is the moment of completion — should feel satisfying and reassuring.
 
 #### Layout
 ```
 ┌─────────────────────────────────────────────────────┐
-│ [←]                           Step 5 of 5           │
+│ [←]                           Step 6 of 6           │
 │                                                      │
 │  You're all set. Ready to dive in? 🌊               │
 │  Review your setup below. You can change            │
@@ -481,6 +642,14 @@ This document describes what the user sees, how they interact with each step, an
 │  │  📈 Finnhub  ⬜ Not connected                │   │
 │  └──────────────────────────────────────────────┘   │
 │                                                      │
+│  ┌─ 🧠 AI Models ──────────────────── [Edit] ───┐   │
+│  │  🏦 Investment → DeepSeek V4 Pro (Cloud)     │   │
+│  │  💳 Debt       → Gemini 3.5 Flash (Cloud)    │   │
+│  │  📅 Retirement → DeepSeek V4 Pro (Cloud)     │   │
+│  │  Est. monthly cost: ~$25/month               │   │
+│  │  Ollama: ⬜ Not used (cloud path selected)   │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
 │  ┌─ ⚙️ Agents ───────────────────── [Edit] ───┐   │
 │  │  🏦 Investment: Medium, Suggest only         │   │
 │  │  💳 Debt: Medium, Suggest + Notify           │   │
@@ -489,9 +658,11 @@ This document describes what the user sees, how they interact with each step, an
 │                                                      │
 │  ┌──────────────────────────────────────────────┐   │
 │  │  🌊 What happens next:                        │   │
-│  │  1. Your User Context File is created         │   │
-│  │  2. Agents pull live data (if connected)      │   │
-│  │  3. Homepage loads with your 3 agent fins     │   │
+│  │  1. User Context File is created              │   │
+│  │  2. API keys encrypted & stored (AES-256)     │   │
+│  │  3. Local models pulled (if selected)          │   │
+│  │  4. Agents pull live data (if connected)       │   │
+│  │  5. Homepage loads with your 3 agent fins      │   │
 │  └──────────────────────────────────────────────┘   │
 │                                                      │
 │               [ Launch Fin 🌊 ]                      │
@@ -501,28 +672,35 @@ This document describes what the user sees, how they interact with each step, an
 #### Interaction Details
 
 **Summary Sections:**
-- Four collapsible/expandable summary cards
+- Five collapsible/expandable summary cards (Profile, Goals, Connected, AI Models, Agents)
 - All start expanded so user can scan everything
 - Each has an "[Edit]" link on the right side of the header
 - Clicking "Edit" navigates directly to the corresponding wizard step (preserving current form state)
 - If user edits and returns, the summary updates
 
+**AI Models Summary (new section):**
+- Shows per-agent model assignment with provider badge (☁️ Cloud or 🔒 Local)
+- Shows estimated monthly cost for cloud models; "$0/month" for local
+- Shows Ollama status if local models selected: "✅ Running — qwen3:35b, mistral:7b" or "⚠️ Not running"
+- Shows API key status per provider: "✅ Anthropic key set" / "⚠️ DeepSeek key needed"
+
 **What Happens Next Box:**
 - Distinct visual treatment (subtle border, slight background tint)
-- Three numbered items, concise
+- Five numbered items, concise
 - Reassuring tone — "you're in good hands"
 
 **Launch Button:**
 - Largest button in the entire wizard
-- Wave emoji or subtle ocean-inspired icon
+- Wave emoji 🌊
 - On hover: gentle pulse or glow animation
-- On click: brief loading state (~1–2 seconds while context file is created and APIs are called)
+- On click: brief loading state (~1–2 seconds while context file is created, keys encrypted, models pulled, APIs called)
 - Loading state shows a subtle water-ripple animation or progress indicator
 
 **Transition to Homepage:**
 - After launch, the wizard view fades or slides away
 - Homepage fades in
 - A subtle "welcome" animation on the three agent fin cards (e.g., they rise up from below like fins breaching the surface)
+- Post-launch health check banner appears at top (see below)
 - No tour/overlay immediately — let user explore. Tooltips can appear on first visit to key areas but should not block the view.
 
 #### Mobile Adaptation
@@ -539,6 +717,13 @@ This document describes what the user sees, how they interact with each step, an
 ┌──────────────────────────────────────────────────────┐
 │ [☰]  Home    Analytics  Settings  Connectors  Help  │ ← Left Sidebar
 │                                                      │
+│  ┌─ Post-Launch Health Check (dismissible) ─────┐   │
+│  │  ✅ Ollama running (qwen3:35b, mistral:7b)    │   │
+│  │  ✅ Anthropic API key valid                   │   │
+│  │  ✅ Alpaca connected (6 holdings)              │   │
+│  │  ⚠️ Plaid not connected (add in Connectors)   │   │
+│  │  [Dismiss]                                    │   │
+│  └──────────────────────────────────────────────┘   │
 │                                                      │
 │          ┌──────────┐  ┌──────────┐  ┌──────────┐  │
 │          │ 🏦       │  │ 💳       │  │ 📅       │  │
@@ -546,13 +731,22 @@ This document describes what the user sees, how they interact with each step, an
 │          │  Agent   │  │  Agent   │  │  Agent   │  │
 │          │          │  │          │  │          │  │
 │          │ Ready ●  │  │3 pending │  │ Ready ●  │  │
-│          │          │  │  ●       │  │          │  │
+│          │Claude S5 │  │Gem 3.5 F │  │Qwen 3.6  │  │
 │          └──────────┘  └──────────┘  └──────────┘  │
 │                                                      │
 │          [Ocean-inspired calm background]           │
 │                                                      │
 └──────────────────────────────────────────────────────┘
 ```
+
+### Post-Launch Health Check Banner
+- Appears at top of homepage on first load after wizard completion
+- Dismissible (×) but reappears on next page load if issues persist
+- Shows status for each configured system:
+  - ✅ Ollama reachable + models installed (only if local models selected)
+  - ✅ / ❌ API keys valid per cloud provider
+  - ✅ / ❌ Alpaca/Plaid/Finnhub connected
+- Yellow ⚠️ for optional items not configured (not errors, just reminders)
 
 ### Left Sidebar
 - **Persistent, collapsible** — like ChatGPT, Codex, Cursor
@@ -562,7 +756,7 @@ This document describes what the user sees, how they interact with each step, an
 - Items:
   - 🏠 **Home** — agent fin cards dashboard
   - 📊 **Analytics** — overall analytics view (see below)
-  - ⚙️ **Settings** — edit profile, goals, agent configs, modes
+  - ⚙️ **Settings** — edit profile, goals, agent configs, models, modes
   - 🔌 **Connectors** — manage API connections (add, remove, test)
   - 📚 **Help** — documentation, FAQ, glossary
 - Active item has subtle highlight
@@ -581,6 +775,7 @@ This document describes what the user sees, how they interact with each step, an
     - "3 pending recommendations" — recommendations awaiting user vote
     - "Connected to Alpaca" — API status
     - "Needs setup" — if agent was skipped during wizard (shows "Set up →" CTA)
+  - **Model badge**: Small pill/badge showing assigned model name (e.g., "Claude Sonnet 5", "Qwen 3.6 Local"). Cloud models get ☁️ prefix, local get 🔒 prefix.
   - **Mini confidence dot**: Small colored circle in corner:
     - 🟢 Green: Data fresh, agent has high-quality inputs
     - 🟡 Yellow: Some data missing or stale
@@ -593,12 +788,14 @@ When user hovers over an agent card (desktop) or long-presses (mobile), a toolti
 ┌─────────────────────────────────┐
 │  🏦 Investment Agent            │
 │                                 │
+│  Model: Claude Sonnet 5 (☁️)    │
 │  Confidence Score: 82%          │
 │  Last Active: 2 hours ago       │
 │  Tool Calls Today: 4            │
 │  Memory: 12 past decisions      │
 │  Data Freshness: Synced 1h ago  │
 │  Mode: Medium Thinking          │
+│  Est. monthly cost: ~$50        │
 │                                 │
 │  [Open Agent →]                 │
 └─────────────────────────────────┘
@@ -606,6 +803,7 @@ When user hovers over an agent card (desktop) or long-presses (mobile), a toolti
 - Popover appears above or beside the card (position-aware, doesn't clip viewport edges)
 - Smooth fade-in (~150ms)
 - "Open Agent →" link navigates into the full agent interface
+- Shows model badge + estimated cost line (only for cloud models)
 
 ### Agent Card Click
 - Tapping/clicking the card (not the hover popover) navigates into that agent's full view
@@ -638,6 +836,16 @@ When user clicks 📊 Analytics in the left sidebar:
 │  └────────────┘ └────────────┘ └────────────┘      │
 │                                                      │
 │  ┌──────────────────────────────────────────────┐   │
+│  │  Model Performance                            │   │
+│  │                                              │   │
+│  │  🏦 Invest: Claude S5 · Avg 2.1s · $48/mo   │   │
+│  │  💳 Debt: Gemini 3.5 F · Avg 0.8s · $6/mo   │   │
+│  │  📅 Retire: DeepSeek V4 · Avg 2.4s · $12/mo │   │
+│  │  Total est. cost: ~$66/month                 │   │
+│  │  [View detailed token usage →]               │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  ┌──────────────────────────────────────────────┐   │
 │  │  Data Freshness                               │   │
 │  │  Portfolio: Last synced 1 hour ago     🟢    │   │
 │  │  Debts: Last synced 3 hours ago        🟢    │   │
@@ -668,6 +876,12 @@ When user clicks 📊 Analytics in the left sidebar:
 - Retirement: funded percentage, gap amount, contribution status
 - Each card clickable — navigates to that agent's detailed analytics
 
+**Model Performance (new section):**
+- One row per agent showing: model name, average response time, estimated monthly cost
+- Total estimated monthly cost across all agents
+- "View detailed token usage" link for power users
+- Only shows for cloud models (local models show "🔒 Local — no API costs")
+
 **Data Freshness:**
 - List of connected data sources with last-sync timestamps
 - Color dot: green (<1 hour), yellow (1–24 hours), red (>24 hours)
@@ -677,6 +891,54 @@ When user clicks 📊 Analytics in the left sidebar:
 - Chronological feed of agent actions
 - Timestamp + agent name + action type
 - Clickable items that navigate to the relevant recommendation or detail
+
+---
+
+## SETTINGS PAGE — MODELS SECTION
+
+Post-wizard, users can access full model configuration from Settings → Models. This mirrors Step 4 of the wizard.
+
+### Layout
+```
+┌──────────────────────────────────────────────────────┐
+│ [☰]  Home  > Settings > Models                      │
+│                                                      │
+│  Current Path: 💰 Cloud Frugality                    │
+│  [Switch to Cloud Excellence] [Switch to Local]      │
+│                                                      │
+│  ┌──────────────────────────────────────────────┐   │
+│  │ 🏦 Investment Agent                           │   │
+│  │ Model: [▼ DeepSeek V4 Pro    ☁️ $0.87/M]     │   │
+│  │ Status: ✅ Active · Avg 2.1s response         │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  ┌──────────────────────────────────────────────┐   │
+│  │ 💳 Debt Agent                                 │   │
+│  │ Model: [▼ Gemini 3.5 Flash   ☁️ $0.30/M]     │   │
+│  │ Status: ✅ Active · Avg 0.8s response         │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  ┌──────────────────────────────────────────────┐   │
+│  │ 📅 Retirement Agent                           │   │
+│  │ Model: [▼ DeepSeek V4 Pro    ☁️ $0.87/M]     │   │
+│  │ Status: ✅ Active · Avg 2.4s response         │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  ┌─ API Keys ───────────────────────────────────┐   │
+│  │ DeepSeek:  [••••••••••••••]  ✅ Valid         │   │
+│  │ Google:    [                  ]  ⬜ Not set    │   │
+│  │ Anthropic: [                  ]  ⬜ Not set    │   │
+│  │ OpenAI:    [                  ]  ⬜ Not set    │   │
+│  │ [Test All] [Save Changes]                     │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  ┌─ Local Models (Ollama) ──────────────────────┐   │
+│  │ Status: ⬜ Ollama not installed               │   │
+│  │ (This section active if any agent uses local) │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -740,9 +1002,11 @@ All animations should evoke the feeling of water — smooth, continuous, unhurri
 |---------|-----------|----------|--------|
 | Step transitions | Slide + fade | 300ms | ease-out (cubic-bezier: 0.4, 0, 0.2, 1) |
 | Card hover lift | TranslateY(-4px) + shadow increase | 200ms | ease-out |
+| Path card expand/collapse | Height animation + content fade | 250ms | ease-in-out |
 | Accordion expand/collapse | Height animation + content fade | 250ms | ease-in-out |
 | Toggle switch | Handle slide + color transition | 200ms | ease-out |
 | Connector status change | Green pulse + checkmark scale-in | 400ms | ease-out with bounce |
+| Ollama status detection | Pulse + status update fade | 500ms | ease-out |
 | Launch button | Gentle scale pulse on hover | 1500ms | ease-in-out (infinite loop) |
 | Page load / wizard entry | Fade in | 400ms | ease-out |
 | Popover/tooltip | Fade + slight translate | 150ms | ease-out |
@@ -762,8 +1026,8 @@ All animations should evoke the feeling of water — smooth, continuous, unhurri
 - Color is never the sole indicator of state (confidence dots also have text labels)
 - Focus indicators visible on all interactive elements (keyboard navigation)
 - Tab order follows visual order (left-to-right, top-to-bottom)
-- ARIA labels on: progress indicator ("Step 2 of 5: Your Profile"), accordion headers ("Investment Agent settings, expanded"), toggle switches ("Web Search: On")
-- Screen reader announcements for: step transitions ("Loaded Step 2"), connection success ("Alpaca connected successfully"), form errors ("Age is required")
+- ARIA labels on: progress indicator ("Step 4 of 6: Choose Your AI Models"), accordion headers ("Investment Agent settings, expanded"), toggle switches ("Web Search: On"), path selector cards ("Cloud Frugality path, selected")
+- Screen reader announcements for: step transitions ("Loaded Step 4"), connection success ("DeepSeek API key valid"), form errors ("Age is required"), Ollama status ("Ollama detected with 3 models installed")
 - Skip-to-content link at top of wizard (hidden until focused)
 
 ---
@@ -775,6 +1039,8 @@ All animations should evoke the feeling of water — smooth, continuous, unhurri
 |---------|-----------------|
 | Wizard initial load | Subtle shimmer/skeleton on content area (~500ms) |
 | API connection test | Spinner on "Test Connection" button, card locked during test |
+| Ollama detection check | Pulsing indicator + "Checking Ollama status..." text |
+| Model pull progress | Progress bar with "Pulling qwen3:35b... 45% (9.1 GB / 20 GB)" |
 | Launch Fin processing | Full-screen gentle wave animation or pulsing circle, "Setting up your financial world..." text |
 | Agent card data fetch | Skeleton cards (same dimensions as real cards, subtle pulse) |
 | Analytics page load | Skeleton metric cards + chart placeholders |
@@ -784,6 +1050,8 @@ All animations should evoke the feeling of water — smooth, continuous, unhurri
 |---------|-----------------|
 | No goals (Step 2) | Centered illustration, "No goals yet — what are you working toward?" |
 | No APIs connected (Step 3) | Cards show in "Not connected" state (not hidden) |
+| No models selected (Step 4) | Cloud Frugality pre-selected as default |
+| Ollama not installed (Step 4) | Setup instructions card with copy buttons |
 | Agent card: no data | Card shows "Set up →" CTA instead of status |
 | Analytics: no activity | "Agents haven't made recommendations yet. Try asking one!" |
 | Connectors page: none | "No accounts connected yet. Connect one to get started." |
@@ -795,9 +1063,12 @@ All animations should evoke the feeling of water — smooth, continuous, unhurri
 | Error | Visual Treatment |
 |-------|-----------------|
 | API connection failure | Inline error message (red text, icon), retry button. Card does not collapse — stays in expanded/edit state. |
+| API key rejected (Cloud models) | Inline red text: "Invalid API key. Please check and re-enter." Does not block wizard completion. |
 | Form validation error | Red border on field, error text below field, field focused automatically. |
 | Network timeout | Toast notification (bottom-center): "Connection timed out. Check your network and try again." Auto-dismisses after 5s. |
-| Ollama not running (post-launch) | Banner at top of homepage: "⚠️ Ollama is not running. Agents can't generate recommendations. Start with `docker compose up ollama`." Dismissible, reappears on next page load if still down. |
+| Ollama not running (wizard Step 4) | Yellow warning with setup instructions. "Test Ollama Connection" button. |
+| Ollama not running (post-launch) | Banner at top of homepage: "⚠️ Ollama is not running. Agents using Qwen 3.6 can't respond. Start with `ollama serve`." Dismissible, reappears on next page load if still down. |
+| Model pull failed (Ollama) | Red error: "Failed to pull qwen3:35b. Check your connection and disk space. [Retry]" |
 | Session expired | Modal: "Your session has ended. Please log in again." Redirect to login. |
 
 ---
@@ -807,11 +1078,13 @@ All animations should evoke the feeling of water — smooth, continuous, unhurri
 - **Friendly but clear** — warm without being fluffy, direct without being cold
 - Use "you" and "your" (second person)
 - Agent references: "agents" not "the system" or "the AI"
-- Button text: action-oriented ("Get Started", "Continue", "Launch Fin")
+- Model references: use full model names ("Claude Sonnet 5" not "Claude"), with brief cost/speed labels where helpful
+- Button text: action-oriented ("Get Started", "Continue", "Launch Fin", "Test Connection", "Pull Models")
 - Help text: one sentence max, plain English ("This helps agents calculate your debt-to-income ratio")
 - Success messages: celebratory but restrained ("All connected! 🎉" not "CONGRATULATIONS!!!")
 - Error messages: specific, actionable, blame-free ("Invalid API key. Please check and try again." not "Error 401")
 - Skip links: reassuring, no guilt ("I'll add goals later" not "Skip (not recommended)")
+- Model selection guidance: educates without pressuring ("Cloud Frugality gives you frontier AI at ~$25/month" not "You should pick this one")
 
 ---
 
