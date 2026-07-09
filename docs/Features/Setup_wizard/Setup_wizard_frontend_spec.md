@@ -978,6 +978,205 @@ Post-wizard, users manage API connections here. Mirrors Step 3 of the wizard but
 
 ---
 
+## FORM MANAGEMENT: react-hook-form + zod
+
+### Why react-hook-form
+
+No Redux, no form state library. react-hook-form is uncontrolled by default — form state lives in the DOM, not React state. Minimal re-renders. `useForm` per wizard step. No global form store.
+
+### Why zod
+
+zod schemas validate each step before advancing. Schemas are co-located with step components. Validation runs on `handleSubmit` — errors display inline beneath fields.
+
+### Step Schemas
+
+```typescript
+import { z } from 'zod';
+
+// Step 1: Profile
+const profileSchema = z.object({
+  age: z.number().int().min(18, "Must be 18+").max(120),
+  annualIncome: z.number().positive("Required"),
+  employmentStatus: z.enum(["w2", "self_employed", "retired", "student", "other"]),
+  state: z.string().optional(),
+  federalTaxBracket: z.number().min(10).max(37).optional(),
+  stateTaxBracket: z.number().min(0).max(15).optional(),
+  riskTolerance: z.enum(["conservative", "balanced", "growth", "aggressive"]),
+  timeHorizon: z.string().min(1, "Describe your timeline"),
+});
+
+// Step 2: Goals
+const goalSchema = z.object({
+  name: z.string().min(1),
+  targetAmount: z.number().positive().optional(),
+  targetDate: z.string().optional(),  // ISO date
+  priority: z.enum(["high", "medium", "low"]),
+});
+
+const goalsSchema = z.object({
+  goals: z.array(goalSchema).min(1, "Add at least one goal"),
+});
+
+// Step 3: Connections (optional — no validation, skip allowed)
+
+// Step 4: Models
+const modelSchema = z.object({
+  agent: z.enum(["investment", "debt", "retirement"]),
+  modelId: z.string(),
+  provider: z.enum(["cloud", "local"]),
+});
+
+const modelsSchema = z.object({
+  path: z.enum(["cloud_excellence", "cloud_frugality", "local_privacy", "hybrid"]),
+  agents: z.array(modelSchema).min(3),
+  apiKeys: z.record(z.string()).optional(),  // { provider: key }
+});
+
+// Step 5: Agent Modes
+const agentModeSchema = z.object({
+  thinkingDepth: z.enum(["low", "medium", "high", "extreme"]),
+  autonomy: z.enum(["suggest_only", "suggest_notify", "suggest_simulate"]),
+});
+
+const modesSchema = z.object({
+  investment: agentModeSchema,
+  debt: agentModeSchema,
+  retirement: agentModeSchema,
+  crossAgentLearning: z.boolean(),
+  notifications: z.enum(["in_app", "email", "none"]),
+  autoLogout: z.enum(["15m", "30m", "1h", "never"]),
+});
+```
+
+### Hook Pattern Per Step
+
+```typescript
+// Step1Profile.tsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const Step1Profile = ({ onNext, defaultValues }) => {
+  const form = useForm({
+    resolver: zodResolver(profileSchema),
+    defaultValues,
+  });
+
+  const onSubmit = (data) => {
+    saveToIDB("wizard_step1", data);  // offline cache
+    onNext(data);
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <input {...form.register("age", { valueAsNumber: true })} />
+      {form.formState.errors.age && <span>{form.formState.errors.age.message}</span>}
+      {/* ... */}
+      <button type="submit">Continue</button>
+    </form>
+  );
+};
+```
+
+### Offline Persistence
+
+Each step caches form state to IndexedDB via `idb` (tiny wrapper, 1.2KB). On mount, restore from cache. On step complete, update cache.
+
+```typescript
+import { openDB } from 'idb';
+
+const db = await openDB('fin-wizard', 1, {
+  upgrade(db) {
+    db.createObjectStore('wizard-state');
+  },
+});
+
+// Save
+await db.put('wizard-state', formData, 'step1');
+
+// Restore
+const saved = await db.get('wizard-state', 'step1');
+```
+
+---
+
+## GUIDED TOUR: react-joyride
+
+### Integration Strategy
+
+Single Joyride tour across all 6 steps. Triggered on first visit. Stored `tour_completed: true` in localStorage after dismiss/complete. Re-triggerable from Help menu.
+
+### Tour Steps
+
+```typescript
+const tourSteps = [
+  {
+    target: '.welcome-header',
+    content: 'Fin runs three AI agents locally on your machine. Each specializes in a financial domain.',
+    placement: 'bottom',
+  },
+  {
+    target: '.risk-tolerance-selector',
+    content: 'Your risk tolerance shapes every investment recommendation. Agents default based on age but you choose.',
+    placement: 'top',
+  },
+  {
+    target: '.goal-quick-add',
+    content: 'Quick-add a goal with one click. Goals help agents prioritize recommendations.',
+    placement: 'bottom',
+  },
+  {
+    target: '.connector-card-alpaca',
+    content: 'Connect Alpaca for live portfolio data. Optional — agents work with manual data too.',
+    placement: 'right',
+  },
+  {
+    target: '.model-path-selector',
+    content: 'Choose where your AI runs. Cloud for best quality, Local for maximum privacy.',
+    placement: 'top',
+  },
+  {
+    target: '.agent-thinking-depth',
+    content: 'Higher thinking depth = more thorough analysis but slower responses.',
+    placement: 'top',
+  },
+  {
+    target: '.review-launch-btn',
+    content: 'Review everything then launch. All settings editable later.',
+    placement: 'top',
+  },
+];
+```
+
+### Joyride Config
+
+```typescript
+<Joyride
+  steps={tourSteps}
+  run={!tourCompleted}
+  continuous
+  showSkipButton
+  showProgress
+  styles={{
+    options: {
+      primaryColor: '#2563eb',  // ocean blue
+      zIndex: 1000,
+    },
+  }}
+  callback={(data) => {
+    if (data.status === 'finished' || data.status === 'skipped') {
+      localStorage.setItem('fin_tour_completed', 'true');
+      setTourCompleted(true);
+    }
+  }}
+/>
+```
+
+### Offline Consideration
+
+Tour steps are static — no network needed. Tour state (`completed` boolean) cached in localStorage, syncs to IDB same store as wizard state.
+
+---
+
 ## RESPONSIVE BREAKPOINTS
 
 | Breakpoint | Layout Behavior |

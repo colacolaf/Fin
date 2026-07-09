@@ -495,9 +495,259 @@ All agents read from the same behavioral patterns section:
 
 ---
 
-## 8. REFERENCES
+## 8. INSTRUCTOR + OLLAMA STRUCTURED OUTPUT
+
+### 8.1 Why Instructor
+
+Ollama raw output is unstructured text. Agents need structured JSON with validated fields. Instructor (Python library) patches Ollama's chat endpoint to force JSON output matching a Pydantic model. No regex parsing. No retry-on-bad-JSON.
+
+```
+User Intent → Agent System Prompt → Ollama + Instructor → Pydantic Model → Validated Output
+```
+
+### 8.2 Pydantic Output Schemas
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class ConfidenceScores(BaseModel):
+    overall: int = Field(ge=50, le=100)
+    reasoning_quality: int = Field(ge=0, le=100)
+    data_completeness: int = Field(ge=0, le=100)
+    user_alignment: int = Field(ge=0, le=100)
+    explanation: str
+
+class InvestmentRecommendation(BaseModel):
+    title: str
+    what_to_do: str
+    why: list[str]
+    confidence: ConfidenceScores
+    impact: dict  # {metric: [before, after]}
+    risks: list[str]
+    unknowns: list[str]
+    verification_steps: list[str]
+
+class DebtRecommendation(BaseModel):
+    title: str
+    what_to_do: str
+    why: list[str]
+    confidence: ConfidenceScores
+    payoff_comparison: dict  # avalanche vs snowball projections
+    interest_saved: float
+    new_payoff_months: int
+    risks: list[str]
+    unknowns: list[str]
+
+class RetirementRecommendation(BaseModel):
+    title: str
+    what_to_do: str
+    why: list[str]
+    confidence: ConfidenceScores
+    funded_ratio_change: dict  # {current, projected}
+    monthly_contribution_change: dict
+    projected_income_change: dict
+    risks: list[str]
+    unknowns: list[str]
+```
+
+### 8.3 Instructor Call Pattern
+
+```python
+import instructor
+from ollama import chat
+
+client = instructor.from_ollama(chat)
+
+recommendation = client.chat.completions.create(
+    model="mistral:7b",
+    response_model=InvestmentRecommendation,
+    messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_context},
+    ],
+    temperature=0.3,
+)
+# recommendation is a validated InvestmentRecommendation instance
+```
+
+### 8.4 Validation & Retry
+
+Instructor auto-retries on Pydantic validation failure (default: 1 retry). If still fails after retry, return HTTP 500. No manual JSON regex extraction. Skip Section 5.3 validation rules — Pydantic replaces them.
+
+### 8.5 Skill-to-Tool Mapping
+
+Each agent skill catalog maps 1:1 to Instructor tool definitions. Ollama native tool calling not needed — Instructor handles function-call-like behavior through structured output.
+
+| Skill | Pydantic Output Model |
+|-------|----------------------|
+| AnalyzePortfolio | `InvestmentRecommendation` |
+| ConcentratedPosition | `InvestmentRecommendation` |
+| AnalyzeDebts | `DebtRecommendation` |
+| PayoffStrategy | `DebtRecommendation` |
+| RetirementReadiness | `RetirementRecommendation` |
+| ContributionOptimizer | `RetirementRecommendation` |
+
+---
+
+## 9. MULTI-SUBAGENT PIPELINES
+
+### 9.1 Pipeline Architecture
+
+Complex user queries may require multiple agents in sequence. The orchestrator chains subagent calls, feeding output of one as context to the next.
+
+```
+User: "Should I pay off my car loan or invest more?"
+     │
+     ├── Subagent 1: Debt Agent
+     │   Skill: AnalyzeDebt → PayoffStrategy
+     │   Output: car loan 4.2% APR, $15k balance, payoff saves $1,200 interest
+     │
+     ├── Subagent 2: Investment Agent
+     │   Skill: AnalyzePortfolio
+     │   Input: user freed $300/month if pays off car
+     │   Output: DCA into VTI at 7% expected, $300/mo = $51k over 10yr
+     │
+     └── Orchestrator merges both outputs → unified recommendation
+         Confidence: average of both, penalized if agents disagree
+```
+
+### 9.2 Pipeline Types
+
+| Pipeline | Agents | Trigger Condition |
+|----------|--------|-------------------|
+| Debt-vs-Invest | Debt → Investment | User asks "pay debt or invest?" |
+| Retirement Catch-Up | Retirement → Investment | Funded ratio <50%, needs allocation advice |
+| Debt-to-Retire | Debt → Retirement | User asks "how fast can I retire if I kill debt?" |
+| Full Health Check | All three parallel → merge | User requests comprehensive review |
+
+### 9.3 Orchestrator Logic
+
+```python
+PIPELINE_ROUTES = {
+    ("debt", "invest"): ["debt_agent", "investment_agent"],  # sequential
+    ("retire", "invest"): ["retirement_agent", "investment_agent"],
+    ("health_check",): ["debt_agent", "investment_agent", "retirement_agent"],  # parallel
+}
+
+def route(user_intent: str) -> list[str]:
+    for keywords, agents in PIPELINE_ROUTES.items():
+        if all(k in user_intent.lower() for k in keywords):
+            return agents
+    return [best_single_agent(user_intent)]  # default: one agent
+```
+
+Parallel subagents run concurrently via `asyncio.gather`. Sequential pipelines await each stage and feed output as `previous_agent_output` in next agent's user context.
+
+### 9.4 Confidence Merging
+
+Multi-agent recommendations merge confidence:
+
+```
+overall = min(agent1.overall, agent2.overall)  # weakest link
+reasoning = average(agent1.reasoning, agent2.reasoning)
+data = min(agent1.data, agent2.data)  # worst data quality
+alignment = average(agent1.alignment, agent2.alignment)
+```
+
+If agents produce contradictory recommendations (e.g., Debt says pay loan, Investment says invest more), orchestrator presents both with trade-off analysis. Overall confidence capped at 70 in conflict cases.
+
+---
+
+## 10. MEMORY FEEDBACK LOOP (basic-memory)
+
+### 10.1 What Gets Stored
+
+Every recommendation (accepted or rejected) writes to basic-memory as a markdown note. Notes are Obsidian-compatible, stored locally.
+
+**Note template:**
+```markdown
+---
+title: "Trim NVDA from 22% to 19%"
+type: recommendation
+agent: investment
+status: accepted
+confidence: 83
+created: 2026-07-09T10:30:00Z
+voted_at: 2026-07-10T14:00:00Z
+tags: [concentration, tech, rebalancing]
+---
+
+# Trim NVDA from 22% to 19%
+
+**Agent:** Investment
+**Confidence:** 83%
+**Status:** Accepted
+
+## What Was Recommended
+Reduce NVDA position from 22% to 19% of portfolio. Redeploy proceeds into VXUS (international diversification).
+
+## User Reasoning
+"Makes sense, NVDA has run up a lot. I'll trim gradually over 3 months."
+
+## Impact
+- Concentration: 22% → 19%
+- Diversification score: 62 → 74
+- Estimated tax: $1,200 (long-term gains)
+```
+
+### 10.2 Memory Node Types
+
+| Node Type | Frontmatter `type` | Stored When |
+|-----------|-------------------|-------------|
+| Recommendation | `recommendation` | Any agent generates a recommendation |
+| Decision | `decision` | User accepts or rejects |
+| Preference | `preference` | User expresses explicit preference (risk, pace, strategy) |
+| BehavioralPattern | `pattern` | System detects pattern after 5+ decisions |
+
+### 10.3 How Agents Read Memory
+
+Before generating a new recommendation, agent queries basic-memory via MCP:
+
+```
+mcp__basic-memory__search_notes("concentration risk accepted", limit=5)
+```
+
+Returns recent similar decisions. Agent adjusts:
+- **User alignment score**: +10 if user accepted similar rec, -20 if rejected
+- **Pace adjustment**: if past accepts were gradual trims, don't propose aggressive 10%+ shifts
+- **Domain avoidance**: if user rejected last 3 tax-loss harvesting recs, skip that domain
+
+### 10.4 Edges (Relationships)
+
+basic-memory edges connect related nodes via `[[wikilinks]]` in note body. Three edge types:
+
+| Edge Type | How Created | Example |
+|-----------|------------|---------|
+| **Causal** | Agent notes "caused by" prior decision | "Follows [[Pay off credit card]] decision which freed $400/month" |
+| **Temporal** | Auto-linked to most recent prior rec | Each note links to previous recommendation |
+| **Similarity** | Obsidian Smart Connections plugin | Semantic embedding search finds related decisions |
+
+### 10.5 Obsidian Smart Connections
+
+Smart Connections plugin indexes all memory markdown files with embeddings. Agents query semantic similarity:
+
+```
+mcp__basic-memory__search_notes("user avoids selling winners even when concentrated", semantic=true)
+```
+
+Returns decisions where user showed loss-aversion or reluctance to sell — even if different ticker or asset class.
+
+### 10.6 Memory Decay
+
+Old decisions decay in relevance. Agent weights recent decisions higher:
+- Last 30 days: full weight (1.0)
+- 30–90 days: 0.7 weight
+- 90+ days: 0.4 weight
+- Pattern nodes never decay (behavioral patterns persist)
+
+---
+
+## 11. REFERENCES
 
 - **Agent System Prompts**: `docs/SystemPrompts/Investment_agent_system_prompt`, `docs/SystemPrompts/Debt_agent_system_prompt`, `docs/SystemPrompts/Retirement_System_Prompt`
 - **Architecture & Orchestration Flow**: `docs/SystemPrompts/System_architecture_(Agent_orchestration_flow)`
 - **User Context Schema**: `docs/SystemPrompts/User_context_file_shema`
 - **Implementation Guide**: `docs/SystemPrompts/Fin_system_prompts_implemtation_guide`
+- **Memory System Spec**: `docs/Features/Memory_system/Memory_system.md`
+- **basic-memory**: https://github.com/basicmachines-co/basic-memory

@@ -1,751 +1,502 @@
-FIN Memory System Specification
-Agent-Specific Chat Organization, Visualization & Learning
+# MEMORY SYSTEM — basic-memory MCP-NATIVE SPECIFICATION
 
-OVERVIEW
-The Memory System is a per-agent interface that allows users to organize, visualize, and learn from all past conversations with a specific agent (Investment, Debt, or Retirement). Each agent maintains its own isolated memory while sharing critical user context through a unified User Context File that informs all agent decisions.
-Key Philosophy:
+**Version**: 2.0 | **Purpose**: Replace custom DB memory with basic-memory MCP | **Last Updated**: July 2026
 
-Agents learn from user behavior patterns captured in categorized chats
-Users can visualize their decision history as an interactive graph
-Categorization is hybrid (agent-suggested + user-confirmed)
-Agents reference past chat categories to improve recommendations
+---
 
+## 1. OVERVIEW
 
-ARCHITECTURE
-1. MEMORY LAYERS
-Layer 1: Agent-Specific Memory (Private)
-Each agent (Investment, Debt, Retirement) has its own memory database:
-Investment Agent Memory
-├── Chat History (timestamped conversations)
-├── User Categories (custom-created by user)
-├── System Categories (predefined: Portfolio, Risk, Taxes, Fees, etc.)
-├── Tags/Labels (applied to each chat for organization)
-└── Bookmarked Chats (important conversations user flagged)
+The Memory System stores agent decisions, user preferences, and behavioral patterns as local, Obsidian-compatible markdown files via [basic-memory](https://github.com/basicmachines-co/basic-memory). No custom database. No SQL schema. Agents read/write memory through MCP tool calls. Users browse/edit memory in Obsidian.
 
-Debt Agent Memory
-├── Chat History
-├── User Categories
-├── System Categories (Payoff Strategy, CC vs Loans, Consolidation, etc.)
-├── Tags/Labels
-└── Bookmarked Chats
+### Key Principles
 
-Retirement Agent Memory
-├── Chat History
-├── User Categories
-├── System Categories (401k, IRA, Contributions, Social Security, etc.)
-├── Tags/Labels
-└── Bookmarked Chats
-Layer 2: Shared User Context File (Collaboration Layer)
-A unified file accessible by ALL agents before each conversation:
-json{
-  "user_context": {
-    "age": 42,
-    "financial_status": "Moderate income, $500k invested, $50k debt",
-    "risk_tolerance": "Balanced (60% stocks, 40% bonds)",
-    "active_goals": [
-      "Retire by 65 with $1.5M",
-      "Pay off credit card by Q4 2026",
-      "Save $50k for house down payment"
-    ],
-    "recent_decisions": [
-      "Rejected aggressive rebalancing (prefers stability)",
-      "Accepted tax-loss harvesting recommendation",
-      "Executed debt payoff plan - accelerated CC payments"
-    ],
-    "behavioral_patterns": {
-      "decision_speed": "3-5 days average",
-      "acceptance_rate": "60%",
-      "execution_rate": "75% of accepted",
-      "risk_preference": "Conservative with calculated moves"
-    },
-    "agent_insights": {
-      "investment_agent_notes": "User values diversification, dislikes concentration risk",
-      "debt_agent_notes": "User prioritizes CC elimination, willing to sacrifice some investment growth",
-      "retirement_agent_notes": "User concerned about retirement timing, interested in early planning"
-    },
-    "last_updated": "2026-06-24T14:32:00Z"
-  }
-}
-Who Updates This?
+- **MCP-native**: All memory CRUD via `basic-memory` MCP tools. No custom API endpoints.
+- **Obsidian-compatible**: Every memory node is a markdown file with YAML frontmatter. User opens folder in Obsidian = full memory browsing.
+- **Local-first**: All `.md` files stored in `~/.fin/memory/`. No cloud sync. No server dependency.
+- **Semantic retrieval**: Obsidian Smart Connections plugin handles embedding-based similarity search.
+- **Edges via wikilinks**: `[[wikilinks]]` in note body connect related memories. No graph DB.
 
-User actions (when accepting recommendations, voting, providing feedback)
-Agents (after each conversation, agents append learned insights)
-System (automatic behavioral pattern calculations)
+---
 
-Who Reads This?
+## 2. ARCHITECTURE
 
-All agents before starting a new conversation
-Used to personalize next recommendation tone and confidence threshold
+```
+┌──────────────────────────────────────────────┐
+│              FIN BACKEND (FastAPI)            │
+│                                              │
+│  Agent writes memory via MCP:                │
+│  mcp__basic-memory__create_note(...)          │
+│                                              │
+│  Agent reads memory via MCP:                 │
+│  mcp__basic-memory__search_notes("query")     │
+│                                              │
+│  Frontend reads via MCP (same tools):         │
+│  mcp__basic-memory__list_notes(...)           │
+│  mcp__basic-memory__read_note(...)            │
+└──────────────┬───────────────────────────────┘
+               │  MCP protocol
+               ▼
+┌──────────────────────────────────────────────┐
+│           basic-memory MCP Server            │
+│                                              │
+│  Storage: ~/.fin/memory/                     │
+│  ├── decisions/          (user votes)        │
+│  ├── recommendations/    (agent outputs)     │
+│  ├── preferences/        (explicit prefs)    │
+│  ├── patterns/           (auto-detected)     │
+│  └── user-context.md     (shared context)    │
+│                                              │
+│  Search: Full-text + semantic (embeddings)   │
+│  Relations: [[wikilinks]] parsing            │
+└──────────────┬───────────────────────────────┘
+               │  File system
+               ▼
+┌──────────────────────────────────────────────┐
+│         ~/.fin/memory/ (local disk)          │
+│                                              │
+│  Obsidian-compatible markdown vault          │
+│  User opens this folder in Obsidian          │
+│  Smart Connections plugin for embeddings     │
+└──────────────────────────────────────────────┘
+```
 
+### No Custom DB
 
-MEMORY PANEL: TWO STATES
-STATE 1: MINI MEMORY PANEL (Agent Context View, Collapsed)
-Location: Top-left corner of Agent Context View
-Size: ~280px width (collapsible sidebar)
-What's Visible:
-┌─────────────────────────────┐
-│ 💭 Memory                    │ ← header
-├─────────────────────────────┤
-│                             │
-│  [Interactive Mini Graph]   │ ← graph thumbnail
-│  (hover effect only,        │
-│   no click until fullscreen) │
-│                             │
-│  ┌───────────────────────┐  │
-│  │ 📊 Quick Stats:       │  │
-│  │ • 47 total chats      │  │
-│  │ • Last chat: 2h ago   │  │
-│  │ • Most active cat:    │  │
-│  │   Portfolio (18%)     │  │
-│  └───────────────────────┘  │
-│                             │
-│  [🔍 Fullscreen] [⚙️]       │ ← buttons
-│                             │
-└─────────────────────────────┘
-Graph Thumbnail:
+Delete Section 526–564 (Database Schema) from old spec. basic-memory handles persistence. Markdown files ARE the database. Git-trackable. User-editable.
 
-Simplified force-directed graph with colored nodes (dots)
-Each dot = one chat conversation
-Colors = user-assigned categories (muted when many dots to avoid visual clutter)
-Hover: Shows thin connecting lines to similar/related chats (but NOT clickable)
-No text labels to keep compact
-Background: Light (#e8f4f8 or user's theme)
+---
 
-Quick Stats Shown:
+## 3. MEMORY NODE TYPES
 
-Total number of chats
-Last chat date/time
-Most frequently discussed category (%)
+### 3.1 Directory Structure
 
-Buttons:
+```
+~/.fin/memory/
+├── .obsidian/                  # Obsidian config (auto-generated)
+├── recommendations/            # Agent output
+│   ├── 2026-07-09-trim-nvda.md
+│   ├── 2026-07-08-tax-loss-harvest.md
+│   └── ...
+├── decisions/                  # User votes
+│   ├── 2026-07-09-accepted-trim-nvda.md
+│   └── ...
+├── preferences/                # Explicit user preferences
+│   ├── risk-tolerance.md
+│   ├── investment-pace.md
+│   └── ...
+├── patterns/                   # Auto-detected behavioral patterns
+│   ├── prefers-gradual-changes.md
+│   ├── loss-aversion-detected.md
+│   └── ...
+└── user-context.md             # Shared user context file
+```
 
-[🔍 Fullscreen] - Opens full Memory System view
-[⚙️] - Opens quick settings for this memory (optional)
+### 3.2 Recommendation Note Template
 
+```markdown
+---
+title: "Trim NVDA from 22% to 19%"
+type: recommendation
+agent: investment
+confidence: 83
+created: 2026-07-09
+skill: ConcentratedPosition
+tags:
+  - concentration-risk
+  - tech-sector
+  - rebalancing
+---
 
-STATE 2: FULLSCREEN MEMORY VIEW
-Layout: Split-screen (75-85% graph on right, 15-25% control panel on left)
-┌──────────────────────────────────────────────────────────────┐
-│ < Back | Investment Agent Memory                        | X   │
-├─────────────────┬──────────────────────────────────────────┤
-│                 │                                          │
-│  LEFT PANEL     │          MAIN GRAPH VIEW                │
-│  (Control)      │          (Force-Directed)               │
-│                 │                                          │
-│ ┌─────────────┐ │  ╔═══════════════════════════════════╗ │
-│ │ 🔍 Search   │ │  ║                                   ║ │
-│ │ ____________│ │  ║                                   ║ │
-│ │ by keyword/ │ │  ║      [Interactive Graph]         ║ │
-│ │ date/cat    │ │  ║      • Colored dots (chats)      ║ │
-│ │             │ │  ║      • Lines (connections)       ║ │
-│ ├─────────────┤ │  ║      • Hover: shows relations    ║ │
-│ │             │ │  ║      • Click: opens chat detail  ║ │
-│ │ CATEGORIES  │ │  ║                                   ║ │
-│ │ ─────────   │ │  ╚═══════════════════════════════════╝ │
-│ │             │ │                                          │
-│ │ ✓ Portfolio │ │  Analytics Popup (Attached to Graph)   │
-│ │   (18 chats)│ │  ┌──────────────────────────────┐     │
-│ │ ✓ Risk      │ │  │ 📊 Analytics                │     │
-│ │   (12 chats)│ │  │                              │     │
-│ │ ✓ Taxes     │ │  │ Category Breakdown:         │     │
-│ │   (8 chats) │ │  │ • Portfolio: 38%            │     │
-│ │ + Custom 1  │ │  │ • Risk: 26%                 │     │
-│ │   (6 chats) │ │  │ • Custom: 21%               │     │
-│ │ + Custom 2  │ │  │ • Taxes: 15%                │     │
-│ │   (3 chats) │ │  │                              │     │
-│ │             │ │  │ Timeline:                   │     │
-│ │ [Filter ▼]  │ │  │ • Last updated: 2h ago      │     │
-│ │ [Sort ▼]    │ │  │ • Frequency: 8 chats/week   │     │
-│ │             │ │  │                              │     │
-│ │ BOOKMARKED  │ │  │ Trust Score:                │     │
-│ │ ─────────   │ │  │ ████████░ 82%              │     │
-│ │ ⭐ Tax Loss │ │  │ (agent understanding)       │     │
-│ │   Harvest   │ │  │                              │     │
-│ │ ⭐ Rebal    │ │  │ Decision Speed:             │     │
-│ │   Strategy  │ │  │ Avg 4 days to execute       │     │
-│ │             │ │  │                              │     │
-│ │ [☰ Export   │ │  │ Execution Rate:             │     │
-│ │  PDF]       │ │  │ 73% of accepted chats       │     │
-│ │             │ │  │                              │     │
-│ │ [🔒 Clear   │ │  │ Top Outcomes:               │     │
-│ │  Memory]    │ │  │ • Diversification: +12%     │     │
-│ │             │ │  │ • Tax savings: $2,400       │     │
-│ │             │ │  │ • Portfolio volatility: -3% │     │
-│ │             │ │  └──────────────────────────────┘     │
-│ │             │ │                                          │
-└─────────────────┴──────────────────────────────────────────┘
+# Trim NVDA from 22% to 19%
 
-LEFT PANEL: CONTROL & FILTERING
-Organization Options (Toggleable)
-Users can organize the graph by clicking filter buttons:
-1. By Category (Default)
+**Agent:** Investment
+**Confidence:** 83/100
+**Skill:** [[../skills/ConcentratedPosition.md|ConcentratedPosition]]
 
-Shows all categories (system + custom)
-Nodes cluster by category color
-Edges connect related chats across categories
-Each category shows chat count
+## What Was Recommended
+Reduce NVDA position from 22% to 19% of portfolio. Redeploy proceeds into VXUS (international diversification).
 
-Categories View:
-├─ Portfolio (18 chats) [✓]
-│  └─ Rebalancing, allocation, diversification
-├─ Risk (12 chats) [✓]
-│  └─ Volatility, concentration, tolerance
-├─ Taxes (8 chats) [✓]
-│  └─ Tax-loss harvesting, capital gains
-└─ Custom: "Emergency Fund Plan" (6 chats) [✓]
-   └─ Savings goals, liquidity strategy
-2. By Outcome (Filter Toggle)
+## Why
+- NVDA concentration (22%) exceeds 15% single-holding threshold
+- Tech sector at 38% vs S&P 500 tech weight of 28%
+- VXUS adds international exposure lacking in current portfolio
 
-Executed (green nodes)
-Rejected (red nodes)
-Pending (yellow nodes)
-Bookmarked (starred nodes)
+## Impact
+| Metric | Before | After |
+|--------|--------|-------|
+| Concentration | 22% | 19% |
+| Diversification score | 62 | 74 |
+| Est. tax | $0 | $1,200 (LTCG) |
 
-3. By Confidence Level (Filter Toggle)
+## Risks
+- NVDA could continue outperforming; trimming caps upside
+- VXUS has underperformed US equities historically
 
-High confidence (bright, large nodes)
-Medium confidence (medium size)
-Low confidence (faint, small nodes)
+## Follow-up
+See decision: [[../decisions/2026-07-10-accepted-trim-nvda.md]]
+```
 
-4. By Date Range (Search + Filter)
+### 3.3 Decision Note Template (User Vote)
 
-Last 7 days
-Last month
-Last 3 months
-All time
-Custom date range picker
+```markdown
+---
+title: "Accepted: Trim NVDA"
+type: decision
+agent: investment
+status: accepted
+voted_at: 2026-07-10
+decision_speed_days: 1
+triggered_by: "[[../recommendations/2026-07-09-trim-nvda.md]]"
+tags:
+  - accepted
+  - rebalancing
+---
 
-Search Functionality
-Search Bar at top of left panel:
+# Accepted: Trim NVDA from 22% to 19%
 
-Search by keyword (chat content)
-Search by date (e.g., "June 2026")
-Search by category name
-Search by outcome status
-Real-time filtering as user types
+**Status:** Accepted
+**Voted:** 2026-07-10 (1 day after recommendation)
 
-Example:
-User types "tax" → 
-Graph updates to show only chats tagged with "Taxes" category
-Graph updates to show only chats containing "tax" in content
-Bookmarked Section
+## User Reasoning
+"Makes sense, NVDA has run up a lot. I'll trim gradually over 3 months."
 
-Pinned at top of left panel
-Shows starred chats with ⭐ icon
-Quick access to important conversations
-Can drag-and-drop to reorder
+## Impact on Behavior
+- Reinforces pattern: user accepts concentration-reduction recommendations
+- Pace preference: 3% trim, not aggressive 10%+ shift
+- Decision speed: fast (1 day) for math-clear recommendations
 
-Management Buttons
-[Filter ▼] - Dropdown to toggle multiple filters
-☐ Only Executed
-☐ Only Rejected
-☐ Only Pending
-☐ Only Bookmarked
-☐ High Confidence Only
-☐ Last 7 days
-[Sort ▼] - Change sort order
-○ Most Recent
-○ Oldest First
-○ Most Bookmarked
-○ Highest Confidence
-○ By Category Name
-[☰ Export PDF] - Generate PDF report with:
+## Related
+- Previous trim: [[2026-06-15-accepted-trim-aapl.md]]
+- Pattern: [[../patterns/prefers-gradual-changes.md]]
+```
 
-Timeline of all chats
-Category breakdown (percentages)
-Analytics summary
-Bookmarked highlights
-Key decisions made
+### 3.4 Preference Note Template
 
-[🔒 Clear Memory] - Dangerous action
+```markdown
+---
+title: "Risk Tolerance: Balanced"
+type: preference
+domain: risk
+source: setup_wizard
+created: 2026-06-01
+updated: 2026-07-05
+confidence: 95
+tags:
+  - risk
+  - conservative
+---
 
-Confirmation dialog: "This will delete all memory entries. This cannot be undone."
-Only clears chat data, preserves learned patterns in User Context File
-Use case: User wants fresh start with agent
+# Risk Tolerance: Balanced
 
+**Current:** Balanced (60% stocks / 40% bonds)
+**Source:** Set during setup wizard, confirmed through 8 decisions
 
-MAIN GRAPH VISUALIZATION
-Graph Structure
-Nodes (Dots):
+## Evidence
+- Set "Balanced" in setup wizard (2026-06-01)
+- Rejected aggressive 22%→12% trim (prefers gradual)
+- Accepted 22%→19% trim (3% shift)
+- 6 of 8 accepted recommendations were conservative-to-moderate
 
-Each dot = one conversation/chat
-Size: Relative to length/importance of chat (longer chat = larger node)
-Color: User-assigned category color
-Glow effect on hover: Shows connections to similar chats
+## Agent Implications
+- Don't propose allocation shifts >5% at once
+- Prefer VTI/VXUS over single-stock concentration plays
+- User values stability over maximum growth
+```
 
-Edges (Lines):
+### 3.5 Behavioral Pattern Note Template
 
-Thin connecting lines between related chats
-Thicker lines = stronger relationship (similar topics, consecutive decisions)
-Directed edges show conversation flow over time
+```markdown
+---
+title: "Prefers Gradual Changes"
+type: pattern
+detected: 2026-07-10
+confidence: 85
+evidence_count: 5
+tags:
+  - behavior
+  - pace
+  - risk-aversion
+---
 
-Force-Directed Layout:
+# Prefers Gradual Changes
 
-Nodes repel each other (avoid overlap)
-Edges attract connected nodes (clusters form)
-When user changes organization, graph recalculates instantly
-Animation: Smooth transition as nodes move to new positions
+**Detected:** After 5+ decisions showing consistent preference for small, incremental moves.
 
-Interaction: Hover
-When user hovers over a dot:
-Visual Effect:
-├─ Dot enlarges slightly (1.5x)
-├─ Shows thin lines connecting to similar chats
-├─ Related dots highlight (become more visible)
-└─ Tooltip appears: "[Chat Date] - Category Name"
+## Evidence
+- [[../decisions/2026-07-10-accepted-trim-nvda.md]] — accepted 3% trim
+- [[../decisions/2026-06-15-accepted-trim-aapl.md]] — accepted 2% trim
+- [[../decisions/2026-06-01-rejected-aggressive-rebalance.md]] — rejected 10% shift
+- [[../decisions/2026-05-20-accepted-bond-increase.md]] — accepted 5% bond shift (max observed)
+- [[../decisions/2026-05-10-rejected-sector-rotation.md]] — rejected rapid sector rotation
 
-Example:
-Hover over "Rebalancing Conversation" from June 15
-→ Shows connections to:
-   - "Tech Concentration Risk" (June 10)
-   - "Diversification Strategy" (May 28)
-   - "Fee Optimization" (May 15)
-Interaction: Click
-When user clicks a dot:
-Action:
-├─ Chat detail drawer opens (right side or modal)
-├─ Full conversation displayed
-├─ User can scroll through entire chat
-└─ Options:
-   ├─ [Bookmark] - Star this chat
-   ├─ [Share/Export] - Export just this chat
-   ├─ [Retag] - Change category/tag
-   └─ [X Close] - Close drawer
+## Agent Implication
+When generating recommendations, cap proposed allocation changes at **5% absolute**. Prefer 2–3% trims with multi-step plans. Never propose single-step >5% shifts.
+```
 
-Chat Drawer Contents:
-┌──────────────────────────────┐
-│ Rebalancing Conversation     │
-│ June 15, 2026 | Portfolio    │ ← date, category
-├──────────────────────────────┤
-│                              │
-│ [Full Chat History]          │
-│                              │
-│ User: "Why is my tech..."   │
-│ Agent: "Your allocation...   │
-│ User: "What should I do?"    │
-│ Agent: "Consider selling..." │
-│                              │
-│ ────────────────────────────│
-│ [Tag: Portfolio]             │ ← current tags
-│ [Change Category ▼]          │
-│                              │
-│ [⭐ Bookmark]                │
-│ [⬇️ Export]                 │
-│ [X Close]                    │
-│                              │
-└──────────────────────────────┘
+### 3.6 User Context File
 
-ANALYTICS POPUP (Top-Right of Graph)
-Small floating panel showing real-time statistics. Can be moved/hidden.
-Metrics Displayed
-1. Category Breakdown (Pie Chart or Bar)
-Category Distribution:
-- Portfolio:        38% (18 chats)
-- Risk:             26% (12 chats)  
-- Custom (Savings): 21% (10 chats)
-- Taxes:            15% (7 chats)
-2. Timeline
-Timeline Metrics:
-- Oldest chat:      March 2026
-- Most recent:      June 24, 2026 (2h ago)
-- Average gap:      3.2 days between chats
-- Frequency:        8 chats per week
-3. Trust Score (Agent Understanding)
-Agent Trust Score: ████████░ 82%
-"Agent understands your preferences well"
-(Based on accuracy of past suggestions + your acceptance rate)
-4. Decision Metrics
-Decision Speed:
-Avg time to execute: 4 days
-Fastest decision: 1 day
-Slowest decision: 14 days
+```markdown
+---
+title: "User Context"
+type: context
+version: 12
+updated: 2026-07-10
+---
 
-Execution Rate: 73%
-(Of accepted chats, user actually executed recommendations in 73%)
+# User Context
 
-Acceptance Rate: 58%
-(User accepts 58% of agent's suggestions)
-5. Outcome Summary (Key Wins)
-Top Outcomes from Executed Chats:
-✓ Diversification: +12% improvement
-✓ Tax Savings: $2,400 captured
-✓ Portfolio Volatility: -3%
-✓ Fees Eliminated: $45/year
+## Profile
+- Age: 42
+- Income: $95,000 gross
+- Employment: W-2
+- Tax: 24% Federal / 9.3% State
+- Risk: [[../preferences/risk-tolerance.md|Balanced]]
 
-CATEGORIZATION & TAGGING FLOW
-Recommended Tagging Architecture
-System Categories (Predefined per Agent):
-Investment Agent System Categories:
-├─ Portfolio (general holdings, allocation)
-├─ Risk (volatility, concentration, tolerance)
-├─ Diversification (sector spread, asset classes)
-├─ Taxes (capital gains, losses, efficiency)
-├─ Fees (expense ratios, trading costs)
-├─ Individual Stocks (specific ticker analysis)
-└─ Market Research (news, fundamentals, sentiment)
+## Goals
+- [[../preferences/goal-buy-house.md|Buy house: $50k by 2029 (High)]]
+- [[../preferences/goal-retire.md|Retire: $1.5M by 2041 (Medium)]]
 
-Debt Agent System Categories:
-├─ Payoff Strategy (avalanche vs snowball)
-├─ High-Interest Debt (CC, personal loans)
-├─ Student Loans (federal vs private)
-├─ Consolidation (refinancing opportunities)
-├─ Credit Score (impact of moves)
-└─ Debt vs Investment (prioritization)
+## Portfolio
+- Total: $225,000
+- Holdings: See Alpaca sync (refreshed 2026-07-10)
+- Allocation: 62% stocks / 35% bonds / 3% cash
 
-Retirement Agent System Categories:
-├─ 401k (contributions, matching, vesting)
-├─ IRA (Traditional vs Roth strategies)
-├─ Social Security (claiming age, benefits)
-├─ Required Minimum Distributions (RMD)
-├─ Contribution Strategy (how much, when)
-└─ Retirement Readiness (on track analysis)
-User Custom Categories:
+## Debts
+- Car loan: $15,000 at 4.2% APR
+- No credit card debt
+- No student loans
 
-User can create unlimited custom categories
-Examples: "Emergency Fund Plan", "Home Purchase Goal", "College Savings", etc.
-Custom categories use user-selected colors
-Mix with system categories in graph view
+## Behavioral Summary
+- [[../patterns/prefers-gradual-changes.md|Prefers gradual changes]]
+- Acceptance rate: 62% (8/13 decisions)
+- Execution rate: 75% of accepted
+- Decision speed: 3.2 days average
 
-Tagging Flow
-FLOW 1: During Chat
-┌─────────────────────────────────────────┐
-│ Chat in progress with agent             │
-│                                         │
-│ User message: "What about tech stocks?" │
-│ Agent response: "Your tech is 35%..."   │
-│                                         │
-│ At end of chat:                         │
-│ ┌─────────────────────────────────────┐ │
-│ │ Agent suggests category:            │ │
-│ │ "This seems like a Risk discussion" │ │
-│ │ ☐ Risk (suggested)                  │ │
-│ │ ☐ Portfolio                         │ │
-│ │ ☐ Diversification                   │ │
-│ │ ☐ Custom: [Create new]              │ │
-│ │                                     │ │
-│ │ User selects: "Diversification"    │ │
-│ │                                     │ │
-│ │ [Save Chat] → Chat logged with tag  │ │
-│ └─────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
-FLOW 2: After Chat (Retag Later)
-User opens Memory fullscreen
-│ Clicks a chat from the graph
-│ Chat drawer opens
-│ User clicks [Change Category ▼]
-│ Dropdown shows system + custom categories
-│ User selects new category (or adds custom)
-│ Category updated in database
-│ Graph re-renders with new organization
-FLOW 3: Agent Learning from Tags
-New chat starts with agent
-│ Agent queries User Context File
-│ Sees recent tags: "Diversification, Risk, Portfolio"
-│ Agent says: "Based on your recent focus on diversification,
-│  I notice your Small Cap exposure is low (5% target: 8%).
-│  Should we explore that?"
-│ User can accept/reject
-│ If accepted, chat gets tagged as continuation of previous theme
-│ Agent confidence increases for future similar recommendations
+## Agent Notes
+- Investment: [[../patterns/prefers-gradual-changes.md]]
+- Debt: No patterns yet (3 decisions)
+- Retirement: [[../patterns/concerned-about-timing.md|Concerned about timing]]
+```
 
-AGENT LEARNING MECHANISM
-How Agents Use Memory
-Before Each Conversation:
-1. Agent loads User Context File
-   ├─ Reads user's age, goals, risk tolerance
-   ├─ Reads behavioral patterns (acceptance rate, speed, preferences)
-   ├─ Reads recent decisions (what user accepted/rejected)
-   └─ Reads other agents' notes (debt progress affecting investment moves?)
+---
 
-2. Agent reviews its own chat history
-   ├─ Pulls chats from same category user is likely asking about
-   ├─ Looks at tags to understand recent focus areas
-   ├─ Checks bookmarked chats (user-signaled important conversations)
-   └─ Notes execution patterns (did user act on past advice?)
+## 4. MCP TOOL MAPPING
 
-3. Agent constructs context window
-   ├─ Includes relevant past chats (prompt engineering)
-   ├─ Personalizes tone based on user patterns
-   ├─ Adjusts confidence threshold (if user accepts 60%, suggest 65%+ confidence recs)
-   └─ Avoids re-hashing rejected topics (learns from feedback)
+### 4.1 Agent → Memory (Write)
 
-4. Agent generates response with personalization
-   Example:
-   "You typically prefer conservative moves (3% shifts vs 5%).
-    Based on your recent 'Diversification' focus and the fact
-    you executed the last rebalancing, I'm suggesting a 4% shift
-    with 78% confidence."
-Agent Updates to Shared Context
-After Each Conversation:
-Agent sends update to User Context File:
+| Action | MCP Tool | Payload |
+|--------|----------|---------|
+| Save recommendation | `create_note` | `{ path: "recommendations/", title, content, frontmatter }` |
+| Save decision | `create_note` | `{ path: "decisions/", ... }` |
+| Update preference | `update_note` | `{ id, content, frontmatter }` |
+| Create pattern | `create_note` | `{ path: "patterns/", ... }` |
+| Update user context | `update_note` | `{ id: "user-context", content }` |
 
+### 4.2 Agent → Memory (Read)
+
+| Action | MCP Tool | Payload |
+|--------|----------|---------|
+| Search past decisions | `search_notes` | `{ query: "concentration risk", limit: 5 }` |
+| Read specific note | `read_note` | `{ id: "user-context" }` |
+| List recent recommendations | `list_notes` | `{ path: "recommendations/", sort: "created", limit: 10 }` |
+| Semantic search | `search_notes` | `{ query, semantic: true }` |
+
+### 4.3 Frontend → Memory (Read-only for display)
+
+| Action | MCP Tool | Payload |
+|--------|----------|---------|
+| Load graph data | `list_notes` | `{ path: "decisions/", include_frontmatter: true }` |
+| Read chat history | `read_note` | `{ id }` |
+| Filter by tag | `search_notes` | `{ query: "#tag", limit: 50 }` |
+| Category breakdown | `list_notes` + client aggregate | Group by `tags` in frontmatter |
+
+---
+
+## 5. EDGES & RELATIONSHIPS
+
+No graph database. Relations via `[[wikilinks]]` in note body.
+
+### 5.1 Edge Types
+
+| Edge | Syntax | Created When |
+|------|--------|-------------|
+| **Causal** | `Follows [[prior-decision.md]]` | Agent writes "caused by" reference |
+| **Temporal** | `Previous: [[last-rec.md]]` | Auto-linked to most recent rec |
+| **Similarity** | Smart Connections plugin | Embedding search finds semantic neighbors |
+| **Pattern** | `Pattern: [[../patterns/xyz.md]]` | System writes pattern link in decision note |
+
+### 5.2 Wikilink Resolution
+
+basic-memory resolves `[[wikilinks]]` to note IDs. Frontend graph visualization:
+1. `list_notes` to get all nodes
+2. Parse each note body for `[[...]]` links
+3. Build adjacency map client-side
+4. Render D3 force-directed graph (same as old spec)
+
+### 5.3 Smart Connections for Semantic Edges
+
+Obsidian Smart Connections plugin indexes all `~/.fin/memory/` markdown files. Generates embeddings. basic-memory exposes semantic search via `search_notes(semantic=true)`.
+
+When agent queries "user avoids selling winners" → Smart Connections returns decisions showing loss-aversion even if different tickers or domains.
+
+---
+
+## 6. AGENT MEMORY WORKFLOW
+
+### 6.1 Before Each Conversation
+
+```
+1. Agent loads user-context.md via read_note("user-context")
+2. Agent searches recent decisions: search_notes("investment", limit=10, sort="created")
+3. Agent checks patterns: list_notes(path="patterns/")
+4. Agent reads relevant preferences: search_notes("risk pace", tags=["preference"])
+5. Agent constructs context window from results
+```
+
+### 6.2 After Each Recommendation
+
+```
+1. Agent writes recommendation to recommendations/{date}-{slug}.md
+2. When user votes:
+   a. Write decision to decisions/{date}-{status}-{slug}.md
+   b. Update user-context.md (behavioral stats, acceptance rate)
+   c. Check for new patterns (5+ similar decisions?) → create pattern note
+```
+
+### 6.3 Pattern Detection
+
+System runs after every 5 decisions per domain:
+```
+1. Query last 5 decisions in domain
+2. Check for consistent signals:
+   - All rejected? → "domain-avoidance" pattern
+   - All 2-3% changes accepted, 5%+ rejected? → "prefers-gradual" pattern
+   - All tax-loss harvesting rejected? → "avoids-tax-complexity" pattern
+3. If pattern confidence >70%: create patterns/{slug}.md
+4. Link pattern from each evidence decision via [[wikilinks]]
+```
+
+---
+
+## 7. FRONTEND INTEGRATION
+
+### 7.1 Graph Data Fetch
+
+Frontend calls MCP tools (through backend proxy) to get nodes:
+
+```typescript
+// Get all nodes for graph
+const decisions = await mcp.list_notes({ path: "decisions/", include_frontmatter: true });
+const recommendations = await mcp.list_notes({ path: "recommendations/", include_frontmatter: true });
+
+// Parse wikilinks for edges
+const edges = extractWikilinks([...decisions, ...recommendations]);
+
+// Render D3 force-directed graph (preserve old spec's UI)
+```
+
+### 7.2 UI Preservation
+
+All UI from old spec (Sections 2–7) preserved:
+- Mini Memory Panel (collapsed sidebar graph)
+- Fullscreen Memory View (D3 force-directed graph)
+- Left panel: search, categories (now tags), filters
+- Analytics popup (category breakdown, timeline, trust score)
+- Chat detail drawer (click node → read note content)
+
+Categories from old spec map to `tags` in frontmatter. Filtering by tag = `search_notes(query="#portfolio", ...)`.
+
+### 7.3 No Custom API
+
+Frontend queries basic-memory directly via MCP. Backend proxies MCP calls but adds no custom memory endpoints. The memory system IS the MCP server.
+
+---
+
+## 8. OBSIDIAN INTEGRATION
+
+### 8.1 User Opens Memory in Obsidian
+
+```
+1. User installs Obsidian (https://obsidian.md)
+2. Opens ~/.fin/memory/ as a vault
+3. Sees all decisions, recommendations, patterns, preferences
+4. Can edit/create/delete notes freely
+5. Smart Connections plugin provides semantic search
+6. Graph view shows [[wikilink]] relationships
+```
+
+### 8.2 Read-Only from Fin's Perspective
+
+Fin treats memory as append-mostly. User edits in Obsidian are respected:
+- If user deletes a pattern note → agent re-detects if evidence still strong
+- If user edits a preference → agent reads updated content on next query
+- If user adds a note → agent searches pick it up
+
+---
+
+## 9. SETUP & INSTALLATION
+
+### 9.1 basic-memory MCP Server
+
+Installed as part of Fin's MCP configuration:
+
+```json
 {
-  "agent_type": "investment",
-  "timestamp": "2026-06-24T15:30:00Z",
-  "update": {
-    "chat_id": "conv_12345",
-    "category": "Diversification",
-    "user_action": "accepted",
-    "insight": "User strongly values sector diversification; rejected concentrated positions in past 3 chats",
-    "recommendation_made": "Increase Small Cap from 5% to 8%",
-    "confidence_score": 78,
-    "execution_expectation": "User likely to execute in 4-5 days based on historical patterns"
+  "mcpServers": {
+    "basic-memory": {
+      "command": "npx",
+      "args": ["-y", "@basicmachines/basic-memory", "--path", "~/.fin/memory"]
+    }
   }
 }
-Result: Next time Debt Agent starts a conversation, it sees:
-"Investment agent notes: User is actively rebalancing for diversification.
-This might affect their debt payoff timeline (may want to maintain
-contributions to capture full employer match while paying debt)."
+```
 
-MINI PANEL: DETAILED BEHAVIOR
-Mini Graph Thumbnail
-Size: 240px wide × 180px tall
-Background: Light (#e8f4f8) with subtle gradient
-Nodes: Colored dots (same colors as full graph)
-Edges: Very faint lines connecting nodes (low opacity)
-Hover Behavior:
-User hovers over mini graph
-│ Tooltip appears showing total chat count
-│ Dots slightly enlarge on hover
-│ But NOT clickable (stays interactive preview only)
-│ Lines remain faint (not emphasized)
-└─ Can still see relative positions of chats
-When Graph Has Many Chats (50+):
-Colors are muted/desaturated slightly so dots blend better
-Opacity of edges reduced further
-Nodes auto-scale to fit within 240px width
-Most recent chats (larger nodes) still visible in foreground
-Quick Stats Card
-Shows 3-4 most relevant statistics:
-Quick Stats:
-├─ 47 total chats
-├─ Most active: Portfolio (38%)
-├─ Last chat: 2h ago
-└─ Execution rate: 73%
+### 9.2 Obsidian Smart Connections
 
-DATABASE SCHEMA: MEMORY TABLES
-Table: agent_chats
-sqlCREATE TABLE agent_chats (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  agent_type ENUM('investment', 'debt', 'retirement'),
-  chat_title TEXT,
-  chat_content JSONB,  -- full conversation
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  category TEXT,  -- system or custom category name
-  tags JSONB,  -- array of tags
-  is_bookmarked BOOLEAN DEFAULT FALSE,
-  execution_outcome TEXT,  -- 'executed', 'rejected', 'pending'
-  notes TEXT,  -- user's own notes on this chat
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-Table: agent_categories
-sqlCREATE TABLE agent_categories (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  agent_type ENUM('investment', 'debt', 'retirement'),
-  category_name TEXT,
-  color_hex TEXT,  -- user-chosen color (e.g., #3b82f6)
-  is_system BOOLEAN,  -- TRUE for predefined, FALSE for custom
-  chat_count INT DEFAULT 0,
-  created_at TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  UNIQUE(user_id, agent_type, category_name)
-);
-Table: user_context
-sqlCREATE TABLE user_context (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  context_data JSONB,  -- full context file (age, goals, patterns, etc.)
-  last_updated TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  UNIQUE(user_id)
-);
+User installs manually (one-time):
+1. Open Obsidian, open `~/.fin/memory/` as vault
+2. Settings → Community Plugins → Install "Smart Connections"
+3. Enable. Embeddings index builds automatically.
 
-FRONTEND COMPONENTS: MEMORY SYSTEM
-Component Structure
-<AgentContextView>
-  ├─ <MiniMemoryPanel>  ← Top-left, collapsed view
-  │  ├─ <MiniGraph>
-  │  └─ <QuickStats>
-  │
-  ├─ <FullscreenMemory>  ← When user clicks "Fullscreen"
-  │  ├─ <LeftControlPanel>
-  │  │  ├─ <SearchBar>
-  │  │  ├─ <CategoryList>
-  │  │  ├─ <BookmarkedSection>
-  │  │  ├─ <FilterButtons>
-  │  │  └─ <UtilityButtons> (Export, Clear)
-  │  │
-  │  ├─ <MainGraphView>
-  │  │  ├─ <ForceDirectedGraph>  (D3.js or Three.js)
-  │  │  └─ <ChatDetailDrawer>  (when dot clicked)
-  │  │
-  │  └─ <AnalyticsPopup>
-  │     ├─ <CategoryBreakdown>
-  │     ├─ <TimelineMetrics>
-  │     ├─ <TrustScore>
-  │     ├─ <DecisionMetrics>
-  │     └─ <OutcomeSummary>
-  │
-  └─ <ChatDetailModal>  ← Full chat view when dot clicked
-     ├─ <ChatContent>
-     ├─ <CategorySelector>
-     └─ <ActionButtons> (Bookmark, Export, Retag)
-Key React Hooks
-typescript// Manage fullscreen state
-const [isFullscreen, setIsFullscreen] = useState(false);
+---
 
-// Track selected chat in graph
-const [selectedChatId, setSelectedChatId] = useState(null);
+## 10. MIGRATION FROM OLD SPEC
 
-// Filter/search state
-const [searchQuery, setSearchQuery] = useState('');
-const [activeFilters, setActiveFilters] = useState({
-  categoryFilter: [],
-  dateRange: 'all',
-  outcomeFilter: []
-});
+| Old Concept | New Equivalent |
+|-------------|---------------|
+| SQL `agent_chats` table | `decisions/*.md` + `recommendations/*.md` |
+| SQL `agent_categories` table | `tags` in frontmatter |
+| SQL `user_context` table | `user-context.md` |
+| Custom REST API endpoints | MCP tool calls |
+| Custom DB backups | Git repo (markdown files are text) |
+| "Categories" in UI | "Tags" in UI (same filtering behavior) |
 
-// Graph organization
-const [organizationMode, setOrganizationMode] = useState('by_category');
+### 10.1 What's Deleted
 
-// Analytics popup visibility
-const [showAnalytics, setShowAnalytics] = useState(true);
+- All SQL schema (old Sections 526–564)
+- Custom API endpoints for memory CRUD
+- Custom search implementation (old Section 681–687)
+- PDF export (use Obsidian plugins instead)
 
-USER EXPERIENCE FLOW: COMPLETE JOURNEY
-Scenario: User Wants to Review Past Diversification Discussions
-1. User opens Investment Agent
-   └─ Sees mini memory panel (top-left)
-   
-2. Hovers over mini graph
-   └─ Sees colored dots, gets tooltip "47 total chats"
-   
-3. Clicks [🔍 Fullscreen]
-   └─ Full memory view opens
-   
-4. Left panel shows categories
-   └─ Sees "Diversification (18 chats)" category
-   
-5. Clicks on "Diversification" category
-   └─ Graph redraws, filters to show only diversification chats
-   └─ Edges show how these conversations relate
-   
-6. Hovers over a dot from June 15
-   └─ Tooltip: "June 15 - Rebalancing Discussion"
-   └─ Connecting lines show related chats
-   
-7. Clicks the dot
-   └─ Chat detail drawer opens (right side)
-   └─ Full conversation visible
-   
-8. Reads conversation, decides to bookmark it
-   └─ Clicks [⭐ Bookmark]
-   └─ Dot in graph now shows star icon
-   └─ Chat appears in "Bookmarked" section of left panel
-   
-9. Clicks [Retag] to change category
-   └─ Dropdown appears
-   └─ User selects different tag
-   └─ Graph updates in real-time
-   
-10. User closes drawer
-    └─ Left panel now shows analytics updated
-    └─ Trust score reflects conversation
-    
-11. User clicks [☰ Export PDF]
-    └─ PDF generated with all diversification chats
-    └─ Timeline, outcomes, key insights included
-    └─ Downloaded to user's computer
+### 10.2 What's Preserved
 
-TECHNICAL CONSIDERATIONS
-Graph Rendering Performance
+- Graph visualization (force-directed, D3.js)
+- Mini panel / fullscreen UI layout
+- Category-based filtering (now tag-based)
+- Analytics popup (category breakdown, timeline, trust score)
+- Chat detail drawer
+- Agent learning mechanism (Section 451–498 of old spec — now MCP queries)
 
-D3.js or Sigma.js for force-directed graphs
-Lazy-load graph only when fullscreen (reduce initial load)
-Virtualize chat list in left panel (render only visible items)
-Debounce filter/search (wait 300ms after user stops typing before re-render)
+---
 
-Data Caching Strategy
-Cache Layer:
-├─ Chats for current agent: Cached in memory while fullscreen open
-├─ Categories & tags: Cached, invalidated on new category added
-├─ Analytics: Computed once on fullscreen open, cached
-├─ User Context File: Synced via WebSocket (real-time updates)
-└─ Graph layout: Cached, recalculate on organization change
-Search Implementation
-typescript// Pseudo-code for search
-function searchChats(query: string, chats: Chat[]) {
-  return chats.filter(chat => 
-    chat.title.toLowerCase().includes(query) ||
-    chat.content.toLowerCase().includes(query) ||
-    chat.category.toLowerCase().includes(query) ||
-    chat.tags.some(tag => tag.toLowerCase().includes(query)) ||
-    chat.createdAt.toLocaleDateString().includes(query)
-  );
-}
+## 11. REFERENCES
 
-SECURITY & PRIVACY
-Data Isolation
+- **basic-memory**: https://github.com/basicmachines-co/basic-memory
+- **Obsidian**: https://obsidian.md
+- **Smart Connections**: https://github.com/brianpetro/obsidian-smart-connections
+- **User Context Schema**: `docs/SystemPrompts/User_context_file_shema`
+- **Recommendation Engine**: `docs/Features/Recommendation_engine.md`
 
-Each agent's memory is stored separately in database
-User cannot see other users' memories (multi-tenant safety)
-API endpoints validate user_id before returning memory data
+---
 
-Sensitive Chat Content
-
-Chat content encrypted at rest (AES-256) if containing financial data
-PDF exports encrypted with user's password (optional)
-Clear Memory button requires password confirmation
-
-
-FUTURE ENHANCEMENTS
-
-Memory Sharing (Phase 2): Export memory between agents (Debt Agent references Investment Agent's diversification strategy)
-AI Summary (Phase 2): Auto-generate summaries of chat clusters using LLM
-Pattern Recognition (Phase 3): Agent automatically detects patterns in bookmarked chats and alerts user to blind spots
-Collaborative Memory (Phase 3): If multiple users in same household, share some memory segments (not available in MVP)
-Memory Retention Policies (Phase 3): User can set auto-delete for old chats (e.g., delete after 2 years)
-
-
-WIREFRAME SUMMARY
-Mini Panel (Sidebar, Collapsed)
-┌─────────────────────────┐
-│ 💭 Memory               │
-├─────────────────────────┤
-│  [Mini Graph, Colored]  │
-│  [Quick Stats]          │
-│  [Fullscreen] [⚙️]     │
-└─────────────────────────┘
-Fullscreen View (Split-Screen)
-┌──────────────────────────────────────┐
-│ < Back | Agent Memory            | X │
-├──────────┬───────────────────────────┤
-│          │                           │
-│ LEFT:    │  CENTER: Force-Directed   │
-│ Search   │  Graph (Interactive)      │
-│ Categories
-│ Filters  │  RIGHT: Analytics Popup   │
-│ Bookmarks│  (Floating, movable)      │
-│          │                           │
-├──────────┼───────────────────────────┤
-│[Export]  │ [Chat Detail Drawer      │
-│[Clear]   │  appears on dot click]   │
-└──────────┴───────────────────────────┘
-
-SUCCESS METRICS
-✅ User can find past chats within 3 clicks
-✅ Graph renders 50+ nodes smoothly (60fps)
-✅ Search returns relevant results in <500ms
-✅ User understands how bookmarking works (no training needed)
-✅ Analytics popup shows 5+ useful metrics at a glance
-✅ Agent uses memory to personalize next recommendation (evident to user)
-✅ PDF export captures all relevant info without data loss
-✅ Users spend 10+ minutes exploring memory on first visit (engagement)
-
-SUMMARY
-The Memory System is the cognitive layer that allows each agent to learn from user behavior while giving users full visibility into their decision history. By combining visual graph exploration, category-based organization, and intelligent agent learning, Fin creates a feedback loop where users build trust in agents by seeing their reasoning grounded in past context.
-Document Version: 1.0
-Last Updated: June 2026
-Status: Complete Specification (Ready for Development)
+*Document Version: 2.0 | Last Updated: July 2026 | Status: MCP-Native Rewrite Complete*
