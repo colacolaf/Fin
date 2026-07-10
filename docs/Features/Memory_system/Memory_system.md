@@ -556,7 +556,7 @@ npm install @tencentdb-agent-memory/memory-tencentdb
 - **TencentDB Agent Memory**: https://github.com/TencentCloud/TencentDB-Agent-Memory
 - **Obsidian**: https://obsidian.md
 - **Smart Connections**: https://github.com/brianpetro/obsidian-smart-connections
-- **User Context Schema**: `docs/SystemPrompts/User_context_file_shema`
+- **User Context Schema**: `docs/SystemPrompts/04_User_context_file_schema.md`
 - **Recommendation Engine**: `docs/Features/Recommendation_engine.md`
 - **GitHub References**: `docs/GitHub_References.md`
 

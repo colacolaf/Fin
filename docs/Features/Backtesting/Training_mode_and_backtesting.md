@@ -4,7 +4,7 @@
 **Version:** 1.0  
 **Status:** Specification (Ready for Planning)  
 **Last Updated:** July 8, 2026  
-**Depends On:** `docs/Skills_Connectors_Models/LLM_Models_Provided`, `docs/SystemPrompts/System_architecture_(Agent_orchestration_flow)`, `docs/SystemPrompts/User_context_file_shema`, `docs/Skills_Connectors_Models/Connectors_specification`, `docs/Memory_system/Memory_system`
+**Depends On:** `docs/Skills_Connectors_Models/LLM_Models_Provided`, `docs/SystemPrompts/06_System_architecture_agent_orchestration_flow.md`, `docs/SystemPrompts/04_User_context_file_schema.md`, `docs/Skills_Connectors_Models/Connectors_specification`, `docs/Memory_system/Memory_system`
 
 ---
 
@@ -77,8 +77,8 @@ Users who have accumulated enough chat history (≥50 categorized conversations 
 | Component | How Training Mode Connects |
 |-----------|---------------------------|
 | **Memory System** (`docs/Memory_system/Memory_system`) | Reads `agent_chats` table for training data. Writes `agent_training_runs` table for fine-tuned adapter metadata and backtesting results. |
-| **User Context File** (`docs/SystemPrompts/User_context_file_shema`) | `past_decisions`, `behavioral_patterns`, and `agent_insights` fields become training labels. Each accepted/rejected recommendation is a supervised example. |
-| **Agent Orchestration** (`docs/SystemPrompts/System_architecture_(Agent_orchestration_flow)`) | After training, the agent orchestration layer loads the active LoRA adapter when initializing an agent session. The Ollama model loader applies the adapter before the system prompt is injected. |
+| **User Context File** (`docs/SystemPrompts/04_User_context_file_schema.md`) | `past_decisions`, `behavioral_patterns`, and `agent_insights` fields become training labels. Each accepted/rejected recommendation is a supervised example. |
+| **Agent Orchestration** (`docs/SystemPrompts/06_System_architecture_agent_orchestration_flow.md`) | After training, the agent orchestration layer loads the active LoRA adapter when initializing an agent session. The Ollama model loader applies the adapter before the system prompt is injected. |
 | **Finnhub Connector** (`docs/Skills_Connectors_Models/Connectors_specification`) | Historical OHLCV data via Finnhub's `/stock/candle` endpoint with `resolution=D` and date range parameters. Free-tier limit: 1 year of daily candles per symbol. |
 | **Model Lineup** (`docs/Skills_Connectors_Models/LLM_Models_Provided`) | Local models (Llama 3.1 8B, Mistral 7B, Qwen 2.5 7B, DeepSeek-R1-Distill 8B) support LoRA fine-tuning. Cloud models (Claude, GPT-4o) are comparison baselines only (not fine-tunable locally). |
 
@@ -957,8 +957,8 @@ def sweep_position_sizing(
 | `docs/Memory_system/Memory_system` → `agent_chats` table | Source of training data (decision-labeled chats) |
 | `docs/Memory_system/Memory_system` → `user_context` table | Historical context snapshots for backtesting |
 | `docs/Memory_system/Memory_system` → NEW: `agent_training_runs` table | Stores training run metadata, adapter paths, backtesting results |
-| `docs/SystemPrompts/User_context_file_shema` → `past_decisions`, `behavioral_patterns`, `agent_insights` | Training labels and post-training insight updates |
-| `docs/SystemPrompts/System_architecture_(Agent_orchestration_flow)` → Agent orchestration layer | Loads active LoRA adapter at session start |
+| `docs/SystemPrompts/04_User_context_file_schema.md` → `past_decisions`, `behavioral_patterns`, `agent_insights` | Training labels and post-training insight updates |
+| `docs/SystemPrompts/06_System_architecture_agent_orchestration_flow.md` → Agent orchestration layer | Loads active LoRA adapter at session start |
 | `docs/Skills_Connectors_Models/LLM_Models_Provided` → Local models (Llama, Mistral, Qwen, DeepSeek, Phi) | Fine-tunable base models |
 | `docs/Skills_Connectors_Models/Connectors_specification` → Finnhub `/stock/candle` | Historical OHLCV data for backtesting |
 | `~/.fin/adapters/{user_id}/{agent_type}/{run_id}/adapter.safetensors` | LoRA adapter file storage |
@@ -969,4 +969,4 @@ def sweep_position_sizing(
 **Document Version:** 1.0  
 **Status:** Complete Specification — Ready for Task Breakdown & Implementation  
 **Owning Skills Used:** planning-and-task-breakdown, owasp-security-check  
-**References:** LLM_Models_Provided, System_architecture_(Agent_orchestration_flow), User_context_file_shema, Connectors_specification, Memory_system
+**References:** LLM_Models_Provided, 06_System_architecture_agent_orchestration_flow.md, 04_User_context_file_schema.md, Connectors_specification, Memory_system

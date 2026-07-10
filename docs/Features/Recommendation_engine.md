@@ -43,7 +43,7 @@ User Request
 └──────────────────────────────────────────────────────┘
 ```
 
-Refer to `docs/SystemPrompts/System_architecture_(Agent_orchestration_flow)` for the full request-response lifecycle including voting and context update flows.
+Refer to `docs/SystemPrompts/06_System_architecture_agent_orchestration_flow.md` for the full request-response lifecycle including voting and context update flows.
 
 ---
 
@@ -746,8 +746,8 @@ Old decisions decay in relevance. Agent weights recent decisions higher:
 ## 11. REFERENCES
 
 - **Agent System Prompts**: `docs/SystemPrompts/Investment_agent_system_prompt`, `docs/SystemPrompts/Debt_agent_system_prompt`, `docs/SystemPrompts/Retirement_System_Prompt`
-- **Architecture & Orchestration Flow**: `docs/SystemPrompts/System_architecture_(Agent_orchestration_flow)`
-- **User Context Schema**: `docs/SystemPrompts/User_context_file_shema`
-- **Implementation Guide**: `docs/SystemPrompts/Fin_system_prompts_implemtation_guide`
+- **Architecture & Orchestration Flow**: `docs/SystemPrompts/06_System_architecture_agent_orchestration_flow.md`
+- **User Context Schema**: `docs/SystemPrompts/04_User_context_file_schema.md`
+- **Implementation Guide**: `docs/SystemPrompts/05_Fin_system_prompts_implementation_guide.md`
 - **Memory System Spec**: `docs/Features/Memory_system/Memory_system.md`
 - **basic-memory**: https://github.com/basicmachines-co/basic-memory

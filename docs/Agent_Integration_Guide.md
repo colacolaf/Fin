@@ -23,12 +23,12 @@
 | `Features/Setup_wizard/Setup_wizard_full_flow.md` | 6-step onboarding, profile schema | Onboarding |
 | `Features/Setup_wizard/Setup_wizard_frontend_spec.md` | Step UI components, validation | Setup wizard UI |
 | `SystemPrompts/Readme` | Package overview, file relationships | Prompt architecture |
-| `SystemPrompts/System_architecture_(Agent_orchestration_flow)` | Full orchestration, request/response, confidence math | Architecture |
-| `SystemPrompts/Fin_system_prompts_implemtation_guide` | Prompt injection, Ollama wiring | Prompt implementation |
-| `SystemPrompts/Debt_agent_system_prompt` | Debt agent C.O.R.E. prompt | Debt agent |
-| `SystemPrompts/Investment_agent_system_prompt` | Investment agent C.O.R.E. prompt | Investment agent |
-| `SystemPrompts/Retirement_System_Prompt` | Retirement agent C.O.R.E. prompt | Retirement agent |
-| `SystemPrompts/User_context_file_shema` | User context JSON schema | User data shape |
+| `SystemPrompts/01_Investment_agent_system_prompt.md` | Investment agent C.O.R.E. prompt | Investment agent |
+| `SystemPrompts/02_Debt_agent_system_prompt.md` | Debt agent C.O.R.E. prompt | Debt agent |
+| `SystemPrompts/03_Retirement_agent_system_prompt.md` | Retirement agent C.O.R.E. prompt | Retirement agent |
+| `SystemPrompts/04_User_context_file_schema.md` | User context JSON schema | User data shape |
+| `SystemPrompts/05_Fin_system_prompts_implementation_guide.md` | Prompt injection, Ollama wiring | Prompt implementation |
+| `SystemPrompts/06_System_architecture_agent_orchestration_flow.md` | Full orchestration, request/response, confidence math | Architecture |
 | `Skills_Connectors_Models/Skills/Debt_agent_skills` | 13 skills, 4 tiers, confidence formulas | Debt skills |
 | `Skills_Connectors_Models/Skills/Investment_agent_skills` | 20 skills, 4 tiers, Monte Carlo pipeline | Investment skills |
 | `Skills_Connectors_Models/Skills/Retirement_agent_skills` | 17 skills, 4 tiers, Roth ladder | Retirement skills |
@@ -42,18 +42,18 @@
 ```
 IF task contains "recommendation" | "confidence" | "CORE" | "agent coordination"
   → Features/Recommendation_engine.md
-  → SystemPrompts/System_architecture_(Agent_orchestration_flow)
+  → SystemPrompts/06_System_architecture_agent_orchestration_flow.md
 
 IF task contains "debt" | "avalanche" | "snowball" | "payoff"
-  → SystemPrompts/Debt_agent_system_prompt
+  → SystemPrompts/02_Debt_agent_system_prompt.md
   → Skills_Connectors_Models/Skills/Debt_agent_skills
 
 IF task contains "investment" | "portfolio" | "rebalance" | "monte carlo"
-  → SystemPrompts/Investment_agent_system_prompt
+  → SystemPrompts/01_Investment_agent_system_prompt.md
   → Skills_Connectors_Models/Skills/Investment_agent_skills
 
 IF task contains "retirement" | "roth" | "401k" | "rmd" | "conversion"
-  → SystemPrompts/Retirement_System_Prompt
+  → SystemPrompts/03_Retirement_agent_system_prompt.md
   → Skills_Connectors_Models/Skills/Retirement_agent_skills
 
 IF task contains "connector" | "alpaca" | "plaid" | "finnhub" | "data refresh"
@@ -69,7 +69,7 @@ IF task contains "mobile" | "offline" | "pwa" | "service worker"
 
 IF task contains "setup" | "onboarding" | "wizard" | "user profile"
   → Features/Setup_wizard/Setup_wizard_full_flow.md
-  → SystemPrompts/User_context_file_shema
+  → SystemPrompts/04_User_context_file_schema.md
 
 IF task contains "vote" | "feedback" | "past decisions"
   → Features/Voting_and_feedback_system.md
@@ -99,9 +99,9 @@ IF task needs repo URL for any feature
 
 | Agent | System Prompt | Skill Catalog | Skill Count |
 |-------|--------------|---------------|-------------|
-| **Debt** | `SystemPrompts/Debt_agent_system_prompt` | `Skills_Connectors_Models/Skills/Debt_agent_skills` | 13 (Tiers 1–4) |
-| **Investment** | `SystemPrompts/Investment_agent_system_prompt` | `Skills_Connectors_Models/Skills/Investment_agent_skills` | 20 (Tiers 1–4) |
-| **Retirement** | `SystemPrompts/Retirement_System_Prompt` | `Skills_Connectors_Models/Skills/Retirement_agent_skills` | 17 (Tiers 1–4) |
+| **Debt** | `SystemPrompts/02_Debt_agent_system_prompt.md` | `Skills_Connectors_Models/Skills/Debt_agent_skills` | 13 (Tiers 1–4) |
+| **Investment** | `SystemPrompts/01_Investment_agent_system_prompt.md` | `Skills_Connectors_Models/Skills/Investment_agent_skills` | 20 (Tiers 1–4) |
+| **Retirement** | `SystemPrompts/03_Retirement_agent_system_prompt.md` | `Skills_Connectors_Models/Skills/Retirement_agent_skills` | 17 (Tiers 1–4) |
 
 Tier structure per agent:
 - **Tier 1**: Always-on baseline skills (no data gate). Run every request.
@@ -109,7 +109,7 @@ Tier structure per agent:
 - **Tier 3**: Advanced analysis, multi-step. Gated on Tier 2 output.
 - **Tier 4**: Synthesis / cross-domain. Gated on multiple Tier 3 results.
 
-Prompt injection pattern in `SystemPrompts/Fin_system_prompts_implemtation_guide`.
+Prompt injection pattern in `SystemPrompts/05_Fin_system_prompts_implementation_guide.md`.
 
 ---
 

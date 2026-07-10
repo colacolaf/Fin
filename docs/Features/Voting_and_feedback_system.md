@@ -4,7 +4,7 @@
 **Version:** 1.0
 **Status:** Specification
 **Last Updated:** July 9, 2026
-**Depends On:** `docs/Memory_system/Memory_system`, `docs/SystemPrompts/User_context_file_shema`, `docs/SystemPrompts/System_architecture_(Agent_orchestration_flow)` 
+**Depends On:** `docs/Memory_system/Memory_system`, `docs/SystemPrompts/04_User_context_file_schema.md`, `docs/SystemPrompts/06_System_architecture_agent_orchestration_flow.md` 
 **GitHub Refs:** Upstash Redis (serverless REST API rate limiting), Flask-Limiter (not needed — Upstash covers it)
 
 ---

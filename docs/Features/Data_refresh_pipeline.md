@@ -284,7 +284,7 @@ function detectStaleness(userContext: UserContext): StalenessReport[] {
 
 ### data_quality_flags Mapping
 
-From `docs/SystemPrompts/User_context_file_shema`, the `data_quality_flags` field in the User Context File:
+From `docs/SystemPrompts/04_User_context_file_schema.md`, the `data_quality_flags` field in the User Context File:
 
 ```json
 {
