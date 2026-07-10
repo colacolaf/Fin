@@ -12,6 +12,7 @@ from database import get_db
 from models.portfolio import ApiConnection
 from models.user import User
 from utils.encryption import encrypt
+from services.portfolio_sync import sync_user_portfolio
 
 logger = logging.getLogger("fin.integrations")
 router = APIRouter(prefix="/api/integrations", tags=["integrations"])
@@ -91,3 +92,15 @@ def test_alpaca_connection(
         "buying_power": str(acct.buying_power),
         "portfolio_value": str(acct.portfolio_value),
     }
+
+
+@router.post("/sync")
+def trigger_sync(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Force a portfolio sync from connected broker."""
+    result = sync_user_portfolio(user.id, db=db)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=result.get("reason", "Sync failed"))
+    return result

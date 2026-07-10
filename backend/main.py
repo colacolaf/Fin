@@ -8,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 
 from auth.router import router as auth_router
 from config import settings
+from integrations.scheduler import start_scheduler, stop_scheduler
 from middleware.error_handler import ErrorHandlerMiddleware
 from middleware.rate_limiter import limiter
 from routers import debt, execution, integrations, memory, portfolio, recommendations, retirement, settings as settings_router
@@ -52,3 +53,14 @@ app.include_router(execution.router)
 app.include_router(memory.router)
 app.include_router(integrations.router)
 app.include_router(settings_router.router)
+
+# ── Background scheduler ──────────────────────
+@app.on_event("startup")
+def _startup():
+    if settings.fin_env == "local" or settings.alpaca_api_key:
+        start_scheduler()
+
+
+@app.on_event("shutdown")
+def _shutdown():
+    stop_scheduler()
