@@ -1,0 +1,427 @@
+/* ── Ocean Dashboard Shell — Phase 5 ── */
+/* Palette: deep ocean (not navy+grey), tinted neutrals toward teal */
+/* No #000, no #fff, no gradient text, no side-stripe borders */
+
+:root {
+  /* Ocean depths */
+  --ocean-abyss: oklch(12% 0.02 220);
+  --ocean-deep: oklch(18% 0.03 210);
+  --ocean-mid: oklch(25% 0.04 200);
+  --ocean-shallows: oklch(35% 0.05 195);
+
+  /* Tinted neutrals (base hue ~210 toward teal) */
+  --surface-base: oklch(15% 0.01 210);
+  --surface-raised: oklch(20% 0.015 205);
+  --surface-overlay: oklch(25% 0.02 200);
+
+  /* Text — tinted, never pure white */
+  --text-primary: oklch(90% 0.005 200);
+  --text-secondary: oklch(70% 0.01 200);
+  --text-muted: oklch(55% 0.01 200);
+
+  /* Bioluminescence — saturated accents */
+  --bio-investment: oklch(70% 0.18 170);   /* teal */
+  --bio-debt: oklch(70% 0.16 240);          /* blue */
+  --bio-retirement: oklch(70% 0.18 155);     /* green-teal */
+  --bio-glow: oklch(80% 0.12 180);
+
+  /* Status */
+  --status-idle: oklch(55% 0.03 200);
+  --status-running: oklch(70% 0.16 170);
+  --status-error: oklch(65% 0.18 25);
+
+  /* Surfaces */
+  --sidebar-bg: oklch(14% 0.015 210 / 0.92);
+  --topbar-bg: oklch(12% 0.01 210 / 0.85);
+
+  /* Typography scale — ≥1.25 ratio between steps */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;       /* 1.25 ratio */
+  --text-xl: 1.563rem;      /* 1.25 ratio */
+  --text-2xl: 1.953rem;     /* 1.25 ratio */
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --topbar-height: 56px;
+  --transition-sidebar: 280ms cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-status: 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ocean-abyss);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── Dashboard Layout ── */
+.dashboard {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Ocean Canvas ── */
+.ocean-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+/* ── Top Bar ── */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-height);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid oklch(30% 0.02 210 / 0.3);
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.topbar-brand {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--bio-glow);
+  user-select: none;
+}
+
+/* ── Hamburger ── */
+.topbar-hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background var(--transition-status);
+}
+
+.topbar-hamburger:hover {
+  background: oklch(30% 0.02 210 / 0.3);
+}
+
+.hamburger-line {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text-secondary);
+  border-radius: 1px;
+  transition: transform var(--transition-status), opacity var(--transition-status);
+}
+
+/* ── Sync Indicator ── */
+.sync-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: oklch(22% 0.02 210 / 0.5);
+  border: 1px solid oklch(30% 0.02 210 / 0.3);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-status), background var(--transition-status);
+}
+
+.sync-indicator:hover:not(:disabled) {
+  border-color: var(--bio-investment);
+}
+
+.sync-indicator:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.sync-indicator.syncing {
+  border-color: var(--bio-investment);
+}
+
+.sync-indicator.sync-error {
+  border-color: var(--status-error);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-idle);
+  transition: background var(--transition-status);
+}
+
+.sync-dot.pulse {
+  background: var(--bio-investment);
+  animation: sync-pulse 1.2s ease-in-out infinite;
+}
+
+.sync-dot.error {
+  background: var(--status-error);
+}
+
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.5); }
+}
+
+.sync-label {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── User Menu ── */
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-email {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.btn-logout {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid oklch(40% 0.02 210 / 0.4);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-status), color var(--transition-status);
+}
+
+.btn-logout:hover {
+  border-color: var(--status-error);
+  color: var(--status-error);
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  z-index: 90;
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid oklch(30% 0.02 210 / 0.15);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform var(--transition-sidebar);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+}
+
+.sidebar-section-label {
+  padding: 8px 12px 12px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* Sidebar items — no side-stripe borders */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    background var(--transition-status),
+    border-color var(--transition-status),
+    color var(--transition-status);
+}
+
+.sidebar-item:hover {
+  background: oklch(25% 0.02 210 / 0.4);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: oklch(25% 0.03 200 / 0.5);
+  border-color: oklch(40% 0.08 180 / 0.3);
+  color: var(--text-primary);
+}
+
+.sidebar-item-icon {
+  font-size: var(--text-lg);
+  line-height: 1;
+  width: 24px;
+  text-align: center;
+  transition: color var(--transition-status);
+}
+
+.sidebar-item-icon.investment { color: var(--bio-investment); }
+.sidebar-item-icon.debt { color: var(--bio-debt); }
+.sidebar-item-icon.retirement { color: var(--bio-retirement); }
+
+.sidebar-item-label {
+  flex: 1;
+  text-align: left;
+}
+
+/* Status dot — bioluminescent pulse */
+.sidebar-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-idle);
+  flex-shrink: 0;
+  transition: background var(--transition-status), box-shadow var(--transition-status);
+}
+
+.sidebar-status-dot.running {
+  background: var(--bio-investment);
+  box-shadow: 0 0 8px var(--bio-investment);
+  animation: dot-glow 1.5s ease-in-out infinite;
+}
+
+.sidebar-status-dot.error {
+  background: var(--status-error);
+}
+
+.sidebar-status-dot.loading {
+  background: var(--bio-investment);
+  animation: dot-glow 0.8s ease-in-out infinite;
+}
+
+@keyframes dot-glow {
+  0%, 100% { box-shadow: 0 0 4px var(--bio-investment); }
+  50% { box-shadow: 0 0 14px var(--bio-investment); }
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid oklch(30% 0.02 210 / 0.15);
+}
+
+.sync-time {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ── Main Content ── */
+.dashboard-main {
+  position: fixed;
+  top: var(--topbar-height);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left var(--transition-sidebar);
+}
+
+.dashboard-main.sidebar-open {
+  left: var(--sidebar-width);
+}
+
+.dashboard-placeholder {
+  text-align: center;
+  padding: 40px;
+}
+
+.placeholder-title {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.placeholder-text {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 65ch;
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+
+  .sidebar-item,
+  .sync-indicator,
+  .sync-dot,
+  .sidebar-status-dot {
+    transition: none;
+  }
+
+  .sync-dot.pulse,
+  .sidebar-status-dot.running,
+  .sidebar-status-dot.loading {
+    animation: none;
+  }
+
+  .dashboard-main {
+    transition: none;
+  }
+}
+
+/* ── Touch: no hover replay on tap ── */
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-item:hover,
+  .topbar-hamburger:hover,
+  .btn-logout:hover {
+    /* hover already defined inline — this gate prevents touch replay */
+  }
+}

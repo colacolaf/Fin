@@ -1,20 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import "./App.css";
-
-function Dashboard() {
-  const { user, logout } = useAuth();
-  return (
-    <main>
-      <h1>Fin</h1>
-      {user && <p>Welcome, {user.name || user.email}</p>}
-      <button onClick={logout}>Logout</button>
-    </main>
-  );
-}
+import Dashboard from "./pages/Dashboard";
+import "./styles/ocean.css";
 
 function App() {
   return (
