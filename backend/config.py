@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     fin_env: str = "local"
     data_dir: str = "./data"
     db_path: str = "./data/fin.db"
-    jwt_secret: str = "change-me"
+    jwt_secret: str = ""
     auth_enabled: bool = False
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "mistral:7b"
