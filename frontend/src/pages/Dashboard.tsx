@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import OceanCanvas from '../components/ocean/OceanCanvas';
 import TopBar from '../components/layout/TopBar';
 import Sidebar from '../components/layout/Sidebar';
+import AgentPanel from '../components/layout/AgentPanel';
 import { useAgentState } from '../hooks/useAgentState';
 
 export default function Dashboard() {
@@ -12,12 +13,10 @@ export default function Dashboard() {
   >(null);
 
   const handleSync = useCallback(() => {
-    // Mock sync sequence — real implementation in Phase 7+
     const agents = ['investment', 'debt', 'retirement'] as const;
     agents.forEach((agent, i) => {
       setAgentStatus(agent, 'loading');
       setTimeout(() => setAgentStatus(agent, 'running'), 600 * (i + 1));
-      setTimeout(() => {}, 1200 * (i + 1)); // running for a moment
     });
     setTimeout(() => markSynced(), 4000);
   }, [setAgentStatus, markSynced]);
@@ -31,7 +30,11 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-      <OceanCanvas agentState={agentState} />
+      <OceanCanvas
+        agentState={agentState}
+        selectedAgent={activeAgent}
+        onSelectFin={handleSelectAgent}
+      />
       <TopBar
         agentState={agentState}
         onSync={handleSync}
@@ -45,18 +48,21 @@ export default function Dashboard() {
         activeAgent={activeAgent}
       />
       <main className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div className="dashboard-placeholder">
-          <h2 className="placeholder-title">
-            {activeAgent
-              ? `${activeAgent.charAt(0).toUpperCase() + activeAgent.slice(1)} Agent`
-              : 'Fin Dashboard'}
-          </h2>
-          <p className="placeholder-text">
-            {activeAgent
-              ? 'Agent panel coming in Phase 7–11.'
-              : 'Select an agent from the sidebar to begin.'}
-          </p>
-        </div>
+        {activeAgent ? (
+          <AgentPanel
+            agent={activeAgent}
+            status={agentState[activeAgent]}
+            agentState={agentState}
+            active={true}
+          />
+        ) : (
+          <AgentPanel
+            agent="investment"
+            status={agentState.investment}
+            agentState={agentState}
+            active={false}
+          />
+        )}
       </main>
     </div>
   );

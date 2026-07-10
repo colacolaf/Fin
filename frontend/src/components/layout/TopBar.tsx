@@ -46,7 +46,7 @@ export default function TopBar({ agentState, onSync, onToggleSidebar, sidebarOpe
         >
           <span className={`sync-dot ${anyRunning ? 'pulse' : anyError ? 'error' : ''}`} />
           <span className="sync-label">
-            {anyError ? 'Sync failed' : anyRunning ? 'Syncing…' : statusLabel.investment}
+            {anyError ? 'Sync failed' : anyRunning ? 'Syncing…' : statusLabel[investment]}
           </span>
         </button>
       </div>
