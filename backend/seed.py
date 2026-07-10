@@ -26,7 +26,7 @@ def seed():
 
         # --- User ---
         pwd = bcrypt.hashpw(DEMO_PASSWORD.encode(), bcrypt.gensalt()).decode()
-        user = models.User(id=USER_ID, email=DEMO_EMAIL, password_hash=pwd)
+        user = models.User(id=USER_ID, email=DEMO_EMAIL, name="Demo User", password_hash=pwd)
         db.add(user)
         db.flush()  # ensure user row exists before FK inserts
 

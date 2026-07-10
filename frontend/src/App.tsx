@@ -1,28 +1,39 @@
-import { useEffect, useState } from "react";
-import { API_BASE, BACKEND_PORT } from "@fin/shared";
-import type { HealthResponse } from "@fin/shared";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import "./App.css";
 
-const API_URL = `http://localhost:${BACKEND_PORT}${API_BASE}`;
-
-function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch(`${API_URL}/health`)
-      .then((res) => res.json())
-      .then(setHealth)
-      .catch((err: Error) => setError(err.message));
-  }, []);
-
+function Dashboard() {
+  const { user, logout } = useAuth();
   return (
     <main>
       <h1>Fin</h1>
-      {error && <p className="error">Error: {error}</p>}
-      {health && <p>Backend: {health.status}</p>}
-      {!health && !error && <p>Connecting...</p>}
+      {user && <p>Welcome, {user.name || user.email}</p>}
+      <button onClick={logout}>Logout</button>
     </main>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

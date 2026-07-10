@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,3 +19,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Ensure JWT secret is set for production
+if not settings.jwt_secret:
+    if os.environ.get("FIN_ENV", settings.fin_env) == "production":
+        raise ValueError("JWT_SECRET must be set in production")
+    settings.jwt_secret = "dev-secret-change-in-production"

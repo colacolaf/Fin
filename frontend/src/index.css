@@ -109,3 +109,156 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* ── Auth pages ───────────────────────── */
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  padding: 24px;
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 28px;
+    letter-spacing: -0.6px;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    color: var(--text-h);
+    text-align: left;
+  }
+
+  input {
+    font-family: var(--sans);
+    font-size: 15px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text-h);
+    outline: none;
+    transition: border-color 0.2s ease;
+
+    &:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+  }
+
+  button {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    background: var(--text-h);
+    color: var(--bg);
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  .error {
+    font-size: 14px;
+    color: #d92d20;
+    background: oklch(0.6 0.22 28 / 0.08);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin: 0;
+    text-align: left;
+    animation: shake 0.4s ease;
+  }
+
+  .auth-link {
+    font-size: 14px;
+    color: var(--text);
+    margin: 0;
+    text-align: center;
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+/* ── Spinner ─────────────────────────── */
+.spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  font-size: 15px;
+  color: var(--text);
+
+  &::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin-right: 12px;
+    animation: spin 0.6s linear infinite;
+  }
+}
+
+/* ── Keyframes ───────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-form {
+  animation: fade-up 0.35s ease-out;
+}

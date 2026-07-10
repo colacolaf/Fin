@@ -4,16 +4,34 @@ export interface HealthResponse {
 }
 
 // ── Auth ──────────────────────────────────
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  name: string;
 }
 
-export interface UserProfile {
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  user: UserOut;
+}
+
+export interface UserOut {
   id: string;
   email: string;
-  display_name: string;
+  name: string | null;
+  is_active: boolean;
   created_at: string;
+}
+
+export interface RefreshRequest {
+  refresh_token: string;
 }
 
 // ── Portfolio ─────────────────────────────
