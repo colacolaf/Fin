@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import SetupWizard from "./pages/SetupWizard";
 import Dashboard from "./pages/Dashboard";
 import "./styles/ocean.css";
 
@@ -13,6 +14,14 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route
+            path="/setup"
+            element={
+              <ProtectedRoute>
+                <SetupWizard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/"
             element={
