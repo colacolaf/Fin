@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     auth_enabled: bool = False
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "mistral:7b"
+    agent_max_tokens: int = 2048
+    agent_temperature: float = 0.3
+    agent_timeout_seconds: int = 60
+    agent_max_retries: int = 3
+    agent_default_stream: bool = False
+    agent_confidence_reduction_data_staleness: float = 0.15  # per day over 7 days
+    ollama_agent_model: str = ""  # override per-agent, falls back to ollama_model
     alpaca_api_key: str = ""
     alpaca_api_secret: str = ""
     encryption_key: str = ""  # AES-256 master key for API credential encryption
