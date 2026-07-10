@@ -1,0 +1,42 @@
+# Fin Project — Cline AI Agent Rules
+
+## Prompt Caching Configuration
+
+### Caching Strategy
+- **Short-term session cache**: Cache system prompts, user context, and memory files that don't change within a conversation. Reload only on explicit update.
+- **Long-term file cache**: Mark common project files (GitHub_References.md, system prompts, agent specs) as stable references. These should be cached and not re-read unless modified.
+- **Context window management**: Target < 50% context utilization. Offload verbose outputs. Use TencentDB Agent Memory patterns for token reduction (Mermaid canvas for tool logs, node_id-based drill-down).
+
+### Stable Reference Files (Cache-Heavy)
+These files change rarely and should be cached aggressively:
+- `docs/GitHub_References.md`
+- `docs/SystemPrompts/*`
+- `docs/Skills_Connectors_Models/*`
+- `docs/Features/Memory_system/Memory_system.md`
+
+### Dynamic Files (No Cache / Light Cache)
+These files change frequently:
+- Source code files (`.py`, `.tsx`, `.ts`)
+- Configuration files (`*.json`, `*.yaml`)
+- Test files
+
+### Token Budget
+- Max context per agent session: 60K tokens for user-facing, 40K tokens for internal
+- Use Mermaid diagrams instead of full text for state representation (following TencentDB Agent Memory pattern)
+- Prefer structured summaries over raw output dumps
+- Offload full tool outputs to external files, keep only compressed Mermaid canvas in context
+
+### Agent Memory Caching
+- Load user-context.md once per session, cache until session end
+- Search memory (basic-memory) only when agent needs specific past decisions
+- Use TencentDB Agent Memory offload mode for long-running agent sessions
+
+## MCP Servers
+- `basic-memory`: Local markdown memory store (~/.fin/memory/)
+- `playwright`: Browser automation for E2E testing (@playwright/mcp)
+- `exa`: Semantic web search (https://mcp.exa.ai/mcp)
+
+## Agent Architecture
+- Investment Agent: Portfolio analysis, recommendations
+- Debt Agent: Debt management, payoff strategies
+- Retirement Agent: Retirement planning, projections

@@ -41,6 +41,14 @@
 **When to use:** Building the per-agent memory store (Investment/Debt/Retirement agents). Stores context nodes (past decisions, user preferences) and edges (causal, temporal, similarity). Replaces custom SQLite memory tables.  
 **Why this over others:** MCP-native (works with Claude Code, Cursor, etc.), local-first, users can read/edit memory in Obsidian. Lighter than obsidian-mind.
 
+### TencentDB Agent Memory (long-term + short-term memory engine)
+**URL:** https://github.com/TencentCloud/TencentDB-Agent-Memory  
+**Stars:** ~8,000  
+**What:** Fully local long-term + symbolic short-term memory for AI Agents via a 4-tier progressive pipeline (L0 Conversation → L1 Atom → L2 Scenario → L3 Persona), with zero external API dependencies. Combines context offloading with Mermaid symbol graphs. SQLite + sqlite-vec backend.  
+**Key metrics:** Cuts token usage up to 61.38%, improves task pass rate 51.52% (relative), raises PersonaMem accuracy from 48% to 76%.  
+**When to use:** Advanced memory layer for Fin agents — handles both short-term task context compression (Mermaid canvas offloading) and long-term personalization (layered persona/scenario extraction). Complements basic-memory for the local markdown store.  
+**Why this over others:** Best-in-class token reduction (61%), hierarchical memory architecture (not flat vectors), full traceability from high-level symbols back to raw evidence, local-first, TypeScript/Node.js, OpenClaw + Hermes integration.
+
 ### obsidian-mind (alternative)
 **URL:** https://github.com/breferrari/obsidian-mind  
 **Stars:** ~3,290  
@@ -269,7 +277,8 @@ All LLM inference runs locally. No data leaves the machine.
 
 | Feature | Primary Repo | Fallback |
 |---------|-------------|----------|
-| Memory System | basic-memory | obsidian-mind |
+| Memory System (long-term) | basic-memory | obsidian-mind |
+| Memory System (short-term/token compression) | TencentDB-Agent-Memory | — |
 | Web Capabilities (ALL) | agent-reach | — |
 | Local LLM Inference | ollama | — |
 | LLM Provider Router | litellm | — |

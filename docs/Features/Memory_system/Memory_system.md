@@ -489,14 +489,77 @@ User installs manually (one-time):
 
 ---
 
-## 11. REFERENCES
+## 11. ADVANCED: TencentDB Agent Memory Integration
+
+### 11.1 Overview
+
+[TencentDB Agent Memory](https://github.com/TencentCloud/TencentDB-Agent-Memory) provides a production-grade memory engine that complements basic-memory with:
+
+- **Symbolic short-term memory**: Mermaid canvas offloading — verbose tool logs compressed to lightweight symbol graphs, cutting token usage up to 61.38%
+- **Layered long-term memory**: L0 Conversation → L1 Atom → L2 Scenario → L3 Persona pipeline for progressive disclosure
+- **`node_id` traceability**: Full drill-down from high-level symbols back to raw evidence
+- **Local-first**: SQLite + sqlite-vec backend, zero external API dependencies
+
+### 11.2 When to Add This Layer
+
+| Stage | Memory Layer | Provider |
+|-------|-------------|----------|
+| **MVP** | Markdown memory store (notes, decisions, preferences) | basic-memory MCP |
+| **Phase 2** | Context compression (token reduction for long agent sessions) | TencentDB Agent Memory (offload mode) |
+| **Phase 3** | Full persona/scenario extraction (learns user patterns over time) | TencentDB Agent Memory (full pipeline) |
+
+### 11.3 Architecture with Both Systems
+
+```
+┌──────────────────────────────────────────────────┐
+│                  FIN AGENTS                       │
+│                                                   │
+│  Short-term (in-session):                         │
+│    TencentDB Agent Memory                         │
+│    → Mermaid canvas offloading                    │
+│    → Compressed token context (~61% reduction)    │
+│                                                   │
+│  Long-term (cross-session):                       │
+│    basic-memory MCP                               │
+│    → Markdown notes in ~/.fin/memory/             │
+│    → Obsidian-compatible, user-browsable          │
+│                                                   │
+│  Future: TencentDB L3 Persona → basic-memory      │
+│    preferences/*.md auto-populated                │
+└──────────────────────────────────────────────────┘
+```
+
+### 11.4 Setup
+
+```bash
+# Install TencentDB Agent Memory plugin
+npm install @tencentdb-agent-memory/memory-tencentdb
+
+# Enable context offloading (short-term compression)
+# Config: enable "offload" mode in agent config
+```
+
+### 11.5 Key Benefits for Fin
+
+| Problem | Without | With TencentDB Agent Memory |
+|---------|---------|---------------------------|
+| Long agent sessions (100+ tool calls) | Context window overflow, performance degradation | 61% token reduction via Mermaid offloading |
+| User re-explains preferences | Agent forgets past sessions | L3 Persona captures stable preferences |
+| Error tracing | Lost in verbose logs | node_id drill-down to raw evidence |
+| Multi-agent coordination | Each agent starts cold | Shared L2 Scenario patterns across agents |
+
+---
+
+## 12. REFERENCES
 
 - **basic-memory**: https://github.com/basicmachines-co/basic-memory
+- **TencentDB Agent Memory**: https://github.com/TencentCloud/TencentDB-Agent-Memory
 - **Obsidian**: https://obsidian.md
 - **Smart Connections**: https://github.com/brianpetro/obsidian-smart-connections
 - **User Context Schema**: `docs/SystemPrompts/User_context_file_shema`
 - **Recommendation Engine**: `docs/Features/Recommendation_engine.md`
+- **GitHub References**: `docs/GitHub_References.md`
 
 ---
 
-*Document Version: 2.0 | Last Updated: July 2026 | Status: MCP-Native Rewrite Complete*
+*Document Version: 2.1 | Last Updated: July 2026 | Status: MCP-Native Rewrite Complete + TencentDB Agent Memory Added*
