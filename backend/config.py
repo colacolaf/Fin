@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     ollama_model: str = "mistral:7b"
     alpaca_api_key: str = ""
     alpaca_api_secret: str = ""
+    encryption_key: str = ""  # AES-256 master key for API credential encryption
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
 
@@ -25,3 +26,8 @@ if not settings.jwt_secret:
     if os.environ.get("FIN_ENV", settings.fin_env) == "production":
         raise ValueError("JWT_SECRET must be set in production")
     settings.jwt_secret = "dev-secret-change-in-production"
+
+if not settings.encryption_key:
+    if os.environ.get("FIN_ENV", settings.fin_env) == "production":
+        raise ValueError("ENCRYPTION_KEY must be set in production")
+    settings.encryption_key = "dev-encryption-key-change-in-production-32chars!"  # 32+ chars for AES-256

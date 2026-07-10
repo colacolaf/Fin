@@ -1,9 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import OceanCanvas from '../components/ocean/OceanCanvas';
 import TopBar from '../components/layout/TopBar';
 import Sidebar from '../components/layout/Sidebar';
 import AgentPanel from '../components/layout/AgentPanel';
 import { useAgentState } from '../hooks/useAgentState';
+import TourGuide from '../components/wizard/TourGuide';
+
+const TOUR_SHOWN_KEY = 'fin_dashboard_tour_shown';
 
 export default function Dashboard() {
   const { agentState, setAgentStatus, markSynced } = useAgentState();
@@ -11,6 +14,16 @@ export default function Dashboard() {
   const [activeAgent, setActiveAgent] = useState<
     'investment' | 'debt' | 'retirement' | null
   >(null);
+  const [showTour, setShowTour] = useState(false);
+
+  // Show tour on first dashboard visit
+  useEffect(() => {
+    const alreadyShown = localStorage.getItem(TOUR_SHOWN_KEY);
+    if (!alreadyShown) {
+      setShowTour(true);
+      localStorage.setItem(TOUR_SHOWN_KEY, 'true');
+    }
+  }, []);
 
   const handleSync = useCallback(() => {
     const agents = ['investment', 'debt', 'retirement'] as const;
@@ -47,6 +60,7 @@ export default function Dashboard() {
         onSelectAgent={handleSelectAgent}
         activeAgent={activeAgent}
       />
+      <TourGuide run={showTour} onFinish={() => setShowTour(false)} />
       <main className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : ''}`}>
         {activeAgent ? (
           <AgentPanel

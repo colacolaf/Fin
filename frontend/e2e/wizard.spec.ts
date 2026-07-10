@@ -146,6 +146,26 @@ test.describe('Setup Wizard', () => {
     await expect(page.locator('.react-joyride__overlay')).not.toBeVisible({ timeout: 3000 });
   });
 
+  test('broker connection test button calls real API', async ({ page }) => {
+    await page.goto('/setup');
+
+    // Fill broker credentials
+    await page.fill('#apiKey', 'PK_TEST_API_KEY');
+    await page.fill('#apiSecret', 'test-secret-at-least-16-chars');
+
+    // Click "Test Connection" secondary button
+    const testBtn = page.locator('button:has-text("Test Connection")');
+    await expect(testBtn).toBeEnabled();
+    await testBtn.click();
+
+    // Should show spinner (testing state) then error or success
+    // Since these are fake keys, expect the error state
+    await expect(page.locator('text=✗ Connection Failed')).toBeVisible({ timeout: 10000 });
+
+    // Reset back to idle after timeout
+    await expect(testBtn).toHaveText('Test Connection', { timeout: 10000 });
+  });
+
   test('mobile viewport renders correctly', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 }); // iPhone X
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BrokerConnectionSchema, type BrokerConnection } from '@fin/shared';
+import { api, ApiError } from '../../api/client';
 
 interface Props {
   data: BrokerConnection | undefined;
@@ -40,11 +41,25 @@ export default function StepBrokerConnect({ data, onUpdate, onNext }: Props) {
 
   const testConnection = async () => {
     setConnectionStatus('testing');
-    // Simulate API connection test
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    // Simulate success (in real app this would call the broker API)
-    setConnectionStatus('success');
-    setTimeout(() => setConnectionStatus('idle'), 3000);
+    const apiKey = (document.getElementById('apiKey') as HTMLInputElement).value;
+    const apiSecret = (document.getElementById('apiSecret') as HTMLInputElement).value;
+
+    try {
+      await api('/integrations/alpaca/test', {
+        method: 'POST',
+        body: JSON.stringify({
+          apiKey,
+          apiSecret,
+          paperTrading: paperTrading ?? true,
+        }),
+      });
+      setConnectionStatus('success');
+      setTimeout(() => setConnectionStatus('idle'), 4000);
+    } catch (err) {
+      setConnectionStatus('error');
+      // Keep error visible for a bit, then reset
+      setTimeout(() => setConnectionStatus('idle'), 6000);
+    }
   };
 
   return (

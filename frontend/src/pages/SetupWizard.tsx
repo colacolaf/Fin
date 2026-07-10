@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSetupWizard } from '../hooks/useSetupWizard';
 import '../styles/wizard.css';
@@ -54,6 +55,7 @@ function buildVisitedSteps(current: number): Set<number> {
 }
 
 export default function SetupWizard() {
+  const navigate = useNavigate();
   const wizard = useSetupWizard();
   const [showTour, setShowTour] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,14 +98,14 @@ export default function SetupWizard() {
     setSubmitError(null);
     try {
       await wizard.saveToBackend();
+      navigate('/dashboard');
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'Failed to save settings',
       );
-    } finally {
       setIsSubmitting(false);
     }
-  }, [wizard]);
+  }, [wizard, navigate]);
 
   const visitedSteps = buildVisitedSteps(wizard.currentStep);
 
