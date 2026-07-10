@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SetupWizard from "./pages/SetupWizard";
 import Dashboard from "./pages/Dashboard";
+import Portfolio from "./pages/Portfolio";
 import "./styles/ocean.css";
 
 function App() {
@@ -19,6 +20,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SetupWizard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/portfolio"
+            element={
+              <ProtectedRoute>
+                <Portfolio />
               </ProtectedRoute>
             }
           />

@@ -50,6 +50,32 @@ export interface Holding {
   current_price: number;
   market_value: number;
   gain_loss_pct: number;
+  allocation_pct: number;
+  asset_class: string;
+}
+
+export interface AssetClassBreakdown {
+  name: string;
+  value: number;
+  allocation_pct: number;
+  color: string;
+}
+
+export interface PerformancePoint {
+  date: string;
+  value: number;
+}
+
+export type PerformancePeriod = '1W' | '1M' | '3M' | '1Y' | 'YTD';
+
+export interface PortfolioData {
+  total_value: number;
+  daily_change: number;
+  daily_change_pct: number;
+  total_return_pct: number;
+  holdings: Holding[];
+  asset_classes: AssetClassBreakdown[];
+  performance: PerformancePoint[];
 }
 
 // ── Agent ─────────────────────────────────
