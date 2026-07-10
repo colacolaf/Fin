@@ -522,7 +522,310 @@ Memory System (per-agent stores)
 
 ---
 
+## 8. Recharts Charts (Standard Dashboard)
+
+### 8.1 Why Recharts for Standard Charts
+
+Recharts handles 80% of portfolio visualization. Ponytail: use Recharts where it works, D3 only where Recharts can't. Recharts is composable React, built on SVG, handles responsive + dark mode natively.
+
+### 8.2 Allocation Pie Chart
+
+```typescript
+// Data shape
+interface AllocationSlice {
+  name: string;        // "US Equities", "Bonds", "Cash", etc.
+  value: number;       // dollar amount
+  percentage: number;  // 0–100
+  color: string;       // sector color from theme
+}
+
+// Component
+<PieChart width={320} height={320}>
+  <Pie
+    data={allocationData}
+    dataKey="value"
+    nameKey="name"
+    cx="50%"
+    cy="50%"
+    innerRadius={60}    // donut
+    outerRadius={120}
+    paddingAngle={2}
+    cornerRadius={4}
+  >
+    {allocationData.map((entry) => (
+      <Cell key={entry.name} fill={entry.color} stroke="transparent" />
+    ))}
+  </Pie>
+  <Tooltip
+    formatter={(value: number) => formatCurrency(value)}
+    contentStyle={{ background: 'oklch(0.15 0.02 230)', border: '1px solid oklch(0.25 0.03 230)', borderRadius: 8 }}
+  />
+  <Legend />
+</PieChart>
+```
+
+Dark mode: Recharts `ResponsiveContainer` inherits CSS variables. Tooltip/contentStyle uses theme tokens.
+
+### 8.3 Performance Line Chart
+
+```typescript
+interface PerformancePoint {
+  date: string;        // ISO date
+  portfolioValue: number;
+  benchmarkValue: number;  // S&P 500 or custom benchmark
+  contributions: number;   // cumulative deposits
+}
+
+<LineChart data={performanceData}>
+  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.02 230)" />
+  <XAxis dataKey="date" stroke="oklch(0.45 0.02 230)" />
+  <YAxis stroke="oklch(0.45 0.02 230)" tickFormatter={formatCurrencyShort} />
+  <Tooltip />
+  <Line
+    type="monotone"
+    dataKey="portfolioValue"
+    stroke="var(--color-investment)" // teal
+    strokeWidth={2}
+    dot={false}
+    activeDot={{ r: 4 }}
+  />
+  <Line
+    type="monotone"
+    dataKey="benchmarkValue"
+    stroke="oklch(0.5 0.02 230)"
+    strokeWidth={1.5}
+    strokeDasharray="4 4"
+    dot={false}
+  />
+  <ReferenceArea
+    y1={0}
+    y2={contributionsTotal}
+    fill="oklch(0.2 0.02 230)"
+    fillOpacity={0.15}
+    label="Contributions"
+  />
+</LineChart>
+```
+
+### 8.4 Sector Exposure Horizontal Bar Chart
+
+```typescript
+interface SectorExposure {
+  sector: string;
+  portfolioWeight: number;  // 0–100
+  benchmarkWeight: number;  // for comparison
+  delta: number;            // over/underweight vs benchmark
+}
+
+<BarChart data={sectorData} layout="vertical" margin={{ left: 100 }}>
+  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.02 230)" />
+  <XAxis type="number" stroke="oklch(0.45 0.02 230)" tickFormatter={pct} />
+  <YAxis type="category" dataKey="sector" stroke="oklch(0.45 0.02 230)" />
+  <Tooltip />
+  <Bar dataKey="portfolioWeight" fill="var(--color-investment)" barSize={16} radius={[0, 4, 4, 0]} />
+  <Bar dataKey="benchmarkWeight" fill="oklch(0.4 0.02 230)" barSize={16} radius={[0, 4, 4, 0]} opacity={0.5} />
+</BarChart>
+```
+
+### 8.5 Responsive + Dark Mode
+
+```typescript
+// All charts wrapped in ResponsiveContainer
+<ResponsiveContainer width="100%" height={320}>
+  <PieChart>...</PieChart>
+</ResponsiveContainer>
+
+// Dark mode: Recharts reads CSS custom properties
+// Theme file:
+[data-theme="dark"] {
+  --chart-grid: oklch(0.25 0.02 230);
+  --chart-text: oklch(0.45 0.02 230);
+  --chart-tooltip-bg: oklch(0.15 0.02 230);
+}
+```
+
+---
+
+## 9. D3.js Charts (Where Recharts Can't)
+
+### 9.1 When D3
+
+D3 only when Recharts composable model breaks down: correlation matrix heatmap (custom cell rendering), Monte Carlo fan chart (thousands of paths with fill-opacity bands, Recharts Area can't do percentile bands cleanly).
+
+### 9.2 Monte Carlo Fan Chart (D3)
+
+From Investment Agent Skill #20: 10,000 simulated return paths → percentile bands 5th–95th.
+
+```typescript
+// Data shape (from Monte Carlo simulation skill #20 output)
+interface MonteCarloResult {
+  paths: number[][];           // 10000 paths × N years of annual values
+  percentiles: {
+    p5: number[];              // 5th percentile trajectory
+    p10: number[];
+    p25: number[];
+    p50: number[];             // median trajectory
+    p75: number[];
+    p90: number[];
+    p95: number[];             // 95th percentile trajectory
+  };
+  years: number[];             // projection years [1, 2, ..., N]
+  initialValue: number;
+  targetValue?: number;        // retirement goal line
+  probabilityOfShortfall: number; // 0–1
+}
+
+// D3 fan chart: area bands between percentile pairs
+function drawMonteCarloFan(
+  svg: d3.Selection<SVGSVGElement>,
+  data: MonteCarloResult,
+  dimensions: { width: number; height: number; margin: Margin }
+) {
+  const { width, height, margin } = dimensions;
+  const x = d3.scaleLinear()
+    .domain([0, d3.max(data.years)!])
+    .range([margin.left, width - margin.right]);
+  const y = d3.scaleLinear()
+    .domain([
+      d3.min(data.percentiles.p5)! * 0.9,
+      d3.max(data.percentiles.p95)! * 1.1
+    ])
+    .range([height - margin.bottom, margin.top]);
+
+  // Bands from widest (lightest) to narrowest (darkest)
+  const bands: Array<{ lower: keyof MonteCarloResult['percentiles']; upper: keyof MonteCarloResult['percentiles']; opacity: number; label: string }> = [
+    { lower: 'p5',  upper: 'p95', opacity: 0.08, label: '90% range' },
+    { lower: 'p10', upper: 'p90', opacity: 0.10, label: '80% range' },
+    { lower: 'p25', upper: 'p75', opacity: 0.15, label: '50% range' },
+  ];
+
+  const areaGenerator = d3.area<number>()
+    .x((_, i) => x(data.years[i]))
+    .y0((_, i) => y(data.percentiles[lower][i]))
+    .y1((_, i) => y(data.percentiles[upper][i]))
+    .curve(d3.curveMonotoneX);
+
+  bands.forEach(({ lower, upper, opacity }) => {
+    svg.append('path')
+      .datum(data.years)
+      .attr('d', areaGenerator)
+      .attr('fill', 'var(--color-investment)')  // teal
+      .attr('opacity', opacity)
+      .attr('stroke', 'none');
+  });
+
+  // Median line (prominent)
+  const medianLine = d3.line<number>()
+    .x((_, i) => x(data.years[i]))
+    .y((_, i) => y(data.percentiles.p50[i]))
+    .curve(d3.curveMonotoneX);
+
+  svg.append('path')
+    .datum(data.years)
+    .attr('d', medianLine)
+    .attr('fill', 'none')
+    .attr('stroke', 'var(--color-investment)')
+    .attr('stroke-width', 2.5);
+
+  // Target line (if retirement goal set)
+  if (data.targetValue) {
+    svg.append('line')
+      .attr('x1', x(0))
+      .attr('x2', x(d3.max(data.years)!))
+      .attr('y1', y(data.targetValue))
+      .attr('y2', y(data.targetValue))
+      .attr('stroke', 'var(--color-retirement)')  // amber
+      .attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '6 4');
+  }
+
+  // Initial value dot
+  svg.append('circle')
+    .attr('cx', x(0))
+    .attr('cy', y(data.initialValue))
+    .attr('r', 5)
+    .attr('fill', 'var(--color-investment)');
+
+  // Legend
+  const legend = svg.append('g')
+    .attr('transform', `translate(${margin.left}, ${margin.top})`);
+  // ... percentile band labels ...
+}
+```
+
+### 9.3 Correlation Matrix Heatmap (D3)
+
+```typescript
+interface CorrelationMatrix {
+  assets: string[];                    // ["AAPL", "MSFT", "BND", ...]
+  matrix: number[][];                  // matrix[i][j] = correlation coefficient
+}
+
+// D3 heatmap: rect grid with color scale
+function drawCorrelationHeatmap(
+  svg: d3.Selection<SVGSVGElement>,
+  data: CorrelationMatrix,
+  cellSize: number
+) {
+  const colorScale = d3.scaleSequential(d3.interpolateRdBu)
+    .domain([1, -1]);  // red=positive, blue=negative, white=0
+
+  const cells = svg.selectAll('g')
+    .data(data.matrix.flatMap((row, i) =>
+      row.map((value, j) => ({ i, j, value }))
+    ))
+    .join('g')
+    .attr('transform', d => `translate(${d.j * cellSize}, ${d.i * cellSize})`);
+
+  cells.append('rect')
+    .attr('width', cellSize - 1)
+    .attr('height', cellSize - 1)
+    .attr('fill', d => colorScale(d.value))
+    .attr('rx', 2);
+
+  // Diagonal (self-correlation = 1.0)
+  cells.filter(d => d.i === d.j)
+    .select('rect')
+    .attr('stroke', 'oklch(0.5 0.02 230)')
+    .attr('stroke-width', 1);
+
+  // Labels
+  cells.filter(d => d.i === d.j)
+    .append('text')
+    .attr('x', cellSize / 2)
+    .attr('y', cellSize / 2)
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'middle')
+    .attr('fill', 'oklch(0.8 0.02 230)')
+    .attr('font-size', 9)
+    .text(d => data.assets[d.i]);
+}
+```
+
+### 9.4 D3 Integration Pattern
+
+```typescript
+// D3 charts live inside React via useEffect + useRef
+function MonteCarloChart({ data }: { data: MonteCarloResult }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const svg = d3.select(svgRef.current);
+    svg.selectAll('*').remove();  // clear on re-render
+    drawMonteCarloFan(svg, data, getDimensions());
+  }, [data]);
+
+  return <svg ref={svgRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+Resize: ResizeObserver triggers redraw with debounced `getDimensions()`. Dark mode: D3 reads CSS custom properties via `getComputedStyle(document.documentElement).getPropertyValue('--color-investment')`.
+
+---
+
 ## Implementation Phases
+
 
 ### Phase 1: Core Ocean + Fins
 - Three.js scene setup with WebGL 2.0 detection and tiered rendering

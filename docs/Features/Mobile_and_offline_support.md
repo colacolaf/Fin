@@ -900,6 +900,250 @@ When the user is offline with no cached data:
 
 ---
 
+## 10. Capacitor Native Packaging
+
+### 10.1 Why Capacitor (Ponytail)
+
+PWA first, Capacitor wrap, native features only when PWA can't. Capacitor wraps existing React PWA into iOS/Android without rewriting UI. One codebase, three platforms. Ponytail: Capacitor over React Native because we already have a React web app.
+
+### 10.2 Architecture
+
+```
+React PWA (existing)
+  │
+  ├── Web             → PWA with Workbox service worker
+  ├── iOS (Capacitor) → WKWebView wrapper + native plugins
+  └── Android         → WebView wrapper + native plugins
+```
+
+Capacitor does NOT replace PWA. It wraps it. PWA works standalone. Capacitor adds app store distribution + native APIs.
+
+```bash
+npm install @capacitor/core @capacitor/cli
+npx cap init Fin com.fin.app --web-dir dist
+npx cap add ios
+npx cap add android
+```
+
+### 10.3 Native Features Table
+
+| Feature | PWA | Capacitor Plugin | Use Capacitor When |
+|---------|-----|-----------------|-------------------|
+| Install to home screen | ✅ Manifest | N/A | Always (PWA) |
+| Offline data | ✅ idb + Workbox | N/A | Always (PWA) |
+| Push notifications | ✅ Web Push | `@capacitor/push-notifications` | iOS < 16.4 |
+| Biometric auth | ❌ | `@capacitor-community/biometric` | Face ID / fingerprint unlock |
+| Secure storage | ❌ | `@capacitor/secure-storage` | API keys in Keychain/Keystore |
+| Background sync | ⚠️ Chrome only | `@capacitor/background-runner` | Reliable iOS background refresh |
+| Haptics | ❌ | `@capacitor/haptics` | Rec arrival tap |
+| Deep linking | ✅ Share Target | `@capacitor/deep-links` | Share sheet integration |
+
+Ponytail: start PWA-only. Add Capacitor plugins one at a time only when PWA can't solve.
+
+### 10.4 Push Notifications Plugin
+
+```typescript
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Capacitor } from '@capacitor/core';
+
+export async function initPushNotifications() {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const perm = await PushNotifications.requestPermissions();
+  if (perm.receive !== 'granted') return;
+
+  await PushNotifications.register();
+
+  PushNotifications.addListener('pushNotificationReceived', (notif) => {
+    // notif.data = { type: 'recommendation', agent: 'investment', rec_id: '...' }
+    showInAppNotification(notif);
+  });
+}
+```
+
+### 10.5 Biometric Auth Gate
+
+```typescript
+import { BiometricAuth } from '@capacitor-community/biometric';
+import { Capacitor } from '@capacitor/core';
+
+export async function biometricGate(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return true;
+
+  const available = await BiometricAuth.checkBiometry();
+  if (!available.isAvailable) return true;
+
+  try {
+    await BiometricAuth.verify({
+      reason: 'Unlock Fin to view your portfolio',
+      title: 'Authentication Required',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+```
+
+### 10.6 Build & Deploy
+
+```bash
+npm run build
+npx cap sync
+npx cap open ios     # Xcode signing + App Store
+npx cap open android # Android Studio + Play Store
+npx cap run ios -l --external  # Live-reload dev
+```
+
+---
+
+## 11. idb Library Wrapper
+
+### 11.1 Why idb
+
+File above uses raw IndexedDB. `idb` gives promise-based wrapper — 3kB, 0 dependencies. Replaces verbose `openFinDatabase()` helpers with clean async API.
+
+```bash
+npm install idb
+```
+
+### 11.2 Schema with idb
+
+```typescript
+import { openDB, DBSchema } from 'idb';
+
+interface FinDB extends DBSchema {
+  portfolio: {
+    key: string;
+    value: { data: PortfolioData; fetchedAt: number };
+  };
+  recommendations: {
+    key: string;
+    value: Recommendation;
+    indexes: { 'by-agent': string };
+  };
+  voteQueue: {
+    key: string;
+    value: { recommendationId: string; vote: string; createdAt: number; synced: boolean };
+    indexes: { 'by-synced': boolean };
+  };
+  userContext: {
+    key: string;
+    value: { data: UserContext; updatedAt: number };
+  };
+}
+
+const db = await openDB<FinDB>('fin-db', 1, {
+  upgrade(db) {
+    db.createObjectStore('portfolio', { keyPath: 'id' });
+    const recStore = db.createObjectStore('recommendations', { keyPath: 'id' });
+    recStore.createIndex('by-agent', 'agentType');
+    const voteStore = db.createObjectStore('voteQueue', { keyPath: 'id' });
+    voteStore.createIndex('by-synced', 'synced');
+    db.createObjectStore('userContext', { keyPath: 'id' });
+  },
+});
+```
+
+### 11.3 Write-Through Cache
+
+```typescript
+async function getPortfolio(userId: string): Promise<PortfolioData | null> {
+  const cached = await db.get('portfolio', userId);
+  if (!cached) return null;
+  const age = Date.now() - cached.fetchedAt;
+  return { ...cached.data, _isStale: age > 900_000 };
+}
+
+async function setPortfolio(userId: string, data: PortfolioData): Promise<void> {
+  await db.put('portfolio', { id: userId, data, fetchedAt: Date.now() });
+}
+
+async function queueVote(userId: string, recId: string, vote: string): Promise<void> {
+  await db.put('voteQueue', {
+    id: `${userId}:${recId}`,
+    recommendationId: recId,
+    vote,
+    createdAt: Date.now(),
+    synced: false,
+  });
+}
+```
+
+---
+
+## 12. Workbox Service Worker
+
+### 12.1 Why Workbox
+
+File above uses raw service worker code (~80 lines). Workbox does same in 15 lines. Ponytail: use Workbox over raw SW — Google-maintained, battle-tested, handles edge cases (cache cleanup, skipWaiting, claim, update flow).
+
+```bash
+npm install workbox-precaching workbox-routing workbox-strategies workbox-expiration workbox-background-sync
+```
+
+### 12.2 Complete Workbox Config
+
+```typescript
+// service-worker.ts
+import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { BackgroundSyncPlugin } from 'workbox-background-sync';
+
+// 1. Precache static assets (injected by build tool)
+precacheAndRoute(self.__WB_MANIFEST);
+
+// 2. API: Network First, cache fallback
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/'),
+  new NetworkFirst({
+    cacheName: 'api-cache',
+    plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 3600 })],
+  })
+);
+
+// 3. Static assets: Cache First
+registerRoute(
+  ({ request }) => ['script', 'style', 'font'].includes(request.destination),
+  new CacheFirst({
+    cacheName: 'static-assets',
+    plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 30 * 86400 })],
+  })
+);
+
+// 4. Images: Stale While Revalidate
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new StaleWhileRevalidate({
+    cacheName: 'images',
+    plugins: [new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 7 * 86400 })],
+  })
+);
+
+// 5. Background Sync for queued votes
+const voteSync = new BackgroundSyncPlugin('vote-queue', { maxRetentionTime: 24 * 60 });
+registerRoute(
+  ({ url }) => url.pathname === '/api/votes' && url.method === 'POST',
+  new NetworkFirst({ cacheName: 'vote-sync', plugins: [voteSync] }),
+  'POST'
+);
+```
+
+### 12.3 Offline Fallback
+
+```typescript
+import { createHandlerBoundToURL } from 'workbox-precaching';
+
+setCatchHandler(async ({ request }) => {
+  if (request.destination === 'document') return caches.match('/offline.html');
+  return Response.error();
+});
+```
+
+---
+
 ## Phase 2 Roadmap
 
 - **Read-Write Offline**: User can vote on recommendations, update goals, send messages while offline

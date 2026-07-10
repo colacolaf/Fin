@@ -632,6 +632,244 @@ On any refresh trigger (scheduled or on-demand):
 
 ---
 
+## 9. APScheduler Implementation
+
+APScheduler is the ponytail pick for MVP scheduling. Three lines to schedule, no Airflow overhead, runs in-process with the FastAPI app. Background threads, not separate workers.
+
+### 9.1 Setup (3 Lines)
+
+```python
+from apscheduler.schedulers.background import BackgroundScheduler
+
+scheduler = BackgroundScheduler()
+scheduler.start()  # runs in daemon thread, shuts down with app
+```
+
+That's it. Jobs added via `scheduler.add_job()`. No config files, no DAGs, no external process.
+
+### 9.2 Job Configuration
+
+Maps directly to the Schedule Table from Section 1. Each job = one `add_job()` call.
+
+```python
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+
+# Persistent job store (SQLite) — survives app restarts
+scheduler.add_jobstore(SQLAlchemyJobStore(url='sqlite:///data/scheduler.db'))
+
+# ----- Alpaca Quotes -----
+scheduler.add_job(
+    func=run_alpaca_quotes_refresh,
+    trigger=CronTrigger(minute='*/15', day_of_week='mon-fri'),
+    id='alpaca-quotes',
+    name='Alpaca Portfolio & Quotes Refresh',
+    max_instances=1,
+    coalesce=True,      # skip backlogged runs, only run latest
+    misfire_grace_time=300,  # 5 min grace period
+)
+
+# ----- Finnhub Quotes -----
+scheduler.add_job(
+    func=run_finnhub_quotes_refresh,
+    trigger=CronTrigger(minute='0', day_of_week='mon-fri'),
+    id='finnhub-quotes',
+    name='Finnhub Market Quotes Refresh',
+    max_instances=1,
+    coalesce=True,
+    misfire_grace_time=600,
+)
+
+# ----- Plaid Account Sync -----
+scheduler.add_job(
+    func=run_plaid_sync,
+    trigger=CronTrigger(hour='6', minute='0'),
+    id='plaid-sync',
+    name='Plaid Daily Account & Transaction Sync',
+    max_instances=1,
+    coalesce=True,
+    misfire_grace_time=1800,  # 30 min grace — Plaid sync can be slow
+)
+
+# ----- Debt Snapshot -----
+scheduler.add_job(
+    func=run_debt_snapshot,
+    trigger=CronTrigger(hour='6', minute='5'),  # 5 min after Plaid
+    id='debt-snapshot',
+    name='Debt Balance & Projection Snapshot',
+    max_instances=1,
+    coalesce=True,
+    misfire_grace_time=600,
+)
+
+# ----- On-Demand via API -----
+# POST /api/refresh triggers ad-hoc runs, not scheduled:
+# scheduler.add_job(run_full_refresh, id=f'refresh-user-{user_id}',
+#                   misfire_grace_time=None)  # None = don't run if missed
+```
+
+### 9.3 Staleness Gate (Before Each Run)
+
+Every job function checks staleness FIRST. Skip if data already fresh — prevents redundant API calls against free-tier limits.
+
+```python
+# core/refresh_gate.py
+from datetime import datetime, timezone
+
+async def staleness_gate(user_id: str, source: str, threshold_seconds: int) -> bool:
+    """Return True if refresh should proceed (data is stale or missing)."""
+    last_refresh = await db.get_last_refresh(user_id, source)
+    if last_refresh is None:
+        return True  # no data, must refresh
+    age = (datetime.now(timezone.utc) - last_refresh).total_seconds()
+    if age > threshold_seconds:
+        logger.info(f"stale {source} for {user_id}: {age:.0f}s old > {threshold_seconds}s threshold")
+        return True
+    logger.debug(f"skip {source} for {user_id}: {age:.0f}s fresh")
+    return False
+
+# Example job function
+async def run_alpaca_quotes_refresh():
+    for user_id in await get_active_users():
+        if not await staleness_gate(user_id, 'alpaca', threshold_seconds=900):
+            continue
+        try:
+            await refresh_alpaca_portfolio(user_id)
+        except Exception as e:
+            await handle_refresh_error('alpaca', user_id, e)
+```
+
+### 9.4 Post-Refresh Recalculation Pipeline
+
+After connector data lands, recalculate derived metrics and write user context.
+
+```python
+# core/recalculation_pipeline.py
+
+async def recalculation_pipeline(user_id: str, sources: list[str]):
+    """Run after connector refresh. Recalculate metrics → update user context."""
+
+    # 1. Portfolio metrics (from Alpaca/Finnhub data)
+    if 'alpaca' in sources or 'finnhub' in sources:
+        await recalculate_portfolio_metrics(user_id)
+        # → asset allocation %, concentration scores, sector weights, beta
+
+    # 2. DTI & Debt metrics (from Plaid data)
+    if 'plaid' in sources:
+        await recalculate_dti(user_id)
+        # → debt-to-income ratio, payoff projections, interest savings
+
+    # 3. Retirement readiness (cross-agent: portfolio + debt + income)
+    if 'alpaca' in sources or 'plaid' in sources:
+        await recalculate_retirement_readiness(user_id)
+        # → projected balance at retirement age, shortfall probability
+
+    # 4. Write updated user context file
+    await write_user_context(user_id)
+
+    # 5. Emit event for active agent sessions
+    await emit_context_updated_event(user_id, sources)
+
+# All recalculation functions are pure compute, no I/O beyond reading fresh data.
+# Each returns a dict ready to merge into user_context.
+```
+
+### 9.5 Background Task Execution Pattern
+
+```
+APScheduler tick (cron)
+  │
+  ├─> Staleness gate: check last_refresh vs threshold
+  │     ├─ Fresh → return (no-op)
+  │     └─ Stale → proceed
+  │
+  ├─> Circuit breaker (Section 5): check connector health
+  │     ├─ Open → log, skip, schedule probe
+  │     └─ Closed/Half-open → proceed
+  │
+  ├─> Credential resolution (Section 2): decrypt API keys
+  │
+  ├─> Connector call (Section 6): Alpaca | Plaid | Finnhub
+  │     ├─ Success → write data, update last_refresh timestamp
+  │     └─ Failure → retry logic (Section 5)
+  │           ├─ Retry OK → write data
+  │           └─ Retries exhausted → data_quality_flag + agent_diagnosis
+  │
+  ├─> Cache invalidation (Section 4): clear stale keys
+  │
+  ├─> Recalculation pipeline (Section 9.4):
+  │     portfolio_metrics → DTI → retirement → write_user_context
+  │
+  └─> Agent notification: emit context_updated event
+```
+
+All jobs run in background threads via APScheduler's `BackgroundScheduler`. FastAPI request handling unaffected — no blocking.
+
+### 9.6 Integration with Retry Logic (Section 5)
+
+APScheduler job functions wrap the existing retry infrastructure:
+
+```python
+from core.retry import execute_with_retry, RetryConfig
+from core.circuit_breaker import circuit_breaker
+
+CONNECTOR_RETRY = RetryConfig(
+    max_retries=3, base_delay_ms=10000, max_delay_ms=300000,
+    backoff_multiplier=6, jitter=0.25,
+)
+
+async def run_finnhub_quotes_refresh():
+    for user_id in await get_active_users():
+        if not await staleness_gate(user_id, 'finnhub', 3600):
+            continue
+        try:
+            await circuit_breaker.execute('finnhub', lambda:
+                execute_with_retry(
+                    lambda: refresh_finnhub_quotes(user_id),
+                    CONNECTOR_RETRY
+                )
+            )
+            await recalculation_pipeline(user_id, sources=['finnhub'])
+        except CircuitBreakerOpenError:
+            logger.warning(f"finnhub circuit open, skipping user {user_id}")
+        except RetryExhaustedError as e:
+            await write_quality_flag(user_id, 'finnhub', str(e))
+```
+
+### 9.7 Scheduler Health Endpoint
+
+```python
+@router.get("/api/admin/scheduler/health")
+async def scheduler_health():
+    jobs = []
+    for job in scheduler.get_jobs():
+        jobs.append({
+            "id": job.id,
+            "name": job.name,
+            "next_run": job.next_run_time.isoformat() if job.next_run_time else None,
+            "trigger": str(job.trigger),
+            "pending": job.pending,
+        })
+    return {
+        "scheduler_running": scheduler.running,
+        "jobs": jobs,
+        "circuit_breakers": circuit_breaker.status_all(),
+    }
+```
+
+### 9.8 Why Not Celery / Airflow / Prefect
+
+| Tool | MVP Overhead | When to Add |
+|------|-------------|-------------|
+| APScheduler | 3 lines, 0 dependencies added | Right now |
+| Celery | Message broker (Redis/RabbitMQ), workers, config | When jobs outgrow single process (>100 users) |
+| Airflow | DAG files, scheduler, webserver, metadata DB | When pipeline DAG has 20+ nodes with dependencies |
+| Prefect | Cloud account or self-hosted server | When observability/retries need external orchestration |
+
+Ponytail rule: APScheduler until it breaks. Migration path is simple — job functions are plain async functions, just swap the decorator.
+
+---
+
 ## Phase 2 Roadmap
 
 - **Plaid webhook integration**: Real-time push from Plaid for transaction/holding updates (eliminates polling)

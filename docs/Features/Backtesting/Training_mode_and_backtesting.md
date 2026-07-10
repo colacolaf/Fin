@@ -724,6 +724,223 @@ USER JOURNEY: Training Mode End-to-End
 - ✅ Guardrails: All 8 recommended guardrails implemented
 - ✅ Memory System integration: Full write-back with `agent_training_runs` table
 
+## 8a. Strategy Backtesting with backtrader
+
+### 8a.1 Why backtrader (Ponytail)
+
+`backtrader` is the ponytail pick for strategy backtesting. Pure Python, event-driven, built-in broker simulation, analyzers for Sharpe/drawdown/win-rate. `vectorbt` for parameter sweeps (vectorized, faster for grid search). Skip `zipline-reloaded` unless we need a specific feature neither covers.
+
+```bash
+pip install backtrader vectorbt
+```
+
+### 8a.2 Strategy Definition from Skill Catalog
+
+Investment agent skills catalog (`docs/Skills_Connectors_Models/Skills/Investment_agent_skills`) defines the strategy shape. Each "Buy" recommendation maps to a strategy signal:
+
+```python
+# backtesting/strategy.py
+import backtrader as bt
+
+class AgentRecommendationStrategy(bt.Strategy):
+    """Replays agent recommendations as trading signals against historical data."""
+    
+    params = (
+        ('recommendations', []),  # List of { date, ticker, action, weight, confidence }
+        ('initial_cash', 100000.0),
+        ('commission', 0.001),    # 0.1%
+    )
+
+    def __init__(self):
+        self.orders = {}       # ticker → order
+        self.position_size = {} # ticker → size
+        self.recommendation_map = self._build_rec_map()
+
+    def _build_rec_map(self):
+        """Index recommendations by (date, ticker) for O(1) lookup per bar."""
+        rec_map = {}
+        for rec in self.p.recommendations:
+            key = (rec['date'].date(), rec['ticker'])
+            rec_map[key] = rec
+        return rec_map
+
+    def next(self):
+        current_date = self.datas[0].datetime.date(0)
+        
+        for data in self.datas:
+            ticker = data._name
+            key = (current_date, ticker)
+            
+            if key in self.recommendation_map:
+                rec = self.recommendation_map[key]
+                if rec['action'] == 'buy':
+                    self._execute_buy(data, rec)
+                elif rec['action'] == 'sell':
+                    self._execute_sell(data, rec)
+
+    def _execute_buy(self, data, rec):
+        size = (self.broker.getvalue() * rec['weight']) / data.close[0]
+        self.buy(data=data, size=size)
+
+    def _execute_sell(self, data, rec):
+        pos = self.getposition(data)
+        if pos.size > 0:
+            self.sell(data=data, size=pos.size * rec['weight'])
+
+    def notify_order(self, order):
+        if order.status in [order.Completed, order.Canceled, order.Margin]:
+            self.orders[order.data._name] = None
+```
+
+### 8a.3 Data Feed: Polygon.io Historical
+
+```python
+# backtesting/data_feeds.py
+import backtrader as bt
+from datetime import datetime
+import requests
+
+def fetch_polygon_historical(
+    ticker: str,
+    from_date: str,  # YYYY-MM-DD
+    to_date: str,
+    api_key: str
+) -> list[dict]:
+    """Fetch daily OHLCV from Polygon.io."""
+    url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day/{from_date}/{to_date}"
+    resp = requests.get(url, params={'apiKey': api_key, 'adjusted': 'true'})
+    return resp.json()['results']
+
+def polygon_to_bt_feed(results: list[dict], ticker: str) -> bt.feeds.PandasData:
+    """Convert Polygon.io response to backtrader data feed."""
+    import pandas as pd
+    
+    df = pd.DataFrame(results)
+    df['timestamp'] = pd.to_datetime(df['t'], unit='ms')
+    df = df.rename(columns={
+        'o': 'open', 'h': 'high', 'l': 'low', 
+        'c': 'close', 'v': 'volume'
+    })
+    df = df.set_index('timestamp')
+    
+    return bt.feeds.PandasData(dataname=df, name=ticker)
+```
+
+### 8a.4 Broker Simulation
+
+backtrader's built-in broker handles:
+- Cash management (initial capital, commission deductions)
+- Position tracking (long/short, margin if enabled)
+- Order execution (market orders at next bar open)
+- Commission model: 0.1% per trade (configurable)
+
+```python
+# backtesting/runner.py
+import backtrader as bt
+from backtrader.analyzers import SharpeRatio, DrawDown, TradeAnalyzer
+
+def run_backtest(
+    strategy: type,
+    data_feeds: list[bt.feeds.PandasData],
+    recommendations: list[dict],
+    initial_cash: float = 100000.0,
+    commission: float = 0.001,
+) -> dict:
+    cerebro = bt.Cerebro()
+    cerebro.addstrategy(
+        strategy,
+        recommendations=recommendations,
+        initial_cash=initial_cash,
+        commission=commission,
+    )
+    
+    for feed in data_feeds:
+        cerebro.adddata(feed)
+    
+    cerebro.broker.setcash(initial_cash)
+    cerebro.broker.setcommission(commission=commission)
+    
+    # Analyzers
+    cerebro.addanalyzer(SharpeRatio, _name='sharpe', riskfreerate=0.02)
+    cerebro.addanalyzer(DrawDown, _name='drawdown')
+    cerebro.addanalyzer(TradeAnalyzer, _name='trades')
+    
+    start_value = cerebro.broker.getvalue()
+    results = cerebro.run()
+    end_value = cerebro.broker.getvalue()
+    
+    strat = results[0]
+    return {
+        'start_value': start_value,
+        'end_value': end_value,
+        'total_return': (end_value - start_value) / start_value,
+        'sharpe_ratio': strat.analyzers.sharpe.get_analysis().get('sharperatio'),
+        'max_drawdown': strat.analyzers.drawdown.get_analysis().max.drawdown,
+        'trade_analysis': strat.analyzers.trades.get_analysis(),
+    }
+```
+
+---
+
+## 8b. Parameter Sweeps with vectorbt
+
+### 8b.1 Why vectorbt
+
+`vectorbt` runs backtests vectorized (NumPy) — 1000x faster than event-driven for grid search. Use it for parameter sweeps (position sizing, rebalance frequency, stop-loss thresholds). backtrader for final strategy validation with agent recommendations.
+
+### 8b.2 Grid Search Example
+
+```python
+# backtesting/param_sweep.py
+import vectorbt as vbt
+import pandas as pd
+import numpy as np
+
+def sweep_position_sizing(
+    prices: pd.DataFrame,  # columns = tickers, rows = dates, values = adjusted close
+    weight_range: np.ndarray = np.linspace(0.05, 0.40, 8),  # 5% to 40% per position
+    rebalance_freq: list[str] = ['M', 'Q', '6M', 'Y'],
+) -> pd.DataFrame:
+    """Grid search: position size weight × rebalance frequency."""
+    
+    results = []
+    for freq in rebalance_freq:
+        for weight in weight_range:
+            # Build equal-weight portfolio rebalanced at frequency
+            returns = prices.pct_change().dropna()
+            
+            # Rebalance dates
+            rebalance_dates = returns.resample(freq).first().index
+            
+            pf_value = (1 + returns).cumprod()
+            
+            # Metrics
+            daily_returns = pf_value.pct_change().mean(axis=1)
+            sharpe = daily_returns.mean() / daily_returns.std() * np.sqrt(252)
+            max_dd = (pf_value / pf_value.cummax() - 1).min().min()
+            
+            results.append({
+                'weight': weight,
+                'rebalance_freq': freq,
+                'sharpe': sharpe,
+                'max_drawdown': max_dd,
+            })
+    
+    return pd.DataFrame(results).sort_values('sharpe', ascending=False)
+```
+
+### 8b.3 Integration: vectorbt sweep → backtrader validation
+
+```
+1. vectorbt: Sweep 500 param combos in 2 seconds
+   └→ Find top-3 (weight, rebalance freq) by Sharpe
+2. backtrader: Run top-3 combos with agent recommendation signals
+   └→ Validate against real agent behavior
+3. Report: Best combo + confidence interval
+```
+
+---
+
 ### Future Phases (Not in MVP)
 - **Adapter merging**: Combine Investment + general financial knowledge LoRA weights
 - **Cross-agent training**: Debt agent learns from Investment agent's user preference patterns
