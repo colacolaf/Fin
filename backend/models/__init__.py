@@ -6,6 +6,7 @@ from models.recommendation import Recommendation, Vote
 from models.execution import ExecutionAction, ExecutionLog, FollowThrough
 from models.settings import Setting
 from models.memory import MemoryNode, MemoryEdge
+from models.community import CommunityBenchmark, LeaderboardEntry
 
 __all__ = [
     "User",
@@ -25,4 +26,6 @@ __all__ = [
     "Setting",
     "MemoryNode",
     "MemoryEdge",
+    "CommunityBenchmark",
+    "LeaderboardEntry",
 ]

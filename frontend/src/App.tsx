@@ -11,6 +11,7 @@ import RetirementPage from "./pages/Retirement";
 import MemoryExplorer from "./pages/MemoryExplorer";
 import MultiAgent from "./pages/MultiAgent";
 import ExecutionDashboard from "./pages/ExecutionDashboard";
+import CommunityDashboard from "./pages/CommunityDashboard";
 import "./styles/ocean.css";
 import "./styles/retirement.css";
 
@@ -74,6 +75,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ExecutionDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community"
+            element={
+              <ProtectedRoute>
+                <CommunityDashboard />
               </ProtectedRoute>
             }
           />

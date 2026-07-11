@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     plaid_secret: str = ""
     plaid_env: str = "sandbox"
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    upstash_redis_url: str = ""
+    upstash_redis_token: str = ""
 
 
 settings = Settings()
