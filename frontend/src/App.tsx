@@ -9,6 +9,7 @@ import Portfolio from "./pages/Portfolio";
 import DebtDashboard from "./pages/DebtDashboard";
 import RetirementPage from "./pages/Retirement";
 import MemoryExplorer from "./pages/MemoryExplorer";
+import MultiAgent from "./pages/MultiAgent";
 import "./styles/ocean.css";
 import "./styles/retirement.css";
 
@@ -56,6 +57,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MemoryExplorer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orchestrate"
+            element={
+              <ProtectedRoute>
+                <MultiAgent />
               </ProtectedRoute>
             }
           />

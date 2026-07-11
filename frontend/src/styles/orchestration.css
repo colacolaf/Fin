@@ -1,0 +1,185 @@
+/** Phase 13: Agent orchestration components CSS — streaming text & status transitions. */
+
+.agent-selector {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.agent-chip {
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--border, #334155);
+  background: var(--surface, #1e293b);
+  color: var(--text, #e2e8f0);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.agent-chip:hover {
+  border-color: var(--accent, #6366f1);
+  background: var(--accent-muted, rgba(99, 102, 241, 0.1));
+}
+
+.agent-chip.active {
+  border-color: var(--accent, #6366f1);
+  background: var(--accent, #6366f1);
+  color: white;
+}
+
+/* ── Agent Status Bar ── */
+.agent-status-bar {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface, #1e293b);
+  border-radius: 0.75rem;
+  border: 1px solid var(--border, #334155);
+  overflow: hidden;
+}
+
+.agent-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.agent-status-dot.idle { background: var(--muted, #475569); }
+.agent-status-dot.running {
+  background: var(--accent, #6366f1);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.agent-status-dot.done { background: var(--success, #22c55e); }
+.agent-status-dot.error { background: var(--danger, #ef4444); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+.agent-status-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.agent-status-time {
+  font-size: 0.65rem;
+  color: var(--muted, #64748b);
+  margin-left: auto;
+}
+
+/* ── Agent Reasoning Stream ── */
+.reasoning-stream {
+  padding: 1rem;
+  background: var(--surface, #1e293b);
+  border-radius: 0.75rem;
+  border: 1px solid var(--border, #334155);
+  min-height: 120px;
+  max-height: 360px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.reasoning-stream__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reasoning-stream__agent-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--accent, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: white;
+}
+
+.reasoning-stream__text {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.78rem;
+  color: var(--text, #e2e8f0);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.reasoning-stream__cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--accent, #6366f1);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink-cursor 0.8s step-end infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.reasoning-stream__text.streaming .reasoning-stream__cursor {
+  background: var(--accent, #6366f1);
+}
+
+/* ── Cross-Agent Card ── */
+.cross-agent-card {
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border-left: 4px solid var(--accent, #6366f1);
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border, #334155);
+}
+
+.cross-agent-card h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent, #6366f1);
+  margin: 0 0 0.5rem;
+}
+
+.cross-agent-card p {
+  font-size: 0.85rem;
+  color: var(--text, #e2e8f0);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cross-agent-card .resolution-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+
+.resolution-badge.pay_debt { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.resolution-badge.split   { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.resolution-badge.invest   { background: rgba(34, 197, 94, 0.15); color: #22c55e; }

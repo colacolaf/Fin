@@ -1,0 +1,39 @@
+/** Phase 13: Multi-agent orchestration API client. */
+
+import { apiClient } from "./client";
+
+export interface MultiAgentResult {
+  summary: {
+    total: number;
+    succeeded: number;
+    failed: number;
+  };
+  agents: Record<
+    string,
+    {
+      status: "done" | "error";
+      result?: Record<string, unknown>;
+      error?: string;
+      reasoning?: string;
+    }
+  >;
+  cross_agent?: {
+    conflicts?: Array<{
+      category: string;
+      resolution: "pay_debt" | "split" | "invest";
+      recommendation: string;
+    }>;
+  };
+}
+
+export async function runMultiAgent(
+  userId: string,
+  skill: string,
+  agents: string[]
+): Promise<MultiAgentResult> {
+  const { data } = await apiClient.post<MultiAgentResult>(
+    "/api/orchestration/run",
+    { user_id: userId, skill, agents }
+  );
+  return data;
+}
