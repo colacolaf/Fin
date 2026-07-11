@@ -127,6 +127,16 @@ def generate_recommendation(
     # ── Context ───────────────────────────────────────────
     context = build_user_context(db, user_id, agent_type=agent_type)
 
+    # ── Load recent decisions from memory ──────────────────
+    try:
+        from services.memory_bridge import get_recent_decisions
+        decisions = get_recent_decisions(limit=5)
+        context["recent_decisions"] = [
+            {"title": d.title, "preview": d.content[:200]} for d in decisions
+        ]
+    except Exception:
+        pass
+
     # ── Agent ─────────────────────────────────────────────
     agent_cls = AGENT_REGISTRY[agent_type]
     agent = agent_cls()
@@ -209,6 +219,25 @@ def generate_recommendation(
     db.add(rec)
     db.commit()
     db.refresh(rec)
+
+    # ── Record to memory vault ─────────────────────────────
+    try:
+        from services.memory_bridge import record_run
+        record_run(
+            recommendation_id=rec_id,
+            agent_type=agent_type,
+            skill=skill,
+            title=model_fields["action"],
+            content=model_fields["rationale"],
+            tags=[agent_type, skill],
+            metadata={
+                "confidence": model_fields["confidence_score"],
+                "tokens": tokens_used,
+                "model": model_used,
+            },
+        )
+    except Exception:
+        pass
 
     return GenerateResponse(
         recommendation_id=rec_id,

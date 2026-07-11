@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     fin_env: str = "local"
     data_dir: str = "./data"
     db_path: str = "./data/fin.db"
+    memory_vault_path: str = ""  # ~/.fin/memory/, auto-set below
     jwt_secret: str = ""
     auth_enabled: bool = False
     ollama_host: str = "http://localhost:11434"
@@ -51,3 +52,7 @@ if not settings.encryption_key:
         settings.encryption_key = _secrets.token_hex(32)
         with open(key_file, "w") as f:
             _ = f.write(settings.encryption_key)
+
+# Auto-set memory vault path: ~/.fin/memory/
+if not settings.memory_vault_path:
+    settings.memory_vault_path = os.path.expanduser("~/.fin/memory")

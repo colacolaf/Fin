@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
 import DebtDashboard from "./pages/DebtDashboard";
 import RetirementPage from "./pages/Retirement";
+import MemoryExplorer from "./pages/MemoryExplorer";
 import "./styles/ocean.css";
 import "./styles/retirement.css";
 
@@ -47,6 +48,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <RetirementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/memory"
+            element={
+              <ProtectedRoute>
+                <MemoryExplorer />
               </ProtectedRoute>
             }
           />

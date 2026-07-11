@@ -138,6 +138,77 @@ class BaseAgent(ABC):
             "model_used": self.model_name,
         }
 
+    # ── Memory recording ────────────────────────────────────
+    def _record_run(
+        self,
+        user_input: str,
+        context: dict[str, Any],
+        result: dict[str, Any],
+    ) -> None:
+        """Persist agent run as a memory note in the vault."""
+        try:
+            from services.memory_bridge import save_recommendation_note
+
+            structured = result.get("structured", {})
+            summary_parts: list[str] = []
+
+            # Extract key recommendations / findings from structured output
+            if isinstance(structured, dict):
+                recs = structured.get("recommendations") or structured.get("recommendation")
+                if recs:
+                    summary_parts.append("## Recommendations")
+                    if isinstance(recs, list):
+                        for i, r in enumerate(recs, 1):
+                            if isinstance(r, dict):
+                                summary_parts.append(
+                                    f"{i}. **{r.get('title', r.get('action', 'Recommendation'))}**: "
+                                    f"{r.get('description', r.get('rationale', ''))}"
+                                )
+                            elif isinstance(r, str):
+                                summary_parts.append(f"{i}. {r}")
+                    elif isinstance(recs, str):
+                        summary_parts.append(recs)
+                    elif isinstance(recs, dict):
+                        for k, v in recs.items():
+                            summary_parts.append(f"- **{k}**: {v}")
+
+                # Include key metrics if present
+                for key in ("score", "confidence", "summary", "analysis"):
+                    val = structured.get(key)
+                    if val and isinstance(val, (str, int, float)):
+                        summary_parts.insert(0, f"**{key.title()}:** {val}")
+
+            summary = "\n\n".join(summary_parts) if summary_parts else "Agent run completed."
+            save_recommendation_note(
+                agent_type=self.agent_type,
+                summary=summary,
+                details={
+                    "user_input": user_input[:500],
+                    "tokens_used": result.get("tokens_used", 0),
+                    "model": result.get("model_used", ""),
+                },
+            )
+        except Exception:
+            pass  # Memory recording is best-effort, never blocks the agent
+
+    def _load_history(self, limit: int = 5) -> list[dict[str, Any]]:
+        """Load recent recommendation notes for this agent type."""
+        try:
+            from services.memory_bridge import search_notes
+
+            notes = search_notes(self.agent_type, limit=limit)
+            return [
+                {
+                    "title": n.title,
+                    "summary": n.content[:500],
+                    "date": n.updated_at or n.created_at,
+                    "tags": n.tags,
+                }
+                for n in notes
+            ]
+        except Exception:
+            return []
+
     # ── Health check ───────────────────────────────────────
     def health_check(self) -> dict[str, Any]:
         """Check if Ollama is reachable and model is available."""
