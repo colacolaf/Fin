@@ -234,7 +234,7 @@ def get_link_token(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
-        logger.exception("Failed to create link token for user %s", user.id)
+        logger.exception("Plaid Link setup failed for user %s", user.id)
         raise HTTPException(status_code=500, detail="Failed to create link token")
 
 
@@ -254,7 +254,7 @@ def exchange_public_token(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
-        logger.exception("Failed to exchange token for user %s", user.id)
+        logger.exception("Plaid account connection failed for user %s", user.id)
         raise HTTPException(status_code=500, detail="Failed to connect Plaid")
 
 

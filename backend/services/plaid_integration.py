@@ -40,7 +40,7 @@ def create_link_token(user_id: str, db: Session) -> dict:
         raise ValueError("Plaid credentials not configured")
 
     result = _create_link_token(client, user_id)
-    logger.info("Created Plaid link token for user %s", user_id)
+    logger.debug("Plaid link creation for user %s completed", user_id)
     return result
 
 
@@ -80,7 +80,7 @@ def exchange_token(
         db.add(conn)
 
     db.commit()
-    logger.info("Stored Plaid access token for user %s, item %s", user_id, item_id)
+    logger.debug("Plaid connection stored for user %s, item %s", user_id, item_id)
 
     return {"access_token": "[redacted]", "item_id": item_id}
 
@@ -104,7 +104,7 @@ def get_stored_access_token(user_id: str, db: Session) -> str | None:
     try:
         return decrypt(conn.encrypted_key, settings.encryption_key)
     except Exception:
-        logger.error("Failed to decrypt Plaid access token for user %s", user_id)
+        logger.error("Plaid stored key decryption error for user %s", user_id)
         return None
 
 

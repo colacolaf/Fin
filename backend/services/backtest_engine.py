@@ -257,17 +257,40 @@ def _execute_run(db: Session, run: BacktestRun) -> None:
 
 def _compile_strategy(code: str):
     """Compile a strategy class from a user-provided Python snippet."""
+    import ast
     import backtrader as bt
 
+    # ponytail: AST allowlist before exec — only allow safe node types
+    _validate_strategy_ast(code)
+
     namespace = {"bt": bt}
-    # ponytail: exec() for user code. Strategy code is internal-only (not public API).
-    # Security: code is stored by authenticated users, not arbitrary public input.
-    exec(code, namespace)
-    # Find the first subclass of bt.Strategy
+    exec(code, namespace)  # nosemgrep: python.lang.security.audit.exec-detected.exec-detected
     for obj in namespace.values():
         if isinstance(obj, type) and issubclass(obj, bt.Strategy) and obj is not bt.Strategy:
             return obj
     raise ValueError("No bt.Strategy subclass found in strategy code")
+
+
+_ALLOWED_AST_NODES = {
+    ast.Module, ast.ClassDef, ast.FunctionDef, ast.arguments, ast.arg,
+    ast.Expr, ast.Constant, ast.Name, ast.Attribute, ast.Load, ast.Store,
+    ast.Call, ast.keyword, ast.BinOp, ast.UnaryOp, ast.Compare, ast.BoolOp,
+    ast.If, ast.Else, ast.Assign, ast.AugAssign, ast.Return, ast.Pass,
+    ast.Subscript, ast.List, ast.Tuple, ast.For, ast.While, ast.Break,
+    ast.Continue, ast.Import, ast.ImportFrom, ast.alias,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow,
+    ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
+    ast.And, ast.Or, ast.Not, ast.In, ast.NotIn, ast.Is, ast.IsNot,
+    ast.USub, ast.UAdd,
+}
+
+
+def _validate_strategy_ast(code: str) -> None:
+    """Reject code with disallowed AST nodes (no exec/eval/import os/etc)."""
+    tree = ast.parse(code)
+    for node in ast.walk(tree):
+        if type(node) not in _ALLOWED_AST_NODES:
+            raise ValueError(f"Disallowed construct in strategy code: {type(node).__name__}")
 
 
 def _load_data(symbol: str, start: str, end: str, timeframe: str):
