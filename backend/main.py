@@ -11,7 +11,7 @@ from config import settings
 from integrations.scheduler import start_scheduler, stop_scheduler
 from middleware.error_handler import ErrorHandlerMiddleware
 from middleware.rate_limiter import limiter
-from routers import community, debt, execution, integrations, memory, orchestration, portfolio, recommendations, retirement, settings as settings_router
+from routers import backtest, community, debt, execution, integrations, memory, orchestration, portfolio, recommendations, retirement, settings as settings_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("fin")
@@ -55,6 +55,7 @@ app.include_router(integrations.router)
 app.include_router(settings_router.router)
 app.include_router(orchestration.router)
 app.include_router(community.router)
+app.include_router(backtest.router)
 
 # ── Background scheduler ──────────────────────
 @app.on_event("startup")

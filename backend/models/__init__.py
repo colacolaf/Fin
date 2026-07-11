@@ -7,6 +7,7 @@ from models.execution import ExecutionAction, ExecutionLog, FollowThrough
 from models.settings import Setting
 from models.memory import MemoryNode, MemoryEdge
 from models.community import CommunityBenchmark, LeaderboardEntry
+from models.backtest import BacktestRun, PaperTrade, StrategyTemplate
 
 __all__ = [
     "User",
@@ -28,4 +29,7 @@ __all__ = [
     "MemoryEdge",
     "CommunityBenchmark",
     "LeaderboardEntry",
+    "BacktestRun",
+    "PaperTrade",
+    "StrategyTemplate",
 ]

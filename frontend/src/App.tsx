@@ -12,6 +12,7 @@ import MemoryExplorer from "./pages/MemoryExplorer";
 import MultiAgent from "./pages/MultiAgent";
 import ExecutionDashboard from "./pages/ExecutionDashboard";
 import CommunityDashboard from "./pages/CommunityDashboard";
+import BacktestDashboard from "./pages/BacktestDashboard";
 import "./styles/ocean.css";
 import "./styles/retirement.css";
 
@@ -78,14 +79,22 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/community"
-            element={
-              <ProtectedRoute>
-                <CommunityDashboard />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/community"
+              element={
+                <ProtectedRoute>
+                  <CommunityDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/backtest"
+              element={
+                <ProtectedRoute>
+                  <BacktestDashboard />
+                </ProtectedRoute>
+              }
+            />
           <Route
             path="/"
             element={
