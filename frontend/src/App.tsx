@@ -7,7 +7,9 @@ import SetupWizard from "./pages/SetupWizard";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
 import DebtDashboard from "./pages/DebtDashboard";
+import RetirementPage from "./pages/Retirement";
 import "./styles/ocean.css";
+import "./styles/retirement.css";
 
 function App() {
   return (
@@ -37,6 +39,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <DebtDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/retirement"
+            element={
+              <ProtectedRoute>
+                <RetirementPage />
               </ProtectedRoute>
             }
           />
