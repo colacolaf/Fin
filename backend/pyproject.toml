@@ -20,6 +20,8 @@ dependencies = [
     "ollama>=0.4.0",
     "instructor>=1.7.0",
     "numpy>=2.0.0",
+    "finnhub-python>=2.4.0",
+    "upstash-redis>=2.0.0",
 ]
 
 [project.optional-dependencies]

@@ -8,6 +8,7 @@ from models.settings import Setting
 from models.memory import MemoryNode, MemoryEdge
 from models.community import CommunityBenchmark, LeaderboardEntry
 from models.backtest import BacktestRun, PaperTrade, StrategyTemplate
+from models.refresh import RefreshJob, StalenessReport
 
 __all__ = [
     "User",
@@ -32,4 +33,6 @@ __all__ = [
     "BacktestRun",
     "PaperTrade",
     "StrategyTemplate",
+    "RefreshJob",
+    "StalenessReport",
 ]

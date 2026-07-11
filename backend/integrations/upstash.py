@@ -21,6 +21,11 @@ _redis: Any = None
 _redis_available: bool | None = None
 
 
+def get_client() -> Any | None:
+    """Public alias for _get_redis — used by cache_invalidation."""
+    return _get_redis()
+
+
 def _get_redis() -> Any | None:
     """Lazy-init Upstash Redis REST client. Returns None if unavailable."""
     global _redis, _redis_available

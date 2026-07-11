@@ -8,10 +8,10 @@ from slowapi.errors import RateLimitExceeded
 
 from auth.router import router as auth_router
 from config import settings
-from integrations.scheduler import start_scheduler, stop_scheduler
 from middleware.error_handler import ErrorHandlerMiddleware
 from middleware.rate_limiter import limiter
-from routers import backtest, community, debt, execution, integrations, memory, orchestration, portfolio, recommendations, retirement, settings as settings_router
+from routers import backtest, community, data, debt, execution, integrations, memory, orchestration, portfolio, recommendations, retirement, settings as settings_router
+from services.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("fin")
@@ -56,6 +56,7 @@ app.include_router(settings_router.router)
 app.include_router(orchestration.router)
 app.include_router(community.router)
 app.include_router(backtest.router)
+app.include_router(data.router)
 
 # ── Background scheduler ──────────────────────
 @app.on_event("startup")
