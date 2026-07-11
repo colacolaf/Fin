@@ -1,4 +1,3 @@
-import { useAuth } from '../../context/AuthContext';
 import type { AgentState } from '../../hooks/useAgentState';
 
 interface TopBarProps {
@@ -16,7 +15,6 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function TopBar({ agentState, onSync, onToggleSidebar, sidebarOpen }: TopBarProps) {
-  const { user, logout } = useAuth();
   const { investment, debt, retirement, lastSync } = agentState;
   const anyRunning = investment === 'running' || debt === 'running' || retirement === 'running';
   const anyError = investment === 'error' || debt === 'error' || retirement === 'error';
@@ -52,14 +50,7 @@ export default function TopBar({ agentState, onSync, onToggleSidebar, sidebarOpe
       </div>
 
       <div className="topbar-right">
-        {user && (
-          <div className="user-menu">
-            <span className="user-email">{user.email}</span>
-            <button className="btn-logout" onClick={logout}>
-              Log out
-            </button>
-          </div>
-        )}
+        {/* No auth — local-only mode */}
       </div>
     </header>
   );

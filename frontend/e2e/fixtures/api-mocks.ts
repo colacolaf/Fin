@@ -13,33 +13,11 @@ import {
   MOCK_USER,
 } from './mock-data';
 
+// No auth — local-only mode. The backend no longer requires tokens.
+// The /api/auth/me mock is kept for tests that still reference it; it's a harmless no-op.
 export async function mockAuth(page: Page) {
   await page.route('**/api/auth/me', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER) })
-  );
-  await page.route('**/api/auth/login', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ access_token: 'mock-jwt-token', token_type: 'bearer', user: MOCK_USER }),
-    })
-  );
-  await page.route('**/api/auth/register', (route) =>
-    route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({ access_token: 'mock-jwt-token', token_type: 'bearer', user: MOCK_USER }),
-    })
-  );
-  await page.route('**/api/auth/refresh', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ access_token: 'mock-refreshed-token', token_type: 'bearer' }),
-    })
-  );
-  await page.route('**/api/auth/logout', (route) =>
-    route.fulfill({ status: 204 })
   );
 }
 

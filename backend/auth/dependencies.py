@@ -1,39 +1,48 @@
-"""Auth dependencies for FastAPI routes."""
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+"""Auth dependencies — local single-user stub (no JWT, no login)."""
+
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from auth.jwt import decode_token
 from database import get_db
 from models.user import User
 
-security = HTTPBearer()
+LOCAL_USER_ID = "00000000-0000-0000-0000-000000000001"
+LOCAL_EMAIL = "local@fin.app"
 
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
-) -> User:
-    token = credentials.credentials
-    try:
-        payload = decode_token(token)
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+class UserOut(BaseModel):
+    """User output schema (kept minimal since no auth)."""
+    id: str
+    email: str
+    name: str | None = None
+    role: str = "user"
+    is_active: bool
+    created_at: str
 
-    if payload.get("type") != "access":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not an access token")
+    model_config = {"from_attributes": True}
 
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
-
+def get_current_user(db: Session = Depends(get_db)) -> User:
+    """Return the single local user. Creates it if it doesn't exist."""
+    user = db.query(User).filter(User.id == LOCAL_USER_ID).first()
+    if not user:
+        from datetime import datetime, timezone
+        user = User(
+            id=LOCAL_USER_ID,
+            email=LOCAL_EMAIL,
+            name="Local User",
+            password_hash="no-auth",
+            role="user",
+            is_active=1,
+            created_at=datetime.now(timezone.utc).isoformat(),
+            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     return user
 
 
 def get_current_user_id(user: User = Depends(get_current_user)) -> str:
+    """Get just the current user's ID."""
     return user.id

@@ -1,8 +1,4 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import SetupWizard from "./pages/SetupWizard";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
@@ -23,97 +19,23 @@ import "./styles/retirement.css";
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <NetworkTransition>
-          <OfflineBanner />
-          <SyncIndicator />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/offline" element={<OfflinePage />} />
-            <Route
-              path="/setup"
-              element={
-                <ProtectedRoute>
-                  <SetupWizard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/portfolio"
-              element={
-                <ProtectedRoute>
-                  <Portfolio />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/debt"
-              element={
-                <ProtectedRoute>
-                  <DebtDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/retirement"
-              element={
-                <ProtectedRoute>
-                  <RetirementPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/memory"
-              element={
-                <ProtectedRoute>
-                  <MemoryExplorer />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/orchestrate"
-              element={
-                <ProtectedRoute>
-                  <MultiAgent />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/execution"
-              element={
-                <ProtectedRoute>
-                  <ExecutionDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/community"
-              element={
-                <ProtectedRoute>
-                  <CommunityDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/backtest"
-              element={
-                <ProtectedRoute>
-                  <BacktestDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </NetworkTransition>
-      </AuthProvider>
+      <NetworkTransition>
+        <OfflineBanner />
+        <SyncIndicator />
+        <Routes>
+          <Route path="/offline" element={<OfflinePage />} />
+          <Route path="/setup" element={<SetupWizard />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/debt" element={<DebtDashboard />} />
+          <Route path="/retirement" element={<RetirementPage />} />
+          <Route path="/memory" element={<MemoryExplorer />} />
+          <Route path="/orchestrate" element={<MultiAgent />} />
+          <Route path="/execution" element={<ExecutionDashboard />} />
+          <Route path="/community" element={<CommunityDashboard />} />
+          <Route path="/backtest" element={<BacktestDashboard />} />
+          <Route path="/" element={<Dashboard />} />
+        </Routes>
+      </NetworkTransition>
     </BrowserRouter>
   );
 }

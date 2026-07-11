@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from auth.router import router as auth_router
 from config import settings
 from middleware.error_handler import ErrorHandlerMiddleware
 from middleware.rate_limiter import limiter
@@ -43,10 +42,6 @@ app.add_middleware(ErrorHandlerMiddleware)
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
-
-# ── Auth router (with per-route rate limits) ─
-# ponytail: import existing router, apply limits via decorator in auth module
-app.include_router(auth_router, prefix="/api")
 
 # ── Feature routers ─────────────────────────
 app.include_router(portfolio.router)

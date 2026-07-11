@@ -13,21 +13,17 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'setup', testMatch: /auth\.setup\.ts/ },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      dependencies: ['setup'],
     },
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      dependencies: ['setup'],
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 14'] },
-      dependencies: ['setup'],
     },
   ],
   webServer: {

@@ -13,8 +13,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from auth.dependencies import get_current_user
-from auth.schemas import UserOut
+from auth.dependencies import get_current_user, UserOut
 from database import SessionLocal
 from models.refresh import RefreshJob, StalenessReport
 from services.refresh_gate import is_market_open as _is_market_open

@@ -4,8 +4,6 @@ import { MOCK_USER, MOCK_PORTFOLIO, MOCK_DEBTS, MOCK_RETIREMENT, MOCK_RECOMMENDA
 
 const PAGES = [
   { path: '/', name: 'Dashboard' },
-  { path: '/login', name: 'Login' },
-  { path: '/register', name: 'Register' },
   { path: '/portfolio', name: 'Portfolio' },
   { path: '/debt', name: 'Debt' },
   { path: '/retirement', name: 'Retirement' },
@@ -102,8 +100,8 @@ test.describe('13 — Accessibility', () => {
     await page.route('**/api/auth/me', r =>
       r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER) }));
     await page.addInitScript(() => localStorage.setItem('access_token', 'mock-token'));
-    await page.goto('/login');
-    await page.waitForSelector('.auth-form', { timeout: 10000 });
+    await page.goto('/');
+    await page.waitForSelector('body', { timeout: 10000 });
     await page.keyboard.press('Tab');
     await page.waitForTimeout(200);
     await page.keyboard.press('Tab');
@@ -121,8 +119,8 @@ test.describe('13 — Accessibility', () => {
     await page.route('**/api/auth/me', r =>
       r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER) }));
     await page.addInitScript(() => localStorage.setItem('access_token', 'mock-token'));
-    await page.goto('/login');
-    await page.waitForSelector('.auth-form', { timeout: 10000 });
+    await page.goto('/');
+    await page.waitForSelector('body', { timeout: 10000 });
     await page.keyboard.press('Tab');
     await page.waitForTimeout(300);
     const hasOutline = await page.evaluate(() => {
