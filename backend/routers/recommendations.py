@@ -12,7 +12,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from auth.dependencies import get_current_user
-from backend.agents import InvestmentAgent
+from agents import InvestmentAgent
 from database import get_db
 from models.user import User
 from services.recommendation_engine import (

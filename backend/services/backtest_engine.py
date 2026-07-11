@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 import uuid
@@ -275,7 +276,7 @@ _ALLOWED_AST_NODES = {
     ast.Module, ast.ClassDef, ast.FunctionDef, ast.arguments, ast.arg,
     ast.Expr, ast.Constant, ast.Name, ast.Attribute, ast.Load, ast.Store,
     ast.Call, ast.keyword, ast.BinOp, ast.UnaryOp, ast.Compare, ast.BoolOp,
-    ast.If, ast.Else, ast.Assign, ast.AugAssign, ast.Return, ast.Pass,
+    ast.If, ast.Assign, ast.AugAssign, ast.Return, ast.Pass,
     ast.Subscript, ast.List, ast.Tuple, ast.For, ast.While, ast.Break,
     ast.Continue, ast.Import, ast.ImportFrom, ast.alias,
     ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow,

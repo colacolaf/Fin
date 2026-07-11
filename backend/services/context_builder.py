@@ -14,12 +14,13 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from database import get_db
 from models.debt import Debt
-from models.memory import AgentMemory
-from models.portfolio import PortfolioHolding
+from models.memory import MemoryNode
+from models.portfolio import Holding
 from models.recommendation import Recommendation
-from models.retirement import RetirementGoal
-from models.settings import UserSettings
+from models.retirement import RetirementProfile
+from models.settings import Setting
 from services.input_sanitizer import sanitize_context_dict, sanitize_context_value
 
 
@@ -41,7 +42,7 @@ def build_user_context(
     }
 
     # ── User settings / profile ───────────────────────────
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    settings = db.query(Setting).filter(Setting.user_id == user_id).first()
     if settings:
         context["profile"] = {
             "annual_income_gross": sanitize_context_value(settings.annual_income_gross, "annual_income_gross"),
@@ -57,8 +58,8 @@ def build_user_context(
 
     # ── Portfolio holdings ────────────────────────────────
     holdings = (
-        db.query(PortfolioHolding)
-        .filter(PortfolioHolding.user_id == user_id, PortfolioHolding.is_active == True)
+        db.query(Holding)
+        .filter(Holding.user_id == user_id, Holding.is_active == True)
         .all()
     )
     portfolio = {
@@ -112,7 +113,7 @@ def build_user_context(
 
     # ── Retirement goals ──────────────────────────────────
     if agent_type in ("retirement", "investment"):
-        goals = db.query(RetirementGoal).filter(RetirementGoal.user_id == user_id).all()
+        goals = db.query(RetirementProfile).filter(RetirementProfile.user_id == user_id).all()
         retire = {}
         for g in goals:
             retire["target_retirement_age"] = sanitize_context_value(g.target_retirement_age, "target_retirement_age")
@@ -123,9 +124,9 @@ def build_user_context(
 
     # ── Recent agent memory (last 5) ──────────────────────
     memories = (
-        db.query(AgentMemory)
-        .filter(AgentMemory.user_id == user_id, AgentMemory.agent_type == agent_type)
-        .order_by(AgentMemory.created_at.desc())
+        db.query(MemoryNode)
+        .filter(MemoryNode.user_id == user_id, MemoryNode.agent_type == agent_type)
+        .order_by(MemoryNode.created_at.desc())
         .limit(5)
         .all()
     )
@@ -147,3 +148,12 @@ def build_user_context(
     # ── OWASP sanitize everything ─────────────────────────
     context = sanitize_context_dict(context)
     return context
+
+
+async def build_context(user_id: str, agent_type: str = "orchestration") -> dict[str, Any]:
+    """Async wrapper for backward compatibility — creates its own DB session."""
+    db = next(get_db())
+    try:
+        return build_user_context(db, user_id, agent_type=agent_type)
+    finally:
+        db.close()
