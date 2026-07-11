@@ -1,4 +1,10 @@
-import { CapacitorConfig } from "@capacitor/cli";
+interface CapacitorConfig {
+  appId: string;
+  appName: string;
+  webDir: string;
+  bundledWebRuntime?: boolean;
+  plugins?: Record<string, Record<string, unknown>>;
+}
 
 const config: CapacitorConfig = {
   appId: "com.fin.app",
