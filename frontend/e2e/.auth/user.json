@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "fin_dashboard_tour_shown",
+          "value": "true"
+        },
+        {
+          "name": "access_token",
+          "value": "mock-jwt-token"
+        }
+      ]
+    }
+  ]
+}

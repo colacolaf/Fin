@@ -10,6 +10,7 @@ from auth.router import router as auth_router
 from config import settings
 from middleware.error_handler import ErrorHandlerMiddleware
 from middleware.rate_limiter import limiter
+from middleware.security_headers import SecurityHeadersMiddleware
 from routers import backtest, community, data, debt, execution, integrations, memory, orchestration, portfolio, recommendations, retirement, settings as settings_router
 from services.scheduler import start_scheduler, stop_scheduler
 
@@ -17,6 +18,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("fin")
 
 app = FastAPI(title="Fin API", version="0.1.0")
+
+# ── Security headers ─────────────────────────
+app.add_middleware(SecurityHeadersMiddleware)
 
 # ── CORS ────────────────────────────────────
 origins = [o.strip() for o in settings.cors_origins.split(",")]
