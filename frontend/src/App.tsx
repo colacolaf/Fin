@@ -10,6 +10,7 @@ import DebtDashboard from "./pages/DebtDashboard";
 import RetirementPage from "./pages/Retirement";
 import MemoryExplorer from "./pages/MemoryExplorer";
 import MultiAgent from "./pages/MultiAgent";
+import ExecutionDashboard from "./pages/ExecutionDashboard";
 import "./styles/ocean.css";
 import "./styles/retirement.css";
 
@@ -65,6 +66,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MultiAgent />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/execution"
+            element={
+              <ProtectedRoute>
+                <ExecutionDashboard />
               </ProtectedRoute>
             }
           />

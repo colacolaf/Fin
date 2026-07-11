@@ -1,4 +1,3 @@
-import { test, expect } from "@playwright/test";
 
 const MOCK_USER = {
   id: "test-user-1",

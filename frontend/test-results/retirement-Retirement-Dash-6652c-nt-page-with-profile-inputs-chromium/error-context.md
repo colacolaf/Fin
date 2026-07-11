@@ -22,7 +22,7 @@ Timeout: 5000ms
 Call log:
   - Expect "toContainText" with timeout 5000ms
   - waiting for locator('h1')
-    14 × locator resolved to <h1>Sign In</h1>
+    13 × locator resolved to <h1>Sign In</h1>
        - unexpected value "Sign In"
 
 ```

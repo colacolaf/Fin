@@ -162,7 +162,12 @@ def generate_recommendation(
         context.get("retirement")
         or context.get("profile", {}).get("has_completed_wizard")
     )
-    exec_rate = context.get("execution_rate", 0.5)
+    exec_rate = 0.5
+    try:
+        from services.follow_through import get_execution_rate
+        exec_rate = get_execution_rate(db, user_id)
+    except Exception:
+        pass
 
     system_scores = score_confidence(
         data_recency_days=data_recency,
