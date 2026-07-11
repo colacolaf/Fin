@@ -10,9 +10,9 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from backend.agents.base import BaseAgent
-from backend.agents.prompts import DEBT_PROMPT, DEBT_SKILLS
-from backend.services.structured_output import DebtRecommendation
+from agents.base import BaseAgent
+from agents.prompts import DEBT_PROMPT, DEBT_SKILLS
+from services.structured_output import DebtRecommendation
 
 
 class DebtAgent(BaseAgent):

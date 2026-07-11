@@ -95,3 +95,71 @@ export interface AgentRecommendation {
 export interface ApiError {
   detail: string;
 }
+
+// ── Debt ──────────────────────────────────
+export interface DebtAccount {
+  id: string;
+  user_id: string;
+  name: string;
+  debt_type: 'credit_card' | 'student_loan' | 'mortgage' | 'auto_loan' | 'personal_loan' | 'other';
+  balance: number;
+  interest_rate: number;
+  minimum_payment: number;
+  extra_payment: number;
+  due_date: string | null;
+  is_active: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DebtSummary {
+  total_debt: number;
+  monthly_payments: number;
+  avg_interest_rate: number;
+  debt_count: number;
+  dti_ratio: DTIRatio | null;
+  accounts: DebtAccount[];
+}
+
+export interface DTIRatio {
+  total_monthly_debt: number;
+  monthly_income: number;
+  dti_pct: number;
+  status: 'good' | 'caution' | 'danger';
+  recommendation: string;
+}
+
+export interface PayoffMonth {
+  month: number;
+  balance_remaining: number;
+  interest_paid: number;
+  principal_paid: number;
+  extra_paid: number;
+}
+
+export interface PayoffPlan {
+  schedule: PayoffMonth[];
+  total_months: number;
+  total_interest: number;
+  total_paid: number;
+  payoff_date: string | null;
+}
+
+export interface StrategyComparison {
+  avalanche: PayoffPlan;
+  snowball: PayoffPlan;
+  comparison: {
+    interest_saved: number;
+    months_saved: number;
+    recommended: 'avalanche' | 'snowball';
+  };
+}
+
+export interface PaymentEntry {
+  id: string;
+  debt_id: string;
+  amount: number;
+  payment_date: string;
+  balance_after: number;
+  method: string;
+}

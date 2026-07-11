@@ -10,9 +10,9 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from backend.agents.base import BaseAgent
-from backend.agents.prompts import RETIREMENT_PROMPT, RETIREMENT_SKILLS
-from backend.services.structured_output import RetirementRecommendation
+from agents.base import BaseAgent
+from agents.prompts import RETIREMENT_PROMPT, RETIREMENT_SKILLS
+from services.structured_output import RetirementRecommendation
 
 
 class RetirementAgent(BaseAgent):

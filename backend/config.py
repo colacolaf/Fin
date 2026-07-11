@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     alpaca_api_key: str = ""
     alpaca_api_secret: str = ""
     encryption_key: str = ""  # AES-256 master key for API credential encryption
+    plaid_client_id: str = ""
+    plaid_secret: str = ""
+    plaid_env: str = "sandbox"
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
 
@@ -36,5 +39,15 @@ if not settings.jwt_secret:
 
 if not settings.encryption_key:
     if os.environ.get("FIN_ENV", settings.fin_env) == "production":
-        raise ValueError("ENCRYPTION_KEY must be set in production")
-    settings.encryption_key = "dev-encryption-key-change-in-production-32chars!"  # 32+ chars for AES-256
+        raise ValueError("ENCRYPTION_KEY must be set in production (generate: python -c 'import secrets; print(secrets.token_hex(32))')")
+    # Dev: use persistent key so encrypted tokens survive restarts
+    import secrets as _secrets
+    import os as _os
+    key_file = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".dev_encryption_key")
+    try:
+        with open(key_file) as f:
+            settings.encryption_key = f.read().strip()
+    except FileNotFoundError:
+        settings.encryption_key = _secrets.token_hex(32)
+        with open(key_file, "w") as f:
+            _ = f.write(settings.encryption_key)

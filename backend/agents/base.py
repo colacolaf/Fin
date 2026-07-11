@@ -3,7 +3,7 @@
 All three agents (Investment, Debt, Retirement) inherit from this.
 Handles:
 - Ollama client lifecycle
-- Instructor constrained-generation wrapper
+- Instructor constrained-generation wrapper (via OpenAI-compat Ollama endpoint)
 - Prompt assembly with XML-delimited system/user/context
 - Structured output validation
 - Token accounting
@@ -13,22 +13,22 @@ Handles:
 from __future__ import annotations
 
 import json
-import os
 from abc import ABC, abstractmethod
 from typing import Any
 
 import ollama
-from instructor import from_ollama
+from openai import OpenAI
+from instructor import from_openai, Mode
 from pydantic import BaseModel, ValidationError
 
-from backend.config import settings
-from backend.services.input_sanitizer import sanitize_agent_output, sanitize_user_input
+from config import settings
+from services.input_sanitizer import sanitize_agent_output, sanitize_user_input
 
 
 # ── Ollama configuration ───────────────────────────────────
 OLLAMA_HOST = settings.ollama_host
 DEFAULT_MODEL = settings.ollama_agent_model or settings.ollama_model
-INSTRUCTOR_MODE = getattr(settings, "INSTRUCTOR_MODE", "JSON")
+INSTRUCTOR_MODE = Mode.JSON
 MAX_RETRIES = settings.agent_max_retries
 TIMEOUT_SECONDS = settings.agent_timeout_seconds
 
@@ -47,7 +47,10 @@ class BaseAgent(ABC):
 
     def __init__(self) -> None:
         self._client = ollama.Client(host=OLLAMA_HOST)
-        self._instructor = from_ollama(self._client, mode=INSTRUCTOR_MODE)
+        # Use instructor.from_openai with an OpenAI client pointed at Ollama's
+        # OpenAI-compatible API endpoint (default: http://localhost:11434/v1).
+        openai_client = OpenAI(base_url=f"{OLLAMA_HOST}/v1", api_key="ollama")
+        self._instructor = from_openai(openai_client, mode=INSTRUCTOR_MODE)
 
     # ── Subclass must implement ────────────────────────────
     @property

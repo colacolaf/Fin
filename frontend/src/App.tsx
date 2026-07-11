@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import SetupWizard from "./pages/SetupWizard";
 import Dashboard from "./pages/Dashboard";
 import Portfolio from "./pages/Portfolio";
+import DebtDashboard from "./pages/DebtDashboard";
 import "./styles/ocean.css";
 
 function App() {
@@ -28,6 +29,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Portfolio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/debt"
+            element={
+              <ProtectedRoute>
+                <DebtDashboard />
               </ProtectedRoute>
             }
           />

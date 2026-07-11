@@ -13,17 +13,17 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from backend.agents import DebtAgent, InvestmentAgent, RetirementAgent
-from backend.models.recommendation import Recommendation, Vote
-from backend.services.confidence import score_confidence
-from backend.services.context_builder import build_user_context
-from backend.services.input_sanitizer import (
+from agents import DebtAgent, InvestmentAgent, RetirementAgent
+from models.recommendation import Recommendation, Vote
+from services.confidence import score_confidence
+from services.context_builder import build_user_context
+from services.input_sanitizer import (
     sanitize_agent_output,
     sanitize_user_input,
     validate_agent_type,
     validate_user_id,
 )
-from backend.services.structured_output import (
+from services.structured_output import (
     GenerateRequest,
     GenerateResponse,
     VoteRequest,

@@ -10,9 +10,9 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from backend.agents.base import BaseAgent
-from backend.agents.prompts import INVESTMENT_PROMPT, INVESTMENT_SKILLS
-from backend.services.structured_output import InvestmentRecommendation
+from agents.base import BaseAgent
+from agents.prompts import INVESTMENT_PROMPT, INVESTMENT_SKILLS
+from services.structured_output import InvestmentRecommendation
 
 
 class InvestmentAgent(BaseAgent):
