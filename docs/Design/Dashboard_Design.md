@@ -1,6 +1,6 @@
 # Fin Dashboard Design — Wave-Riding Agent Overview
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Updated:** July 2026  
 **Status:** Design spec ready for implementation
 
@@ -8,7 +8,7 @@
 
 ## 1. Overview
 
-The Fin Dashboard is the first screen a user sees after onboarding. It visualizes the three Fin agents — Investment, Debt, and Retirement — as shark fins riding a shared ocean wave. Each fin shows the agent’s current confidence/status, can be tapped for more info, and navigates to the agent’s chat/context view.
+The Fin Dashboard is the first screen a user sees after onboarding. It visualizes the three Fin agents — Investment, Debt, and Retirement — as detailed shark fins riding a shared ocean wave. Each fin shows the agent’s current confidence/status, can be tapped for more info, and navigates to the agent’s chat/context view.
 
 The design reinforces Fin’s ocean/fin identity: calm, trustworthy, and always moving forward.
 
@@ -20,18 +20,20 @@ The design reinforces Fin’s ocean/fin identity: calm, trustworthy, and always 
 
 | Element | Color | Hex | Usage |
 |--------|-------|-----|-------|
-| Background | Deep ocean navy | `#0B1B2B` | Main dashboard background |
-| Wave back | Darker blue | `#143A5C` | Rear wave layer |
-| Wave front | Light blue | `#4A9FD4` | Front wave layer |
-| Wave highlight | Cyan/foam | `#7FD8F7` | Wave crest accent |
+| Sky | Light blue | `#C9E9F6` | Top background |
+| Background | Ocean blue | `#87CEEB` | Main dashboard background |
+| Wave base | Medium blue | `#4A9FD4` | Wave body |
+| Wave foam | White | `#FFFFFF` | Wave crests and foam |
+| Wave shadow | Darker blue | `#2E7DB3` | Wave undersides |
 | Investment fin | Aqua green | `#2FE0A8` | Investment agent marker |
 | Debt fin | Coral | `#FF6B6B` | Debt agent marker |
 | Retirement fin | Gold | `#FFD166` | Retirement agent marker |
-| Text primary | Off-white | `#F0F4F8` | Headings, labels |
-| Text secondary | Muted blue | `#8BAAC6` | Subtitles, metadata |
+| Text primary | Dark navy | `#0B1B2B` | Headings, labels |
+| Text secondary | Muted blue | `#5A7A96` | Subtitles, metadata |
 | Status good | Green dot | `#2FE0A8` | Healthy confidence/data |
 | Status warning | Amber dot | `#FFD166` | Needs attention |
 | Status missing | Red dot | `#FF6B6B` | No data / error |
+| Sidebar | Deep navy | `#0B1B2B` | Side panel background |
 
 ### Typography
 - **Heading:** Inter 600, 28px — "Welcome back"
@@ -47,6 +49,7 @@ The design reinforces Fin’s ocean/fin identity: calm, trustworthy, and always 
 ┌─────────────────────────────────────────────────────────────┐
 │  ≡   Welcome back                              Last sync: 2m│
 │                                                             │
+│                    ☁️        ☁️                            │
 │                                                             │
 │          ┌─────────────────┐                                │
 │          │ 82% confidence  │                                │
@@ -78,12 +81,12 @@ The design reinforces Fin’s ocean/fin identity: calm, trustworthy, and always 
 
 ### 4.1 Agent Fin
 
-Each agent is represented by a stylized shark fin icon that rides on the wave.
+Each agent is represented by a detailed, stylized shark fin icon that rides on the wave.
 
-- **Shape:** Simple, rounded shark-fin silhouette (SVG)
+- **Shape:** Realistic shark-fin silhouette with curved leading edge, pointed tip, and trailing edge detail
 - **Color:** Unique per agent (Investment = aqua, Debt = coral, Retirement = gold)
 - **Position:** Placed at different heights on the wave to avoid overlap
-- **Animation:** Subtle bobbing motion synchronized with the wave
+- **Animation:** Subtle bobbing motion synchronized with the wave, plus a small splash effect on crest
 
 ### 4.2 Confidence Badge
 
@@ -120,9 +123,9 @@ Content:
 - Confidence score explanation
 - Short status message
 
-### 4.4 Side Panel
+### 4.4 Sidebar
 
-Swiping from the left edge or tapping the hamburger menu opens a side panel:
+A persistent left sidebar (not overlay) on desktop, slide-out drawer on mobile:
 
 ```
 ┌──────────────┐
@@ -152,34 +155,72 @@ Each agent item navigates to the agent’s chat/context view as a fallback if th
 
 ---
 
-## 5. Interactions
+## 5. Wave Design
+
+The waves should look like hand-drawn ocean waves with:
+- Curved, rolling crests
+- White foam at the crests
+- Subtle shadow/depth on the wave underside
+- Multiple overlapping wave layers for depth
+- Light blue ocean surface
+
+### Wave Layers
+1. **Background wave** — darker blue, slower movement
+2. **Mid wave** — medium blue, medium movement
+3. **Foreground wave** — lighter blue with white foam, fastest movement
+
+### Wave Animation
+- Each layer moves horizontally in a continuous loop
+- Foreground wave moves fastest, background slowest (parallax effect)
+- Fins bob up and down with the foreground wave
+- Foam particles appear at crests periodically
+
+---
+
+## 6. Animations
+
+| Element | Animation |
+|---------|-----------|
+| Waves | Continuous horizontal scroll with parallax |
+| Fins | Bobbing motion synced to wave crests |
+| Foam | Brief splash/foam burst at wave crests |
+| Badges | Fade in/out on hover |
+| Info popup | Scale + fade in when ℹ tapped |
+| Sidebar | Slide in from left on mobile, persistent on desktop |
+| Fin hover | Slight scale up + glow |
+
+---
+
+## 7. Interactions
 
 | Action | Result |
 |--------|--------|
 | Tap fin | Navigate to agent chat/context view |
 | Tap ℹ icon | Open info popup for that agent |
-| Tap hamburger / swipe left-to-right | Open side panel |
+| Tap hamburger / swipe left-to-right | Open side panel on mobile |
 | Tap side panel item | Navigate to selected section |
 | Pull down | Refresh agent statuses |
+| Hover fin | Scale up + glow effect |
 
 ---
 
-## 6. Responsive Behavior
+## 8. Responsive Behavior
 
-- **Desktop:** Dashboard centered with max-width 1200px; side panel overlays from left
-- **Tablet:** Same as desktop, larger touch targets
-- **Mobile:** Full-width wave; side panel becomes full-screen drawer
+- **Desktop:** Sidebar persistent on left; dashboard content to the right
+- **Tablet:** Sidebar collapses to icons; tap to expand
+- **Mobile:** Sidebar hidden; hamburger opens full-screen drawer
 
 ---
 
-## 7. Assets
+## 9. Assets
 
 - `docs/Design/dashboard_mockup.svg` — visual reference
 - Agent fin SVGs should be created as reusable components in `frontend/src/components/dashboard/AgentFin.tsx`
+- Wave SVGs should be created as animated components in `frontend/src/components/dashboard/OceanWaves.tsx`
 
 ---
 
-## 8. Open Questions
+## 10. Open Questions
 
 1. Should the wave animation be CSS-only or use a canvas/WebGL library?
 2. Should the fin positions be fixed or dynamically arranged based on confidence?
@@ -187,7 +228,7 @@ Each agent item navigates to the agent’s chat/context view as a fallback if th
 
 ---
 
-## 9. Related Files
+## 11. Related Files
 
 - `docs/SystemPrompts/00_universal_system_prompt.md`
 - `docs/Skills_Connectors_Models/01_Skills_Registry.md`
