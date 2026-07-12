@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0B1B2B"/>
+      <stop offset="100%" stop-color="#0F2A42"/>
+    </linearGradient>
+    <linearGradient id="waveBack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#143A5C"/>
+      <stop offset="100%" stop-color="#1B4D73"/>
+    </linearGradient>
+    <linearGradient id="waveFront" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4A9FD4"/>
+      <stop offset="100%" stop-color="#2E7DB3"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGrad)"/>
+
+  <!-- Top bar -->
+  <text x="80" y="45" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="24" font-weight="600">Welcome back</text>
+  <text x="640" y="45" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="14">Last sync: 2 min ago</text>
+
+  <!-- Hamburger menu -->
+  <g fill="none" stroke="#F0F4F8" stroke-width="2" stroke-linecap="round">
+    <line x1="24" y1="28" x2="48" y2="28"/>
+    <line x1="24" y1="38" x2="48" y2="38"/>
+    <line x1="24" y1="48" x2="48" y2="48"/>
+  </g>
+
+  <!-- Investment Agent -->
+  <g transform="translate(420, 120)">
+    <!-- Badge -->
+    <rect x="-70" y="-35" width="160" height="32" rx="16" fill="#143A5C" stroke="#2FE0A8" stroke-width="1.5"/>
+    <text x="0" y="-14" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="14" font-weight="600" text-anchor="middle">82% confidence</text>
+    <text x="55" y="-14" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="14" text-anchor="middle">ℹ</text>
+    <circle cx="85" cy="-19" r="5" fill="#2FE0A8"/>
+
+    <!-- Fin -->
+    <path d="M-18 35 Q-18 5 0 0 Q18 5 18 35 Q10 25 0 25 Q-10 25 -18 35 Z" fill="#2FE0A8" filter="url(#glow)"/>
+    <text x="0" y="65" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="16" font-weight="500" text-anchor="middle">Investment</text>
+  </g>
+
+  <!-- Debt Agent -->
+  <g transform="translate(220, 260)">
+    <!-- Badge -->
+    <rect x="-70" y="-35" width="160" height="32" rx="16" fill="#143A5C" stroke="#FF6B6B" stroke-width="1.5"/>
+    <text x="0" y="-14" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="14" font-weight="600" text-anchor="middle">67% confidence</text>
+    <text x="55" y="-14" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="14" text-anchor="middle">ℹ</text>
+    <circle cx="85" cy="-19" r="5" fill="#FFD166"/>
+
+    <!-- Fin -->
+    <path d="M-18 35 Q-18 5 0 0 Q18 5 18 35 Q10 25 0 25 Q-10 25 -18 35 Z" fill="#FF6B6B" filter="url(#glow)"/>
+    <text x="0" y="65" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="16" font-weight="500" text-anchor="middle">Debt</text>
+  </g>
+
+  <!-- Retirement Agent -->
+  <g transform="translate(580, 360)">
+    <!-- Badge -->
+    <rect x="-60" y="-35" width="140" height="32" rx="16" fill="#143A5C" stroke="#FFD166" stroke-width="1.5"/>
+    <text x="0" y="-14" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="14" font-weight="600" text-anchor="middle">No data</text>
+    <text x="40" y="-14" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="14" text-anchor="middle">ℹ</text>
+    <circle cx="65" cy="-19" r="5" fill="#FF6B6B"/>
+
+    <!-- Fin -->
+    <path d="M-18 35 Q-18 5 0 0 Q18 5 18 35 Q10 25 0 25 Q-10 25 -18 35 Z" fill="#FFD166" filter="url(#glow)"/>
+    <text x="0" y="65" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="16" font-weight="500" text-anchor="middle">Retirement</text>
+  </g>
+
+  <!-- Waves -->
+  <path d="M0 480 Q100 440 200 480 T400 480 T600 480 T800 480 V600 H0 Z" fill="url(#waveBack)" opacity="0.8"/>
+  <path d="M0 520 Q100 480 200 520 T400 520 T600 520 T800 520 V600 H0 Z" fill="url(#waveFront)" opacity="0.9"/>
+  <path d="M0 520 Q100 480 200 520 T400 520 T600 520 T800 520" fill="none" stroke="#7FD8F7" stroke-width="3" opacity="0.6"/>
+
+  <!-- Info popup example (Investment) -->
+  <g transform="translate(520, 80)">
+    <rect x="0" y="0" width="220" height="110" rx="12" fill="#143A5C" stroke="#2FE0A8" stroke-width="1.5"/>
+    <text x="16" y="30" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="14" font-weight="600">Investment Agent</text>
+    <text x="16" y="52" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12">Last sync: 2 min ago</text>
+    <text x="16" y="72" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12">Data freshness: Fresh</text>
+    <text x="16" y="92" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12">Status: Ready to assist</text>
+  </g>
+
+  <!-- Side panel -->
+  <rect x="0" y="0" width="220" height="600" fill="#0B1B2B" opacity="0.95"/>
+  <text x="24" y="45" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="22" font-weight="700">Fin</text>
+  <text x="24" y="90" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12" font-weight="600">MENU</text>
+  <text x="24" y="120" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="16">Dashboard</text>
+  <text x="24" y="155" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Portfolio</text>
+  <text x="24" y="190" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Analytics</text>
+  <text x="24" y="225" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Settings</text>
+  <text x="24" y="285" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12" font-weight="600">AGENTS</text>
+  <text x="24" y="315" fill="#2FE0A8" font-family="Inter, sans-serif" font-size="16">Investment</text>
+  <text x="24" y="350" fill="#FF6B6B" font-family="Inter, sans-serif" font-size="16">Debt</text>
+  <text x="24" y="385" fill="#FFD166" font-family="Inter, sans-serif" font-size="16">Retirement</text>
+</svg>
