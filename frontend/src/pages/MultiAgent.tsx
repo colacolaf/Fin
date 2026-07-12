@@ -4,6 +4,8 @@ import { useAgentStream } from '../hooks/useAgentStream';
 import AgentSelector from '../components/orchestration/AgentSelector';
 import AgentStatusBar from '../components/orchestration/AgentStatusBar';
 import AgentStream from '../components/orchestration/AgentStream';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyCheck } from '../components/layout/Icons';
 import '../styles/orchestration.css';
 
 type AgentKey = 'investment' | 'debt' | 'retirement';
@@ -120,6 +122,23 @@ export default function MultiAgent() {
           <p className="ocean-subtitle" style={{ margin: '4px 0 0' }}>Three agents perform. You audit the cross-agent reasoning.</p>
         </div>
       </header>
+
+      {/* Phase 38c — agent-with-no-result empty state, visible on first load
+           before any agent has run (history is empty). */}
+      {history.length === 0 && !started && (
+        <EmptyState
+          icon={<IconEmptyCheck />}
+          title="No agent results yet"
+          description="Run an orchestrated analysis to see cross-agent diffs and conflicts."
+          slug="multiagent-empty"
+          cta={{ label: 'Run orchestrated analysis', onClick: () => handleRun() }}
+          secondaryAction={{ label: 'Read tour', onClick: () => {
+            document.querySelector('[data-coach-tour-mount]')?.scrollIntoView({
+              behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            });
+          } }}
+        />
+      )}
 
       <div className="run-cost-tracker" data-testid="run-cost-tracker">
         <div className="run-cost-tracker-stat">
@@ -262,7 +281,9 @@ export default function MultiAgent() {
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{history.length} runs</span>
           </header>
           {history.length === 0 ? (
-            <p className="run-history-empty">No runs yet.</p>
+            <p className="run-history-empty" style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+              No runs yet — press <strong>Run All Agents</strong> above to start.
+            </p>
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {history.map((r) => (

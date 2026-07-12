@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import type { Recommendation } from '../api/recommendations';
 import { recommendationsApi } from '../api/recommendations';
 import RecommendationCard from '../components/RecommendationCard';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyQuotes } from '../components/layout/Icons';
 import { RecommendationsSkeleton } from '../components/ui/PageSkeleton';
 
 type AgentFilter = 'all' | 'investment' | 'debt' | 'retirement';
@@ -40,6 +42,7 @@ function writeStreak(s: StreakState) {
 }
 
 export default function RecommendationsDashboard() {
+  const navigate = useNavigate();
   const [recs, setRecs] = useState<Recommendation[]>(DEMO_RECS);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -192,9 +195,20 @@ export default function RecommendationsDashboard() {
       ) : (
         <div className="recommendations-list" data-testid="recommendations-list" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--memory-pane-border)', borderRadius: 12 }}>
-              No recommendations match your filter.
-            </div>
+            recs.length === 0 ? (
+              <EmptyState
+                icon={<IconEmptyQuotes />}
+                title="No active recommendations"
+                description="Run an agent to generate suggestions. The Investment agent is the fastest path."
+                slug="recommendations-empty"
+                cta={{ label: 'Run investment agent', onClick: () => fetchRecs() }}
+                secondaryAction={{ label: 'Configure risk', onClick: () => navigate('/settings#/agent-prefs') }}
+              />
+            ) : (
+              <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--memory-pane-border)', borderRadius: 12 }}>
+                No recommendations match your filter.
+              </div>
+            )
           ) : (
             filtered.map((rec) => (
               <RecommendationCard key={rec.id} recommendation={rec} onVote={(v) => handleVote(rec, v)} />

@@ -42,6 +42,7 @@ export default function Slider({
           onChange={(e) => onChange(Number(e.target.value))}
           disabled={disabled}
           aria-valuetext={formatted}
+          aria-orientation="horizontal"
           aria-label={ariaLabel}
           className="slider-native"
           data-testid={testId}

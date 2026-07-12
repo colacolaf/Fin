@@ -220,3 +220,105 @@ export function IconChevronDown({ size, ...p }: IconProps) {
     </svg>
   );
 }
+
+/* ── Phase 38a — 36×36 empty-state illustrations ── */
+// Single shared factory so all empty-state SVGs render at 36 viewBox-units
+// with the same stroke language as the 24×24 sidebar icons.
+function emptyBase(): SVGProps<SVGSVGElement> {
+  return {
+    width: 36,
+    height: 36,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.4,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    role: 'img',
+    'aria-hidden': false,
+  };
+}
+
+export function IconEmptyPortfolio({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="No holdings" {...p}>
+      <path d="M3 7l9-4 9 4-9 4-9-4z" />
+      <path d="M3 12l9 4 9-4" />
+      <path d="M3 17l9 4 9-4" />
+    </svg>
+  );
+}
+
+export function IconEmptyBacktest({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="No backtest runs" {...p}>
+      <path d="M3 20h18" />
+      <path d="M5 20V14l4-4 4 4v6" />
+      <path d="M11 20V8l4-4 4 4v12" />
+      <circle cx="20" cy="6" r="1.2" />
+    </svg>
+  );
+}
+
+export function IconEmptyMemory({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="Empty memory vault" {...p}>
+      <path d="M5 7a3 3 0 1 1 6 0v10a3 3 0 1 1-6 0V7z" />
+      <path d="M11 5a3 3 0 1 1 6 0v14a3 3 0 1 1-6 0V5z" />
+      <path d="M17 9a3 3 0 1 1 6 0v6a3 3 0 1 1-6 0V9z" />
+    </svg>
+  );
+}
+
+export function IconEmptyQuotes({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="No pending follow-throughs" {...p}>
+      <path d="M5 8c-1.5 0-3 1.5-3 4 0 3 1.5 4 3 4h1v-3H4" />
+      <path d="M13 8c-1.5 0-3 1.5-3 4 0 3 1.5 4 3 4h1v-3h-2" />
+      <path d="M9 16h8" />
+    </svg>
+  );
+}
+
+export function IconEmptyCheck({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="All caught up" {...p}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12l3 3 5-6" />
+    </svg>
+  );
+}
+
+export function IconEmptyCommunity({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="No community signals" {...p}>
+      <circle cx="8" cy="9" r="2.5" />
+      <circle cx="16" cy="9" r="2.5" />
+      <path d="M3 19c.5-3 2.5-4 5-4s4.5 1 5 4" />
+      <path d="M13 19c.5-3 2.5-4 5-4s4.5 1 5 4" />
+    </svg>
+  );
+}
+
+export function IconEmptyDebt({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="No debts tracked" {...p}>
+      <rect x="2.5" y="6" width="19" height="13" rx="2" />
+      <path d="M2.5 10h19" />
+      <path d="M6 15h4" />
+      <path d="M14 15h3" />
+    </svg>
+  );
+}
+
+export function IconEmptyRetire({ size = 36, ...p }: IconProps) {
+  return (
+    <svg {...emptyBase()} width={size} height={size} aria-label="No retirement goal" {...p}>
+      <path d="M3 21h18" />
+      <path d="M5 21V9l7-5 7 5v12" />
+      <path d="M9.5 14h5" />
+      <path d="M9.5 17h5" />
+      <path d="M10 11h4" />
+    </svg>
+  );
+}

@@ -22,6 +22,10 @@ import Breadcrumbs from "./components/layout/Breadcrumbs";
 import ToastViewport from "./components/ui/Toast";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
 import CommandPalette, { type PaletteItem } from "./components/ui/CommandPalette";
+import KeyboardShortcutsOverlay from "./components/ui/KeyboardShortcutsOverlay";
+import CoachTour from "./components/dashboard/CoachTour";
+import SkipToContent from "./components/a11y/SkipToContent";
+import { useTheme } from "./hooks/useTheme";
 import { toast } from "./hooks/useToast";
 import { useGlobalHotkeys } from "./hooks/useGlobalHotkeys";
 import { applySWUpdate } from "./registerSW";
@@ -40,7 +44,11 @@ function AppBody() {
   // both palettes opening on the same ⌘K press.
   const isMemoryRoute = location.pathname.startsWith("/memory");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Phase 37 — listen for OS color-scheme changes when theme is "system".
+  useTheme();
 
   // Phase 31: SW lifecycle into the toast surface.
   useEffect(() => {
@@ -132,14 +140,22 @@ function AppBody() {
     { combo: "g x", handler: () => navigate("/research") },
     { combo: "g s", handler: () => navigate("/settings") },
     { combo: "esc", allowInInputs: true, handler: () => setPaletteOpen(false) },
+    // Phase 35 — `?` opens the keyboard-shortcuts overlay. Hard guard: do NOT
+    // register cmd+k / ctrl+k here (Phase 34 already owns those).
+    { combo: "?", allowInInputs: false, handler: () => setShortcutsOpen((o) => !o) },
+    { combo: "ctrl+/", allowInInputs: false, handler: () => setShortcutsOpen((o) => !o) },
+    { combo: "cmd+/", allowInInputs: false, handler: () => setShortcutsOpen((o) => !o) },
   ]);
 
   return (
     <>
+      {/* Phase 37 — first focusable element: skip-to-content link. */}
+      <SkipToContent />
       <Sidebar collapsed={!sidebarOpen} />
       <TopBar
         onToggleSidebar={() => setSidebarOpen((o) => !o)}
         sidebarOpen={sidebarOpen}
+        onOpenShortcuts={() => setShortcutsOpen(true)}
       />
       <OfflineBanner />
       <SyncIndicator />
@@ -149,7 +165,15 @@ function AppBody() {
         onClose={() => setPaletteOpen(false)}
         items={paletteItems}
       />
+      {/* Phase 35 — shortcuts overlay mounted after CommandPalette. */}
+      <KeyboardShortcutsOverlay
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
+      {/* Phase 38a — coach-tour placeholder mount for Phase 39 to fill. */}
+      <CoachTour />
       <main
+        id="main-content"
         className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : ''}`}
         data-testid="dashboard-main"
       >

@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ScoreRing from '../components/ScoreRing';
 import { executionApi } from '../api/execution';
 import type { ExecutionAction, ExecutionStats } from '../api/execution';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyCheck } from '../components/layout/Icons';
 import { ExecutionSkeleton } from '../components/ui/PageSkeleton';
 
 type FilterTab = 'pending' | 'completed' | 'rejected';
@@ -41,6 +44,7 @@ function fireConfettiLite() {
 }
 
 export default function ExecutionDashboard() {
+  const navigate = useNavigate();
   const [pending, setPending] = useState<ExecutionAction[]>([]);
   const [history, setHistory] = useState<ExecutionAction[]>([]);
   const [stats, setStats] = useState<ExecutionStats | null>(null);
@@ -209,20 +213,30 @@ export default function ExecutionDashboard() {
           </div>
 
           {filtered.length === 0 ? (
-            <div
-              style={{
-                padding: 48,
-                textAlign: 'center',
-                color: 'var(--text-muted)',
-                background: 'oklch(0.18 0.015 205 / 0.45)',
-                border: '1px dashed var(--memory-pane-border)',
-                borderRadius: 14,
-                marginTop: 12,
-              }}
-              data-testid="exec-empty"
-            >
-              You're caught up — next check-in rolls in {Math.round((stats?.avg_decision_minutes ?? 0) * 1.5) || 6} hours.
-            </div>
+            pending.length === 0 ? (
+              <EmptyState
+                icon={<IconEmptyCheck />}
+                title="No pending follow-throughs"
+                description="The agents are caught up. Visit Recommendations to set the next move."
+                slug="execution-empty"
+                cta={{ label: 'Review plans', onClick: () => navigate('/recommendations') }}
+              />
+            ) : (
+              <div
+                style={{
+                  padding: 48,
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  background: 'oklch(0.18 0.015 205 / 0.45)',
+                  border: '1px dashed var(--memory-pane-border)',
+                  borderRadius: 14,
+                  marginTop: 12,
+                }}
+                data-testid="exec-empty"
+              >
+                You're caught up — next check-in rolls in {Math.round((stats?.avg_decision_minutes ?? 0) * 1.5) || 6} hours.
+              </div>
+            )
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }} data-testid="execution-queue">
               {filtered.map((action) => (

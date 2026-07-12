@@ -7,7 +7,8 @@ import PerformanceLine from '../components/dashboard/PerformanceLine';
 import HoldingsTable from '../components/dashboard/HoldingsTable';
 import ConcentrationMeter from '../components/dashboard/ConcentrationMeter';
 import SectorRadar from '../components/dashboard/SectorRadar';
-import { IconChevronRight, IconPortfolio, IconAnalytics, IconResearch } from '../components/layout/Icons';
+import { IconEmptyPortfolio } from '../components/layout/Icons';
+import EmptyState from '../components/ui/EmptyState';
 import { PortfolioSkeleton } from '../components/ui/PageSkeleton';
 import type { PortfolioData, PerformancePeriod } from '@fin/shared';
 
@@ -131,38 +132,14 @@ export default function Portfolio() {
 
   if (!data || (!data.holdings.length && data.total_value === 0)) {
     return (
-      <div data-testid="portfolio-empty" style={{ padding: 24, maxWidth: 980, margin: '0 auto' }}>
-        <h2 style={{ marginTop: 0 }}>Connect to start trading with conviction</h2>
-        <p className="placeholder-text" style={{ color: 'oklch(0.7 0.01 200)' }}>
-          Hook up a broker, add a manual holding, or replay a backtest to see your cockpit come alive.
-        </p>
-        <div className="onboarding-cards" data-testid="portfolio-empty-cards">
-          <EmptyCard
-            eyebrow="01 · Broker"
-            title="Connect Alpaca"
-            desc="One-click brokerage link — paper or live."
-            testId="empty-connect-alpaca"
-            onClick={() => navigate('/settings')}
-            Icon={IconPortfolio}
-          />
-          <EmptyCard
-            eyebrow="02 · Manual"
-            title="Add a holding"
-            desc="Track an asset without linking an account."
-            testId="empty-add-holding"
-            onClick={() => navigate('/settings')}
-            Icon={IconAnalytics}
-          />
-          <EmptyCard
-            eyebrow="03 · Backtest"
-            title="Backtest a strategy"
-            desc="See how a tweak would have performed."
-            testId="empty-backtest"
-            onClick={() => navigate('/backtest')}
-            Icon={IconResearch}
-          />
-        </div>
-      </div>
+      <EmptyState
+        icon={<IconEmptyPortfolio />}
+        title="No holdings yet"
+        description="Connect Alpaca, Fidelity, or import manually."
+        slug="portfolio-empty"
+        cta={{ label: 'Open Connections', onClick: () => navigate('/settings#/connections') }}
+        secondaryAction={{ label: 'Browse templates', onClick: () => navigate('/backtest') }}
+      />
     );
   }
 
@@ -205,43 +182,5 @@ export default function Portfolio() {
       <HoldingsTable holdings={data.holdings} rowsWithSparkData={sparkRows} />
       <ConcentrationMeter holdings={data.holdings} />
     </div>
-  );
-}
-
-function EmptyCard({
-  eyebrow,
-  title,
-  desc,
-  testId,
-  onClick,
-  Icon,
-}: {
-  eyebrow: string;
-  title: string;
-  desc: string;
-  testId: string;
-  onClick: () => void;
-  Icon: typeof IconPortfolio;
-}) {
-  return (
-    <button
-      type="button"
-      className="onboarding-card"
-      onClick={onClick}
-      data-testid={testId}
-      aria-label={`${title}: ${desc}`}
-    >
-      <div className="onboarding-card-head">
-        <span className="onboarding-card-icon" aria-hidden="true">
-          <Icon size={18} />
-        </span>
-        <h3 className="onboarding-card-title">{title}</h3>
-      </div>
-      <span className="onboarding-card-eyebrow">{eyebrow}</span>
-      <p className="onboarding-card-desc">{desc}</p>
-      <span className="onboarding-card-cta">
-        Start <IconChevronRight size={14} />
-      </span>
-    </button>
   );
 }

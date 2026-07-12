@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { retirementApi } from '../api/retirement';
 import type { RetirementProfile, ProjectionResult, ReadinessResult, ScenarioResult } from '../api/retirement';
 import RetirementScore from '../components/retirement/RetirementScore';
@@ -6,6 +7,8 @@ import ProjectionChart from '../components/retirement/ProjectionChart';
 import AccountBreakdown from '../components/retirement/AccountBreakdown';
 import ContributionOptimizer from '../components/retirement/ContributionOptimizer';
 import TaxStrategy from '../components/retirement/TaxStrategy';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyRetire } from '../components/layout/Icons';
 import { RetirementSkeleton } from '../components/ui/PageSkeleton';
 
 const DEFAULT_PROFILE: RetirementProfile = {
@@ -37,6 +40,7 @@ const MOCK_OPTIMIZER_ACCOUNTS = [
 const CAPS = { four01k: 22500, ira: 6500, hsa: 4150 };
 
 export default function RetirementPage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<RetirementProfile>(DEFAULT_PROFILE);
   const [projection, setProjection] = useState<ProjectionResult | null>(null);
   const [readiness, setReadiness] = useState<ReadinessResult | null>(null);
@@ -131,12 +135,25 @@ export default function RetirementPage() {
 
       {loading && <RetirementSkeleton />}
 
-      {!loading && readiness && profile.current_age !== undefined && profile.retirement_age !== undefined && (
-        <RetirementScore
-          data={readiness}
-          currentAge={profile.current_age}
-          retirementAge={profile.retirement_age}
+      {!loading && !error && readiness == null && profile.current_savings === 0 && profile.annual_contribution === 0 ? (
+        <EmptyState
+          icon={<IconEmptyRetire />}
+          title="No retirement goal yet"
+          description="Set a target age and contribution rate — projection comes alive once you do."
+          slug="retirement-empty"
+          cta={{ label: 'Set a goal', onClick: () => navigate('/setup') }}
+          secondaryAction={{ label: 'Estimate baseline', onClick: () => {
+            setProfile({ ...DEFAULT_PROFILE, current_savings: 25000, annual_contribution: 6000 });
+          } }}
         />
+      ) : (
+        !loading && readiness && profile.current_age !== undefined && profile.retirement_age !== undefined && (
+          <RetirementScore
+            data={readiness}
+            currentAge={profile.current_age}
+            retirementAge={profile.retirement_age}
+          />
+        )
       )}
 
       {!loading && projection && (

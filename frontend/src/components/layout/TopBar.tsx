@@ -48,9 +48,11 @@ function writeSetting(key: string, value: string): void {
 interface Props {
   onToggleSidebar?: () => void;
   sidebarOpen?: boolean;
+  /** Phase 35 — opens the keyboard-shortcuts overlay. */
+  onOpenShortcuts?: () => void;
 }
 
-export default function TopBar({ onToggleSidebar, sidebarOpen }: Props) {
+export default function TopBar({ onToggleSidebar, sidebarOpen, onOpenShortcuts }: Props) {
   const { agentState, setAgentStatus, markSynced } = useAgentState();
   const [now, setNow] = useState<number>(Date.now());
 
@@ -239,7 +241,8 @@ function QuickSettings() {
             type="button"
             className="popover-item"
             data-testid="qs-shortcuts"
-            onClick={() => { close(); /* shortcut overlay is wired via ⌘K/?. Visual only here */ }}
+            aria-label="Open keyboard shortcuts"
+            onClick={() => { close(); onOpenShortcuts?.(); }}
           >
             <span>Keyboard shortcuts</span>
             <span className="popover-label">?</span>

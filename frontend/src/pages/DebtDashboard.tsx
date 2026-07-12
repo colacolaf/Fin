@@ -6,6 +6,8 @@ import DebtSummary from '../components/debt/DebtSummary';
 import PayoffStrategyToggle, { type Strategy } from '../components/debt/PayoffStrategyToggle';
 import PayoffTimeline from '../components/debt/PayoffTimeline';
 import DebtAccountCard from '../components/debt/DebtAccountCard';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyDebt } from '../components/layout/Icons';
 import { DebtSkeleton } from '../components/ui/PageSkeleton';
 import type {
   DebtAccount,
@@ -340,10 +342,18 @@ export default function DebtDashboard() {
               />
             ))
           ) : (
-            <div className="empty-state">
-              <p>No debt accounts yet.</p>
-              <button className="btn-primary" onClick={() => setAddingAccount(true)}>Add your first debt</button>
-            </div>
+            <EmptyState
+              icon={<IconEmptyDebt />}
+              title="No debts tracked"
+              description="Add your first card or loan so the agents can compare strategies."
+              slug="debt-empty"
+              cta={{ label: 'Add a debt', onClick: () => setAddingAccount(true) }}
+              secondaryAction={{ label: 'Read tour', onClick: () => {
+                document.querySelector('[data-coach-tour-mount]')?.scrollIntoView({
+                  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                });
+              } }}
+            />
           )}
         </div>
       </div>

@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BenchmarkComparison from '../components/BenchmarkComparison';
 import Leaderboard from '../components/Leaderboard';
 import { communityApi, type CommunityBenchmarks } from '../api/community';
-import { IconShield, IconChevronRight, IconTrade } from '../components/layout/Icons';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyCommunity, IconShield } from '../components/layout/Icons';
 
 const OPT_IN_KEY = 'fin.community.optIn';
 
@@ -28,6 +30,7 @@ const TRENDING_STRATEGIES = [
 ];
 
 export default function CommunityDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'benchmarks' | 'leaderboard'>('benchmarks');
   const [optedIn, setOptedIn] = useState<boolean>(false);
   const [benchmarks, setBenchmarks] = useState<CommunityBenchmarks | null>(null);
@@ -91,53 +94,14 @@ export default function CommunityDashboard() {
 
       {!optedIn && (
         <section style={{ marginTop: 18 }} data-testid="community-empty">
-          <div className="onboarding-cards" role="region" aria-label="Community onboarding">
-            <button
-              type="button"
-              className="onboarding-card"
-              onClick={handleOptToggle}
-              data-testid="comm-cta-optin"
-            >
-              <div className="onboarding-card-head">
-                <span className="onboarding-card-icon"><IconShield size={16} /></span>
-                <h3 className="onboarding-card-title">Opt-in to compare</h3>
-              </div>
-              <span className="onboarding-card-eyebrow">01 · Privacy</span>
-              <p className="onboarding-card-desc">Contribute your anonymized metrics to see percentile rank.</p>
-              <span className="onboarding-card-cta">Enable <IconChevronRight size={14} /></span>
-            </button>
-            <button
-              type="button"
-              className="onboarding-card"
-              onClick={() => setActiveTab('leaderboard')}
-              data-testid="comm-cta-top"
-            >
-              <div className="onboarding-card-head">
-                <span className="onboarding-card-icon"><IconTrade size={16} /></span>
-                <h3 className="onboarding-card-title">See top contributors</h3>
-              </div>
-              <span className="onboarding-card-eyebrow">02 · Browse</span>
-              <p className="onboarding-card-desc">Even without opting in, watch what top peers are doing.</p>
-              <span className="onboarding-card-cta">Browse <IconChevronRight size={14} /></span>
-            </button>
-            <button
-              type="button"
-              className="onboarding-card"
-              onClick={() => {
-                const el = document.getElementById('comm-privacy');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              data-testid="comm-cta-privacy"
-            >
-              <div className="onboarding-card-head">
-                <span className="onboarding-card-icon"><IconShield size={16} /></span>
-                <h3 className="onboarding-card-title">Read privacy policy</h3>
-              </div>
-              <span className="onboarding-card-eyebrow">03 · Trust</span>
-              <p className="onboarding-card-desc">See how we protect your data, in plain English.</p>
-              <span className="onboarding-card-cta">Read <IconChevronRight size={14} /></span>
-            </button>
-          </div>
+          <EmptyState
+            icon={<IconEmptyCommunity />}
+            title="No shared signals yet"
+            description="Defaults are off. Opt in to share anonymized metrics and unlock benchmarks."
+            slug="community-empty"
+            cta={{ label: 'Browse open votes', onClick: () => navigate('/community?tab=open') }}
+            secondaryAction={{ label: 'Submit a signal', onClick: () => navigate('/community/submit') }}
+          />
           <p className="coach-voice" style={{ marginTop: 14 }}>
             The community gets sharper the more you opt in, and we promise k-anonymity ≥ 10 — no cohort smaller than 10 reports.
           </p>

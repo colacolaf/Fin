@@ -7,6 +7,8 @@ import HistoricalReplay from '../components/HistoricalReplay';
 import ResultTransition from '../components/ResultTransition';
 import type { BacktestStats } from '../components/ResultTransition';
 import { backtestApi, type BacktestRun, type StrategyTemplate, type PaperPortfolio } from '../api/backtest';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyBacktest } from '../components/layout/Icons';
 
 type Tab = 'runs' | 'paper';
 
@@ -174,8 +176,7 @@ export default function BacktestDashboard() {
         </div>
       </header>
 
-      {/* Phase 30 — Strategy template gallery (fix #1) */}
-      <section className="strategy-gallery" data-testid="strategy-gallery" aria-label="Strategy templates">
+      {/* Phase 30 — Strategy template gallery (fix #1) */}        <section className="strategy-gallery" data-testid="strategy-gallery" aria-label="Strategy templates" id="strategy-gallery">
         {(['All', 'Trend', 'Mean Reversion', 'Income', 'Defensive'] as const).map((cat) => (
           <button
             key={cat}
@@ -311,9 +312,21 @@ export default function BacktestDashboard() {
       {tab === 'runs' && (
         <div>
           {runs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)', borderRadius: 12, border: '1px dashed var(--memory-pane-border)' }} data-testid="runs-empty">
-              No backtest runs yet. Configure and run one above.
-            </div>
+            <EmptyState
+              icon={<IconEmptyBacktest />}
+              title="No backtest runs yet"
+              description="Pick a curated template or write your own."
+              slug="backtest-empty"
+              cta={{ label: 'Open template gallery', onClick: () => {
+                document.getElementById('strategy-gallery')?.scrollIntoView({
+                  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                });
+              } }}
+              secondaryAction={{ label: 'Write your own', onClick: () => {
+                const el = document.getElementById('strategy-builder');
+                if (el && 'focus' in el) (el as HTMLElement).focus();
+              } }}
+            />
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {runs.map((r) => (

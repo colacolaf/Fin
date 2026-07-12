@@ -4,6 +4,7 @@ import AgentPanel from '../components/layout/AgentPanel';
 import ChromeShell from '../components/layout/ChromeShell';
 import OnboardingCards from '../components/ocean/OnboardingCards';
 import CoachMarks from '../components/ocean/CoachMarks';
+import Welcome from '../components/dashboard/Welcome';
 
 const TOUR_SHOWN_KEY = 'fin_dashboard_tour_shown';
 const ONBOARDING_VISITED_KEY = 'fin.dashboard.visited';
@@ -74,17 +75,26 @@ export default function Dashboard() {
             />
           ) : (
             <div className="dashboard-onboarding-shell" data-testid="dashboard-onboarding-shell">
-              <OnboardingCards
-                visible={onboardingVisible}
-                onSelect={handleSelectAgent}
-                onDismiss={() => setOnboardingVisible(false)}
-              />
-              <div className="dashboard-placeholder" data-testid="dashboard-placeholder">
-                <h2 className="placeholder-title">Fin Dashboard</h2>
-                <p className="placeholder-text">
-                  Pick an agent above or click a fin in the ocean to dive into a workspace.
-                </p>
-              </div>
+              {/* Phase 38a — REPLACE semantics. While never-synced, render ONLY
+                   the Welcome screen; OnboardingCards is unmounted. Once lastSync
+                   is non-null, control returns to Phase 22 OnboardingCards. */}
+              {agentState.lastSync === null ? (
+                <Welcome />
+              ) : (
+                <>
+                  <OnboardingCards
+                    visible={onboardingVisible}
+                    onSelect={handleSelectAgent}
+                    onDismiss={() => setOnboardingVisible(false)}
+                  />
+                  <div className="dashboard-placeholder" data-testid="dashboard-placeholder">
+                    <h2 className="placeholder-title">Fin Dashboard</h2>
+                    <p className="placeholder-text">
+                      Pick an agent above or click a fin in the ocean to dive into a workspace.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </>

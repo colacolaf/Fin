@@ -92,6 +92,7 @@ function ToastCard({ item }: { item: ToastItem }) {
       data-toast-id={item.id}
       role={isError ? 'alert' : 'status'}
       aria-live={isError ? 'assertive' : 'polite'}
+      aria-atomic="true"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

@@ -6,6 +6,8 @@ import MemoryNoteEditor, {
 import MemoryOutlinePanel from '../components/memory/MemoryOutlinePanel';
 import MemoryCommandPalette from '../components/memory/MemoryCommandPalette';
 import MemoryGraph from '../components/memory/MemoryGraph';
+import EmptyState from '../components/ui/EmptyState';
+import { IconEmptyMemory } from '../components/layout/Icons';
 import { useMemory } from '../hooks/useMemory';
 import { searchMemory } from '../api/memory';
 import { MemorySkeleton } from '../components/ui/PageSkeleton';
@@ -28,6 +30,7 @@ export default function MemoryExplorer() {
     setSaveStatus,
     writeAvailable,
     openNote,
+    ensureDailyNote,
     togglePin,
     saveNote,
   } = useMemory({ onAutoloadDaily: true });
@@ -197,6 +200,21 @@ export default function MemoryExplorer() {
             <div data-testid="memory-editor-empty">
               <MemorySkeleton />
             </div>
+          ) : notes.length === 0 && !error ? (
+            <EmptyState
+              icon={<IconEmptyMemory />}
+              title="Your vault is empty"
+              description="Open a daily note — Fin suggests today's date."
+              slug="memory-empty"
+              cta={{ label: "Open today's note", onClick: async () => {
+                await ensureDailyNote();
+              } }}
+              secondaryAction={{ label: 'Read tour', onClick: () => {
+                document.querySelector('[data-coach-tour-mount]')?.scrollIntoView({
+                  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                });
+              } }}
+            />
           ) : (
             <div className="memory-empty" data-testid="memory-editor-empty">
               {error ?? 'No note open — open one from the sidebar (⌘K to search).'}
