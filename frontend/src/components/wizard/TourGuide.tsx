@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { useJoyride, EVENTS, type Step } from 'react-joyride';
+import Joyride, { STATUS, type CallBackProps, type Step } from 'react-joyride';
 
 interface Props {
   run: boolean;
@@ -44,36 +43,34 @@ const TOUR_STEPS: Step[] = [
 ];
 
 export default function TourGuide({ run, onFinish }: Props) {
-  const { controls, on, Tour } = useJoyride({
-    steps: TOUR_STEPS,
-    styles: {
-      overlay: { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
-      tooltip: { backgroundColor: '#ffffff', color: '#1f2937' },
-      tooltipContainer: { textAlign: 'left' },
-      tooltipTitle: { fontSize: '16px', fontWeight: 600 },
-      tooltipContent: { fontSize: '14px', lineHeight: 1.5 },
-      tooltipFooter: { marginTop: 8 },
-      tooltipFooterSpacer: { flex: 1 },
-    },
-  });
-
-  // Subscribe to tour end events
-  useEffect(() => {
-    const unsub = on(EVENTS.TOUR_END, () => {
+  const handleCallback = (data: CallBackProps) => {
+    const { status } = data;
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       onFinish();
-    });
-
-    return unsub;
-  }, [on, onFinish]);
-
-  // Start/stop based on run prop
-  useEffect(() => {
-    if (run) {
-      controls.start();
-    } else {
-      controls.stop();
     }
-  }, [run, controls]);
+  };
 
-  return Tour;
+  return (
+    <Joyride
+      steps={TOUR_STEPS}
+      run={run}
+      callback={handleCallback}
+      continuous
+      showSkipButton
+      styles={{
+        options: {
+          overlayColor: 'rgba(0, 0, 0, 0.5)',
+        },
+        tooltip: {
+          backgroundColor: '#ffffff',
+          color: '#1f2937',
+          textAlign: 'left',
+        },
+        tooltipTitle: { fontSize: '16px', fontWeight: 600 },
+        tooltipContent: { fontSize: '14px', lineHeight: 1.5 },
+        tooltipFooter: { marginTop: 8 },
+        tooltipFooterSpacer: { flex: 1 },
+      }}
+    />
+  );
 }

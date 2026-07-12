@@ -18,6 +18,8 @@ interface AgentState {
   lastSync: number | null;
 }
 
+const WIRE_NORMAL_RECOMPUTE_INTERVAL = 5; // frames
+
 export function useOceanScene(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   agentState: AgentState,
@@ -46,17 +48,14 @@ export function useOceanScene(
     camera.lookAt(0, 0, 0);
 
     // ── Lighting ──
-    // Bioluminescent ambient — deep blue-green
     scene.add(new THREE.AmbientLight(0x0a3d5c, 0.6));
 
-    // Moonlight directional — cool blue from above
     const moonLight = new THREE.DirectionalLight(0x4488cc, 1.2);
     moonLight.position.set(5, 10, 3);
     scene.add(moonLight);
 
-    // Bioluminescence point lights — teal/cyan pulsing from agents
     const bioLights: THREE.PointLight[] = [];
-    const bioColors = [0x00cc99, 0x0099ff, 0x00ffaa]; // investment, debt, retirement
+    const bioColors = [0x00cc99, 0x0099ff, 0x00ffaa];
 
     for (let i = 0; i < 3; i++) {
       const light = new THREE.PointLight(bioColors[i], 0, 8);
@@ -65,11 +64,10 @@ export function useOceanScene(
       bioLights.push(light);
     }
 
-    // ── Ocean surface (deformed plane) ──
+    // ── Ocean surface (single shared BufferGeometry) ──
     const oceanGeom = new THREE.PlaneGeometry(30, 30, 80, 80);
     oceanGeom.rotateX(-Math.PI / 2);
 
-    // Displace center upward for subtle curvature
     const posAttr = oceanGeom.attributes.position;
     for (let i = 0; i < posAttr.count; i++) {
       const x = posAttr.getX(i);
@@ -91,14 +89,16 @@ export function useOceanScene(
     ocean.position.y = -2;
     scene.add(ocean);
 
-    // Wireframe overlay — subtle depth lines
+    // Wireframe overlay — SHARES the same BufferGeometry as the ocean.
+    // MeshBasicMaterial({ wireframe: true }) reads edges from the live geometry,
+    // so updating oceanGeom.attributes.position flows to both meshes.
     const wireMat = new THREE.MeshBasicMaterial({
       color: 0x1a4a6a,
       wireframe: true,
       transparent: true,
       opacity: 0.06,
     });
-    const wireOcean = new THREE.Mesh(oceanGeom.clone(), wireMat);
+    const wireOcean = new THREE.Mesh(oceanGeom, wireMat);
     wireOcean.position.copy(ocean.position);
     scene.add(wireOcean);
 
@@ -134,7 +134,6 @@ export function useOceanScene(
     const finGroup = new THREE.Group();
     scene.add(finGroup);
 
-    // Create 12 fins spread across the scene
     finsRef.current = Array.from({ length: 12 }, (_, i) => ({
       id: i,
       x: (Math.random() - 0.5) * 16,
@@ -164,7 +163,6 @@ export function useOceanScene(
       mesh.rotation.y = fin.rotation;
       mesh.userData = { finId: fin.id, baseY: fin.y, speed: fin.speed };
       finGroup.add(mesh);
-      // Glow ring
       const ringGeom = new THREE.TorusGeometry(0.2, 0.03, 8, 12);
       const ring = new THREE.Mesh(
         ringGeom,
@@ -189,11 +187,13 @@ export function useOceanScene(
 
     // ── Animation loop ──
     let animId: number;
+    let frame = 0;
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      frame++;
       const t = clockRef.current.getElapsedTime();
 
-      // Gentle ocean sway
+      // Gentle ocean sway — update positions in place (no clone).
       const verts = oceanGeom.attributes.position;
       for (let i = 0; i < verts.count; i++) {
         const x = verts.getX(i);
@@ -202,18 +202,18 @@ export function useOceanScene(
         const wave = Math.sin(x * 0.8 + t * 0.6) * Math.cos(y * 0.7 + t * 0.5) * 0.15;
         verts.setZ(i, -0.3 * Math.exp(-dist * dist * 0.02) + wave);
       }
-      oceanGeom.computeVertexNormals();
-      oceanGeom.attributes.position.needsUpdate = true;
+      verts.needsUpdate = true;
 
-      // Wireframe follows same deformation
-      wireOcean.geometry.dispose();
-      wireOcean.geometry = oceanGeom.clone();
+      // Recompute vertex normals only periodically; physics deformation is
+      // smooth enough that one recompute every N frames is visually identical.
+      if (frame % WIRE_NORMAL_RECOMPUTE_INTERVAL === 0) {
+        oceanGeom.computeVertexNormals();
+      }
 
       // Fins bob and rotate
       finGroup.children.forEach((child) => {
         if (!child.userData.finId && child.userData.parentFinId === undefined) return;
         if (child.userData.parentFinId !== undefined) {
-          // Ring: follow parent fin
           const parent = finGroup.children.find(
             (c) => c.userData.finId === child.userData.parentFinId,
           );
@@ -226,18 +226,15 @@ export function useOceanScene(
         child.rotation.y += 0.003 * speed;
       });
 
-      // Bioluminescence pulse based on agent state
       const states = [agentState.investment, agentState.debt, agentState.retirement];
       bioLights.forEach((light, i) => {
         const active = states[i] !== 'idle';
         const targetIntensity = active ? 2.5 + Math.sin(t * 2 + i) * 1.0 : 0.3;
         light.intensity += (targetIntensity - light.intensity) * 0.05;
-        // Orbit slowly
         light.position.x = (i - 1) * 3 + Math.sin(t * 0.4 + i * 2) * 1.5;
         light.position.z = Math.cos(t * 0.4 + i * 2) * 1.5;
       });
 
-      // Particles drift
       particles.rotation.y += 0.0003;
       const pSizes = particles.geometry.attributes.size;
       if (pSizes) {
@@ -247,7 +244,6 @@ export function useOceanScene(
         pSizes.needsUpdate = true;
       }
 
-      // Slow camera orbit
       camera.position.x = Math.sin(t * 0.1) * 12;
       camera.position.z = Math.cos(t * 0.1) * 12;
       camera.lookAt(0, 0, 0);
@@ -260,6 +256,7 @@ export function useOceanScene(
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
       renderer.dispose();
+      // oceanGeom is shared with wireOcean — single dispose covers both meshes.
       oceanGeom.dispose();
       oceanMat.dispose();
       wireMat.dispose();

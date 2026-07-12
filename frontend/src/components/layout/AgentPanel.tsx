@@ -1,66 +1,57 @@
-import type { AgentState, AgentStatus } from '../../hooks/useAgentState';
+import type { AgentStatus } from '../../hooks/useAgentState';
 
 interface AgentPanelProps {
   agent: 'investment' | 'debt' | 'retirement';
   status: AgentStatus;
-  agentState: AgentState;
-  active: boolean;
+  lastSync: number | null;
+  onClose: () => void;
 }
 
-const AGENT_LABELS: Record<string, string> = {
+const AGENT_LABELS: Record<'investment' | 'debt' | 'retirement', string> = {
   investment: 'Investment Agent',
   debt: 'Debt Agent',
   retirement: 'Retirement Agent',
 };
 
-const AGENT_DESCRIPTIONS: Record<string, string> = {
-  investment:
-    'Portfolio analysis, asset allocation, and risk assessment. Full recommendations engine coming in Phase 7–9.',
-  debt: 'Debt payoff strategies, refinancing analysis, and cashflow optimization. Coming in Phase 10.',
-  retirement:
-    'Retirement projections, savings targets, and withdrawal strategies. Coming in Phase 11.',
+const AGENT_ROLES: Record<'investment' | 'debt' | 'retirement', string> = {
+  investment: 'Portfolio Optimizer',
+  debt: 'Payoff Strategist',
+  retirement: 'Retirement Planner',
 };
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<AgentStatus, string> = {
   idle: 'Ready',
   loading: 'Loading…',
   running: 'Analyzing',
   error: 'Error',
 };
 
-export default function AgentPanel({ agent, status, agentState, active }: AgentPanelProps) {
-  if (!active) {
-    return (
-      <div className="dashboard-placeholder" data-testid="dashboard-placeholder">
-        <h2 className="placeholder-title">Fin Dashboard</h2>
-        <p className="placeholder-text">Select an agent from the sidebar to begin.</p>
-      </div>
-    );
-  }
-
-  const lastSync = agentState.lastSync
-    ? new Date(agentState.lastSync).toLocaleTimeString()
-    : null;
-
+export default function AgentPanel({ agent, status, lastSync, onClose }: AgentPanelProps) {
   return (
-    <div className="agent-panel" data-testid={`agent-panel-${agent}`}>
-      <header className="agent-panel-header">
-        <div className="agent-panel-title-row">
-          <h2 className="agent-panel-title">{AGENT_LABELS[agent]}</h2>
+    <div className="agent-workspace" data-testid={`agent-panel-${agent}`}>
+      <button
+        type="button"
+        className="agent-back-btn"
+        onClick={onClose}
+        aria-label="Back to dashboard"
+        data-testid="agent-back"
+      >
+        ← Back
+      </button>
+
+      <aside className="agent-pane agent-sidebar" data-testid="agent-sidebar">
+        <header className="agent-sidebar-header">
           <span
             className={`agent-panel-status agent-panel-status-${status}`}
             data-status={status}
           >
             {STATUS_LABEL[status]}
           </span>
-        </div>
-        {lastSync && <p className="agent-panel-sync-time">Last synced: {lastSync}</p>}
-      </header>
+          <h2 className="agent-sidebar-title">{AGENT_LABELS[agent]}</h2>
+          <p className="agent-sidebar-role">{AGENT_ROLES[agent]}</p>
+        </header>
 
-      <div className="agent-panel-body">
-        <p className="agent-panel-description">{AGENT_DESCRIPTIONS[agent]}</p>
-
-        <div className="agent-panel-stats">
+        <section className="agent-stats" aria-label="Agent stats">
           <div className="agent-stat">
             <span className="agent-stat-label">Status</span>
             <span className={`agent-stat-value agent-stat-${status}`}>
@@ -70,11 +61,46 @@ export default function AgentPanel({ agent, status, agentState, active }: AgentP
           <div className="agent-stat">
             <span className="agent-stat-label">Last Sync</span>
             <span className="agent-stat-value">
-              {lastSync || 'Never'}
+              {lastSync ? new Date(lastSync).toLocaleTimeString() : 'Never'}
             </span>
           </div>
-        </div>
-      </div>
+          <div className="agent-stat">
+            <span className="agent-stat-label">Memory</span>
+            <span className="agent-stat-value">— entries</span>
+          </div>
+        </section>
+
+        <section className="agent-memory-list">
+          <h3>Recent Patterns</h3>
+          <ul className="agent-memory-items">
+            <li className="agent-memory-empty">No entries yet</li>
+          </ul>
+        </section>
+      </aside>
+
+      <section className="agent-pane agent-main-pane" data-testid="agent-main-pane">
+        <div
+          className="agent-recommend-skeleton skeleton skeleton-card"
+          data-testid="recommendation-skeleton"
+          aria-label="Recommendation placeholder"
+        />
+        <form
+          className="agent-chat-input"
+          onSubmit={(e) => e.preventDefault()}
+          aria-label="Ask a follow-up question"
+        >
+          <input
+            type="text"
+            placeholder="Ask a follow-up question…"
+            aria-label="Ask a follow-up question"
+            disabled
+            data-testid="agent-chat-input"
+          />
+          <button type="submit" disabled data-testid="agent-chat-send">
+            Send
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

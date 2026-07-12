@@ -7,10 +7,28 @@ import { useAgentState } from '../hooks/useAgentState';
 import TourGuide from '../components/wizard/TourGuide';
 
 const TOUR_SHOWN_KEY = 'fin_dashboard_tour_shown';
+const DESKTOP_BREAKPOINT = 1024;
+
+/**
+ * Sidebar always starts closed (collapsed rail on desktop, hidden drawer on
+ * mobile). User opens it via the hamburger.
+ */
+function useInitialSidebarOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  // Keep state synced to viewport in case user resizes across breakpoint
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= DESKTOP_BREAKPOINT) setOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return open;
+}
 
 export default function Dashboard() {
   const { agentState, setAgentStatus, markSynced } = useAgentState();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useInitialSidebarOpen();
   const [activeAgent, setActiveAgent] = useState<
     'investment' | 'debt' | 'retirement' | null
   >(null);
@@ -41,6 +59,8 @@ export default function Dashboard() {
     [],
   );
 
+  const closeAgent = useCallback(() => setActiveAgent(null), []);
+
   return (
     <div className="dashboard">
       <OceanCanvas
@@ -54,28 +74,26 @@ export default function Dashboard() {
         onToggleSidebar={() => setSidebarOpen((p) => !p)}
         sidebarOpen={sidebarOpen}
       />
-      <Sidebar
-        open={sidebarOpen}
-        agentState={agentState}
-        onSelectAgent={handleSelectAgent}
-        activeAgent={activeAgent}
-      />
+      <Sidebar collapsed={!sidebarOpen} />
       <TourGuide run={showTour} onFinish={() => setShowTour(false)} />
-      <main className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <main
+        className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : ''}`}
+        data-testid="dashboard-main"
+      >
         {activeAgent ? (
           <AgentPanel
             agent={activeAgent}
             status={agentState[activeAgent]}
-            agentState={agentState}
-            active={true}
+            lastSync={agentState.lastSync}
+            onClose={closeAgent}
           />
         ) : (
-          <AgentPanel
-            agent="investment"
-            status={agentState.investment}
-            agentState={agentState}
-            active={false}
-          />
+          <div className="dashboard-placeholder" data-testid="dashboard-placeholder">
+            <h2 className="placeholder-title">Fin Dashboard</h2>
+            <p className="placeholder-text">
+              Click a fin in the ocean to dive into an agent workspace.
+            </p>
+          </div>
         )}
       </main>
     </div>
