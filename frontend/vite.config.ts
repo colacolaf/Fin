@@ -14,11 +14,12 @@ export default defineConfig({
       filename: "sw.ts",
       strategies: "injectManifest",
 
+      // Ponytail: only ship files that actually exist in /public.
       includeAssets: [
         "favicon.svg",
         "offline.html",
-        "icons/icon-192.png",
-        "icons/icon-512.png",
+        "icons/icon-192.svg",
+        "icons/icon-512.svg",
       ],
 
       manifest: {
@@ -32,14 +33,14 @@ export default defineConfig({
         start_url: "/",
         icons: [
           {
-            src: "/icons/icon-192.png",
+            src: "/icons/icon-192.svg",
             sizes: "192x192",
-            type: "image/png",
+            type: "image/svg+xml",
           },
           {
-            src: "/icons/icon-512.png",
+            src: "/icons/icon-512.svg",
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable",
           },
         ],
