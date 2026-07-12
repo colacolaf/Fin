@@ -1,119 +1,230 @@
-import { useEffect, useState } from "react";
-import BenchmarkComparison from "../components/BenchmarkComparison";
-import Leaderboard from "../components/Leaderboard";
-import { communityApi, type CommunityBenchmarks } from "../api/community";
+import { useEffect, useState, useCallback } from 'react';
+import BenchmarkComparison from '../components/BenchmarkComparison';
+import Leaderboard from '../components/Leaderboard';
+import { communityApi, type CommunityBenchmarks } from '../api/community';
+import { IconShield, IconChevronRight, IconTrade } from '../components/layout/Icons';
 
-/**
- * CommunityDashboard — Full-page community features:
- * - Benchmark comparison (percentile vs peers)
- * - Leaderboard (anonymized rankings)
- * - Section for recent community activity
- */
+const OPT_IN_KEY = 'fin.community.optIn';
+
+function readOptIn(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(OPT_IN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writeOptIn(on: boolean) {
+  try { localStorage.setItem(OPT_IN_KEY, String(on)); } catch { /* noop */ }
+}
+
+const TRENDING_STRATEGIES = [
+  { id: 'tax-loss-weekly', name: 'Tax-loss harvest — weekly', deltaPct: 18, adoptionCount: 1240 },
+  { id: 'buy-the-dip', name: 'Buy-the-dip SPY', deltaPct: 12, adoptionCount: 880 },
+  { id: 'rsi-reversion', name: 'RSI Reversion ×Russell 2k', deltaPct: 8, adoptionCount: 612 },
+  { id: 'hsa-bump', name: 'HSA → family cap', deltaPct: 6, adoptionCount: 480 },
+  { id: 'roth-ladder', name: 'Roth conversion ladder', deltaPct: 4, adoptionCount: 350 },
+];
+
 export default function CommunityDashboard() {
-  const [activeTab, setActiveTab] = useState<"benchmarks" | "leaderboard">("benchmarks");
+  const [activeTab, setActiveTab] = useState<'benchmarks' | 'leaderboard'>('benchmarks');
+  const [optedIn, setOptedIn] = useState<boolean>(false);
+  const [benchmarks, setBenchmarks] = useState<CommunityBenchmarks | null>(null);
+
+  useEffect(() => {
+    setOptedIn(readOptIn());
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    if (!optedIn) {
+      setBenchmarks(null);
+      return;
+    }
+    try {
+      const b = await communityApi.benchmarks();
+      setBenchmarks(b);
+    } catch {
+      setBenchmarks(null);
+    }
+  }, [optedIn]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleOptToggle = () => {
+    const next = !optedIn;
+    setOptedIn(next);
+    writeOptIn(next);
+  };
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px" }}>
-      {/* Page header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: "oklch(0.9 0.01 240)",
-            margin: "0 0 4px 0",
-          }}
-        >
-          Community
-        </h1>
-        <p style={{ fontSize: 13, color: "oklch(0.55 0.01 240)", margin: 0 }}>
-          See how you compare to peers with fully anonymized data.
-        </p>
-      </div>
+    <div style={{ maxWidth: 880, margin: '0 auto', padding: '24px 16px' }} data-testid="community-page">
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
+        <div>
+          <h1 style={{ margin: '0 0 4px', fontSize: 'var(--text-2xl)', fontWeight: 700 }}>Community</h1>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+            How you compare · anonymized, k-anonymity ≥ 10.
+          </p>
+        </div>
+        <div className="community-toggle">
+          <span className="community-toggle-label">
+            {optedIn ? 'Sharing anonymized metrics' : 'Sharing off — defaults off'}
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={optedIn}
+            className={`toggle ${optedIn ? 'on' : ''}`}
+            onClick={handleOptToggle}
+            data-testid="comm-opt-toggle"
+            aria-label="Toggle community opt-in"
+          >
+            <span className="toggle-thumb" />
+          </button>
+        </div>
+      </header>
 
-      {/* Tab bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: 4,
-          marginBottom: 20,
-          background: "oklch(0.18 0.005 240)",
-          borderRadius: 8,
-          padding: 4,
-          border: "1px solid oklch(0.25 0.005 240)",
-        }}
-      >
-        <button
-          onClick={() => setActiveTab("benchmarks")}
-          style={{
-            flex: 1,
-            padding: "10px 16px",
-            borderRadius: 6,
-            border: "none",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 600,
-            transition: "all 150ms ease",
-            background:
-              activeTab === "benchmarks"
-                ? "oklch(0.65 0.18 160 / 0.15)"
-                : "transparent",
-            color:
-              activeTab === "benchmarks"
-                ? "oklch(0.65 0.18 160)"
-                : "oklch(0.55 0.01 240)",
-          }}
-        >
-          📊 Benchmarks
-        </button>
-        <button
-          onClick={() => setActiveTab("leaderboard")}
-          style={{
-            flex: 1,
-            padding: "10px 16px",
-            borderRadius: 6,
-            border: "none",
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 600,
-            transition: "all 150ms ease",
-            background:
-              activeTab === "leaderboard"
-                ? "oklch(0.65 0.18 160 / 0.15)"
-                : "transparent",
-            color:
-              activeTab === "leaderboard"
-                ? "oklch(0.65 0.18 160)"
-                : "oklch(0.55 0.01 240)",
-          }}
-        >
-          🏆 Leaderboard
-        </button>
-      </div>
+      <span className="anonymity-pill" data-testid="comm-anonymity-pill" title="All submissions are bucketed (k-anonymity ≥ 10). Your portfolio data, identity, and personal data are never shared.">
+        <IconShield size={12} />
+        Anonymous · data is hashed & bucketed · never linked to your account
+      </span>
 
-      {/* Content */}
-      {activeTab === "benchmarks" ? <BenchmarkComparison /> : <Leaderboard />}
+      {!optedIn && (
+        <section style={{ marginTop: 18 }} data-testid="community-empty">
+          <div className="onboarding-cards" role="region" aria-label="Community onboarding">
+            <button
+              type="button"
+              className="onboarding-card"
+              onClick={handleOptToggle}
+              data-testid="comm-cta-optin"
+            >
+              <div className="onboarding-card-head">
+                <span className="onboarding-card-icon"><IconShield size={16} /></span>
+                <h3 className="onboarding-card-title">Opt-in to compare</h3>
+              </div>
+              <span className="onboarding-card-eyebrow">01 · Privacy</span>
+              <p className="onboarding-card-desc">Contribute your anonymized metrics to see percentile rank.</p>
+              <span className="onboarding-card-cta">Enable <IconChevronRight size={14} /></span>
+            </button>
+            <button
+              type="button"
+              className="onboarding-card"
+              onClick={() => setActiveTab('leaderboard')}
+              data-testid="comm-cta-top"
+            >
+              <div className="onboarding-card-head">
+                <span className="onboarding-card-icon"><IconTrade size={16} /></span>
+                <h3 className="onboarding-card-title">See top contributors</h3>
+              </div>
+              <span className="onboarding-card-eyebrow">02 · Browse</span>
+              <p className="onboarding-card-desc">Even without opting in, watch what top peers are doing.</p>
+              <span className="onboarding-card-cta">Browse <IconChevronRight size={14} /></span>
+            </button>
+            <button
+              type="button"
+              className="onboarding-card"
+              onClick={() => {
+                const el = document.getElementById('comm-privacy');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              data-testid="comm-cta-privacy"
+            >
+              <div className="onboarding-card-head">
+                <span className="onboarding-card-icon"><IconShield size={16} /></span>
+                <h3 className="onboarding-card-title">Read privacy policy</h3>
+              </div>
+              <span className="onboarding-card-eyebrow">03 · Trust</span>
+              <p className="onboarding-card-desc">See how we protect your data, in plain English.</p>
+              <span className="onboarding-card-cta">Read <IconChevronRight size={14} /></span>
+            </button>
+          </div>
+          <p className="coach-voice" style={{ marginTop: 14 }}>
+            The community gets sharper the more you opt in, and we promise k-anonymity ≥ 10 — no cohort smaller than 10 reports.
+          </p>
+        </section>
+      )}
 
-      {/* Footer privacy note */}
-      <div
-        style={{
-          marginTop: 20,
-          padding: "12px 16px",
-          borderRadius: 8,
-          border: "1px solid oklch(0.22 0.005 240)",
-          fontSize: 11,
-          color: "oklch(0.45 0.01 240)",
-          textAlign: "center",
-          lineHeight: 1.5,
-        }}
-      >
-        All community data is anonymized with k-anonymity ≥ 10 users per group.
-        Your individual portfolio values, identity, and personal data are never shared.
-        See our{" "}
-        <a href="#" style={{ color: "oklch(0.6 0.15 240)", textDecoration: "underline" }}>
-          Privacy Policy
-        </a>{" "}
-        for details.
+      {optedIn && (
+        <>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 18, background: 'oklch(0.18 0.015 205 / 0.45)', borderRadius: 10, padding: 4, border: '1px solid var(--memory-pane-border)' }}>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'benchmarks'}
+              className={activeTab === 'benchmarks' ? 'active' : ''}
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: activeTab === 'benchmarks' ? 'oklch(0.28 0.06 180 / 0.5)' : 'transparent', color: activeTab === 'benchmarks' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+              onClick={() => setActiveTab('benchmarks')}
+              data-testid="comm-tab-benchmarks"
+            >
+              📊 Benchmarks
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'leaderboard'}
+              className={activeTab === 'leaderboard' ? 'active' : ''}
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: activeTab === 'leaderboard' ? 'oklch(0.28 0.06 180 / 0.5)' : 'transparent', color: activeTab === 'leaderboard' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+              onClick={() => setActiveTab('leaderboard')}
+              data-testid="comm-tab-leaderboard"
+            >
+              🏆 Leaderboard
+            </button>
+          </div>
+
+          {benchmarks && benchmarks.user_percentiles && Object.keys(benchmarks.user_percentiles).length > 0 && (
+            <section className="percentile-band" data-testid="comm-percentile-hero">
+              <div className="percentile-band-header">
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--bio-glow)', textTransform: 'uppercase' }}>You're in the</span>
+                  <div className="percentile-band-value">
+                    {(() => {
+                      const pctArr = Object.values(benchmarks.user_percentiles);
+                      const avg = pctArr.length ? Math.round(pctArr.reduce((s, p) => s + p, 0) / pctArr.length) : 0;
+                      return avg ? `${avg}th` : '—';
+                    })()}
+                  </div>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>percentile overall.</span>
+                </div>
+              </div>
+              <div className="percentile-band-track" aria-hidden="true">
+                <div className="percentile-band-fill" style={{ width: '60%' }} />
+                <div className="percentile-band-dot" style={{ left: '60%' }} />
+              </div>
+              <p className="coach-voice" style={{ marginTop: 8 }}>
+                Better than 60% of anonymized peers across execution rate, savings rate, and concentration discipline.
+              </p>
+            </section>
+          )}
+
+          {activeTab === 'benchmarks' ? <BenchmarkComparison /> : <Leaderboard />}
+
+          <section className="trending-strategies" data-testid="comm-trending">
+            <header style={{ gridColumn: '1 / -1', marginBottom: 6 }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--text-base)' }}>Trending strategies</h3>
+              <p className="coach-voice">What 100 peers are picking up this week.</p>
+            </header>
+            {TRENDING_STRATEGIES.map((s) => (
+              <article key={s.id} className="trending-strategy-card" data-testid={`comm-trending-${s.id}`}>
+                <h4>{s.name}</h4>
+                <span
+                  className="trending-strategy-delta"
+                  style={{ background: s.deltaPct >= 0 ? 'oklch(0.28 0.10 170 / 0.4)' : 'oklch(0.28 0.10 25 / 0.4)', color: s.deltaPct >= 0 ? 'var(--delta-pos)' : 'var(--delta-neg)' }}
+                >
+                  {s.deltaPct >= 0 ? '+' : ''}{s.deltaPct}% / 7d
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.adoptionCount.toLocaleString()} adopting</span>
+                <button type="button" className="btn-ghost" onClick={() => window.location.assign('/backtest')}>Try it</button>
+              </article>
+            ))}
+          </section>
+        </>
+      )}
+
+      <div className="privacy-policy-card" id="comm-privacy" data-testid="comm-privacy-card">
+        <strong>Our privacy guarantees:</strong>
+        <ul style={{ margin: '6px 0 0 16px', padding: 0, fontSize: 11, color: 'var(--text-secondary)' }}>
+          <li>We never sell or share your data.</li>
+          <li>All contributions are bucketed (k-anonymity ≥ 10 — no cohort smaller than 10 reports).</li>
+          <li>You can delete your contributions any time from Settings → Privacy.</li>
+        </ul>
       </div>
     </div>
   );

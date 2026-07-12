@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import type { AgentStatus } from '../../hooks/useAgentState';
 
 interface FinModelProps {
@@ -28,12 +29,19 @@ const ANIMATION_CLASS: Record<AgentStatus, string> = {
 
 const AGENTS = ['investment', 'debt', 'retirement'] as const;
 
-export default function FinModel({ agent, status, selected, onClick }: FinModelProps) {
+const FinModel = forwardRef<HTMLDivElement, FinModelProps>(function FinModel(
+  { agent, status, selected, onClick },
+  ref,
+) {
   const animationClass = ANIMATION_CLASS[status] || 'fin-idle';
   const driftIndex = AGENTS.indexOf(agent);
 
   return (
-    <div className={`fin-drift fin-drift-${driftIndex}`} data-drift-index={driftIndex}>
+    <div
+      className={`fin-drift fin-drift-${driftIndex}`}
+      data-drift-index={driftIndex}
+      ref={ref}
+    >
       <div
         className={`fin-model fin-${agent} ${animationClass} ${selected ? 'fin-selected' : ''}`}
         onClick={onClick}
@@ -62,4 +70,6 @@ export default function FinModel({ agent, status, selected, onClick }: FinModelP
       </div>
     </div>
   );
-}
+});
+
+export default FinModel;

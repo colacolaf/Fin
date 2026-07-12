@@ -1,145 +1,196 @@
-import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState, useEffect } from 'react';
 import type { Holding } from '@fin/shared';
 
-interface Props {
+interface HoldingsTableProps {
   holdings: Holding[];
+  density?: 'compact' | 'comfortable';
+  rowsWithSparkData?: Record<string, number[]>;
 }
 
-type SortKey = keyof Holding;
-type SortDir = 'asc' | 'desc';
+type SortKey = 'ticker' | 'allocation' | 'value' | 'daily_pnl' | 'weight';
+type SortDir = 'asc' | 'desc' | null;
 
-const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: 'symbol', label: 'Symbol' },
-  { key: 'name', label: 'Name' },
-  { key: 'shares', label: 'Shares' },
-  { key: 'avg_cost', label: 'Avg Cost' },
-  { key: 'current_price', label: 'Current Price' },
-  { key: 'market_value', label: 'Market Value' },
-  { key: 'gain_loss_pct', label: 'Gain/Loss %' },
-  { key: 'allocation_pct', label: 'Allocation %' },
-];
+const DENSITY_KEY = 'fin.portfolio.density';
 
-const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
-const fmtNum = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+function readDensity(): 'compact' | 'comfortable' {
+  if (typeof window === 'undefined') return 'comfortable';
+  return (localStorage.getItem(DENSITY_KEY) as 'compact' | 'comfortable') ?? 'comfortable';
+}
 
-export default function HoldingsTable({ holdings }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>('market_value');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
+function MiniRowSparkline({ values }: { values: number[] }) {
+  if (!values?.length) return null;
+  const w = 64;
+  const h = 18;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const step = w / (values.length - 1 || 1);
+  const path = values
+    .map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - ((v - min) / span) * h).toFixed(1)}`)
+    .join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true" className="holdings-row-spark">
+      <path d={path} fill="none" stroke="oklch(0.72 0.16 170)" strokeWidth={1.3} />
+    </svg>
+  );
+}
 
-  const sorted = useMemo(() => {
-    const dir = sortDir === 'asc' ? 1 : -1;
-    return [...holdings].sort((a, b) => {
-      const aVal = a[sortKey];
-      const bVal = b[sortKey];
-      if (typeof aVal === 'string' && typeof bVal === 'string') return aVal.localeCompare(bVal) * dir;
-      return ((Number(aVal) || 0) - (Number(bVal) || 0)) * dir;
-    });
-  }, [holdings, sortKey, sortDir]);
+export default function HoldingsTable({ holdings, rowsWithSparkData, density: densityProp }: HoldingsTableProps) {
+  const [density, setDensity] = useState<'compact' | 'comfortable'>(densityProp ?? readDensity());
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'allocation', dir: 'desc' });
+  const [hovered, setHovered] = useState<string | null>(null);
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 150);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DENSITY_KEY, density);
+    } catch {
+      /* noop */
     }
-  };
+  }, [density]);
 
-  const formatCell = (key: SortKey, value: unknown, row: Holding) => {
-    if (key === 'gain_loss_pct') {
-      const v = Number(value);
-      return <span style={{ color: v >= 0 ? '#34D399' : '#EF4444' }}>{v >= 0 ? '+' : ''}{v.toFixed(2)}%</span>;
+  const filtered = useMemo(() => {
+    const totalValue =
+      holdings.reduce(
+        (sum, h) => sum + (h.market_value ?? h.allocation_pct ?? 0),
+        0,
+      ) || 1;
+    let rows = holdings.map((h) => ({
+      ...h,
+      _allocation: h.allocation_pct ?? ((h.market_value ?? 0) / totalValue) * 100,
+      _weight: (h.market_value ?? h.allocation_pct ?? 0),
+      _value: h.market_value ?? h.allocation_pct ?? 0,
+      _daily_pnl: h.daily_change_pct ?? 0,
+    }));
+    if (debouncedSearch) {
+      rows = rows.filter((r) =>
+        r.ticker.toLowerCase().includes(debouncedSearch) ||
+        r.name?.toLowerCase().includes(debouncedSearch),
+      );
     }
-    if (key === 'allocation_pct') return `${Number(value).toFixed(2)}%`;
-    if (key === 'shares') return fmtNum.format(Number(value));
-    if (['avg_cost', 'current_price', 'market_value'].includes(key)) return fmt.format(Number(value));
-    return String(value);
-  };
+    if (sort.dir) {
+      const dir = sort.dir === 'asc' ? 1 : -1;
+      rows.sort((a, b) => {
+        const va = sort.key === 'ticker' ? a.ticker : (a as Record<string, number>)[`_${sort.key}`];
+        const vb = sort.key === 'ticker' ? b.ticker : (b as Record<string, number>)[`_${sort.key}`];
+        return String(va).localeCompare(String(vb)) * dir;
+      });
+    }
+    return rows;
+  }, [holdings, debouncedSearch, sort]);
 
-  const sortIndicator = (key: SortKey) => {
-    if (sortKey !== key) return '';
-    return sortDir === 'asc' ? ' ▲' : ' ▼';
+  const totalShown = filtered.length;
+  const cycleSort = (key: SortKey) => {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : s.dir === 'desc' ? null : 'asc' } : { key, dir: 'desc' }));
   };
 
   return (
-    <div data-testid="holdings-table" style={{
-      background: 'var(--bg-surface, #0F1F3A)',
-      border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: 12, padding: 24,
-    }}>
-      <h3 style={{ margin: 0, marginBottom: 16, fontSize: 16, fontWeight: 600, color: 'var(--text-primary, #E8F4FD)' }}>
-        Holdings
-      </h3>
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
+    <section className="holdings-card" data-testid="holdings-table-card">
+      <header className="holdings-toolbar">
+        <div className="holdings-toolbar-left">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search ticker or name…"
+            className="holdings-search"
+            aria-label="Search holdings"
+            data-testid="holdings-search"
+            style={{
+              padding: '6px 10px',
+              background: 'oklch(0.15 0.01 210 / 0.6)',
+              border: '1px solid oklch(0.3 0.02 210)',
+              borderRadius: 6,
+              color: 'oklch(0.88 0.005 200)',
+              fontSize: 13,
+              minWidth: 200,
+            }}
+          />
+          <span className="holdings-count">({totalShown})</span>
+        </div>
+        <div className="seg" role="group" aria-label="Row density">
+          <button
+            className={density === 'compact' ? 'active' : ''}
+            onClick={() => setDensity('compact')}
+            data-testid="density-compact"
+          >
+            Compact
+          </button>
+          <button
+            className={density === 'comfortable' ? 'active' : ''}
+            onClick={() => setDensity('comfortable')}
+            data-testid="density-comfortable"
+          >
+            Comfortable
+          </button>
+        </div>
+      </header>
+
+      <div className={`holdings-table-wrap holdings-table--${density}`}>
+        <table className="holdings-table" data-testid="holdings-table">
           <thead>
             <tr>
-              {COLUMNS.map(({ key, label }) => (
-                <th
-                  key={key}
-                  onClick={() => toggleSort(key)}
-                  style={{
-                    padding: '12px 16px',
-                    fontSize: 12,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'var(--text-secondary, #94A3B8)',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    textAlign: key === 'symbol' || key === 'name' ? 'left' : 'right',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {label}{sortIndicator(key)}
-                </th>
-              ))}
+              <th onClick={() => cycleSort('ticker')} aria-sort={sort.key === 'ticker' ? (sort.dir === 'asc' ? 'ascending' : sort.dir === 'desc' ? 'descending' : 'none') : 'none'} data-testid="sort-ticker">
+                Ticker {sortIndicator(sort, 'ticker')}
+              </th>
+              <th className="hide-sm" onClick={() => cycleSort('allocation')} aria-sort={sort.key === 'allocation' ? (sort.dir === 'asc' ? 'ascending' : sort.dir === 'desc' ? 'descending' : 'none') : 'none'} data-testid="sort-allocation">
+                Allocation {sortIndicator(sort, 'allocation')}
+              </th>
+              <th onClick={() => cycleSort('value')} aria-sort={sort.key === 'value' ? (sort.dir === 'asc' ? 'ascending' : sort.dir === 'desc' ? 'descending' : 'none') : 'none'} data-testid="sort-value">
+                Value {sortIndicator(sort, 'value')}
+              </th>
+              <th className="hide-sm" onClick={() => cycleSort('daily_pnl')} aria-sort={sort.key === 'daily_pnl' ? (sort.dir === 'asc' ? 'ascending' : sort.dir === 'desc' ? 'descending' : 'none') : 'none'} data-testid="sort-daily">
+                Daily {sortIndicator(sort, 'daily_pnl')}
+              </th>
+              <th className="hide-sm holdings-spark-col">7-day spark</th>
             </tr>
           </thead>
-          <motion.tbody
-            initial="hidden"
-            animate="show"
-            variants={{ show: { transition: { staggerChildren: 0.03 } } }}
-          >
-            {sorted.map((row, i) => (
-              <motion.tr
-                key={row.symbol}
-                variants={{
-                  hidden: { opacity: 0, y: 8 },
-                  show: { opacity: 1, y: 0 },
-                }}
-                style={{
-                  borderBottom: '1px solid rgba(255,255,255,0.03)',
-                  background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
-                }}
+          <tbody>
+            {filtered.map((r) => (
+              <tr
+                key={r.ticker}
+                onMouseEnter={() => setHovered(r.ticker)}
+                onMouseLeave={() => setHovered((cur) => (cur === r.ticker ? null : cur))}
+                className={hovered === r.ticker ? 'hover-row' : ''}
+                data-testid={`holdings-row-${r.ticker}`}
               >
-                {COLUMNS.map(({ key }) => (
-                  <td
-                    key={key}
-                    style={{
-                      padding: '12px 16px',
-                      fontSize: 14,
-                      color: key === 'symbol' ? 'var(--accent-cyan, #00D4FF)' : 'var(--text-primary, #E8F4FD)',
-                      fontVariantNumeric: typeof row[key] === 'number' ? 'tabular-nums' : undefined,
-                      textAlign: key === 'symbol' || key === 'name' ? 'left' : 'right',
-                      fontWeight: key === 'symbol' ? 600 : 400,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {formatCell(key, row[key], row)}
-                  </td>
-                ))}
-              </motion.tr>
+                <td className="holdings-ticker" data-testid={`holdings-ticker-${r.ticker}`}>
+                  <strong>{r.ticker}</strong>
+                  {r.name && <span className="holdings-name">{r.name}</span>}
+                </td>
+                <td className="hide-sm">{(r._allocation ?? 0).toFixed(1)}%</td>
+                <td>${(r._value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                <td className={`hide-sm holdings-pnl ${r._daily_pnl >= 0 ? 'pos' : 'neg'}`}>
+                  {r._daily_pnl >= 0 ? '+' : ''}{r._daily_pnl.toFixed(2)}%
+                </td>
+                <td className="hide-sm holdings-spark-col">
+                  {hovered === r.ticker && rowsWithSparkData?.[r.ticker] ? (
+                    <MiniRowSparkline values={rowsWithSparkData[r.ticker]} />
+                  ) : (
+                    <span className="holdings-spark-placeholder" aria-hidden="true">↗</span>
+                  )}
+                </td>
+              </tr>
             ))}
-          </motion.tbody>
+            {!filtered.length && (
+              <tr>
+                <td colSpan={5} className="holdings-empty">No holdings match.</td>
+              </tr>
+            )}
+          </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
+}
+
+function sortIndicator(sort: { key: SortKey; dir: SortDir }, key: SortKey) {
+  if (sort.key !== key || !sort.dir) return <span className="sort-bullet" aria-hidden="true">·</span>;
+  return <span className="sort-bullet active">{sort.dir === 'asc' ? '↑' : '↓'}</span>;
 }

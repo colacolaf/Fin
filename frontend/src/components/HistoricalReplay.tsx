@@ -18,13 +18,21 @@ interface Trade {
   pnl?: number;
 }
 
+interface OverlaidCurve {
+  points: EquityPoint[];
+  label: string;
+  stroke: string;
+}
+
 interface Props {
   equityCurve: EquityPoint[];
   trades?: Trade[];
   height?: number;
+  /** Phase 30 fix #3 — multi-run overlay curves shown alongside primary equity. */
+  overlayCurves?: OverlaidCurve[];
 }
 
-export default function HistoricalReplay({ equityCurve, trades = [], height = 240 }: Props) {
+export default function HistoricalReplay({ equityCurve, trades = [], height = 240, overlayCurves = [] }: Props) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0–1
   const [speed, setSpeed] = useState(1); // 1x, 2x, 4x
@@ -159,6 +167,37 @@ export default function HistoricalReplay({ equityCurve, trades = [], height = 24
 
         {/* Equity line */}
         <path d={pathD} fill="none" stroke="oklch(0.55 0.15 250)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Phase 30 — multi-run overlay curves (dashed, per-run stroke) */}
+        {overlayCurves.map((cur, i) => {
+          if (!cur.points?.length) return null;
+          const overlayPath = cur.points
+            .map((pt, j) => `${j === 0 ? 'M' : 'L'} ${xScale(j)},${yScale(pt.value)}`)
+            .join(' ');
+          return (
+            <g key={`overlay-${i}-${cur.label}`} data-testid={`overlay-line-${cur.label}`}>
+              <path
+                d={overlayPath}
+                fill="none"
+                stroke={cur.stroke}
+                strokeWidth={1.4}
+                strokeDasharray="4 3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.9}
+              />
+              <text
+                x={padLeft + 8}
+                y={padTop + 12 + (i + 1) * 14}
+                fontSize={10}
+                fill={cur.stroke}
+                fontWeight={600}
+              >
+                {cur.label}
+              </text>
+            </g>
+          );
+        })}
 
         {/* Trade markers */}
         {visibleTrades.map((t, i) => {

@@ -1,89 +1,134 @@
-import { useAnimatedNumber } from '../../hooks/useAnimatedNumber';
+import { useMemo } from 'react';
+import type { PortfolioData } from '@fin/shared';
 
-interface Props {
-  totalValue: number;
-  dailyChange: number;
-  dailyChangePct: number;
-  totalReturnPct: number;
-  cash: number;
+interface PortfolioSummaryProps {
+  data: PortfolioData;
+  sparklines: Record<string, number[]>;
 }
 
-const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
-const pct = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+interface Tile {
+  key: 'value' | 'daily' | 'ytd' | 'cash' | 'drift';
+  label: string;
+  value: string;
+  delta?: string;
+  deltaKind?: 'pos' | 'neg' | 'flat';
+  sparkline?: number[];
+  testId: string;
+}
 
-export default function PortfolioSummary({ totalValue, dailyChange, dailyChangePct, totalReturnPct, cash }: Props) {
-  const animatedTotal = useAnimatedNumber(totalValue, { decimals: 2 });
-  const animatedChange = useAnimatedNumber(Math.abs(dailyChange), { decimals: 2 });
-  const animatedReturn = useAnimatedNumber(Math.abs(totalReturnPct), { decimals: 2 });
-  const animatedCash = useAnimatedNumber(cash, { decimals: 2 });
+function fmtUsd(n: number): string {
+  return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
 
-  const isPositive = dailyChange >= 0;
+function fmtPct(n: number): string {
+  const sign = n >= 0 ? '+' : '';
+  return `${sign}${n.toFixed(2)}%`;
+}
+
+function MiniSparkline({ values, kind }: { values: number[]; kind?: 'pos' | 'neg' | 'flat' }) {
+  if (!values.length) return null;
+  const w = 88;
+  const h = 26;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const step = w / (values.length - 1 || 1);
+  const path = values
+    .map((v, i) => {
+      const x = i * step;
+      const y = h - ((v - min) / span) * h;
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  const stroke =
+    kind === 'neg'
+      ? 'oklch(0.65 0.18 25)'
+      : kind === 'pos'
+        ? 'oklch(0.72 0.16 170)'
+        : 'oklch(0.55 0.02 210)';
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      role="img"
+      aria-hidden="true"
+      data-testid="mini-sparkline"
+    >
+      <path d={path} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export default function PortfolioSummary({ data, sparklines }: PortfolioSummaryProps) {
+  const tiles = useMemo<Tile[]>(
+    () => [
+      {
+        key: 'value',
+        label: 'Portfolio value',
+        value: fmtUsd(data.total_value),
+        sparkline: sparklines.value ?? [],
+        testId: 'hero-value',
+      },
+      {
+        key: 'daily',
+        label: 'Today',
+        value: fmtUsd(data.daily_change),
+        delta: fmtPct(data.daily_change_pct),
+        deltaKind: data.daily_change >= 0 ? 'pos' : 'neg',
+        sparkline: sparklines.daily ?? [],
+        testId: 'hero-daily',
+      },
+      {
+        key: 'ytd',
+        label: 'YTD return',
+        value: fmtPct(data.total_return_pct),
+        deltaKind: data.total_return_pct >= 0 ? 'pos' : 'neg',
+        sparkline: sparklines.ytd ?? [],
+        testId: 'hero-ytd',
+      },
+      {
+        key: 'cash',
+        label: 'Cash',
+        value: fmtUsd(data.cash ?? 0),
+        sparkline: sparklines.cash ?? [],
+        testId: 'hero-cash',
+      },
+      {
+        key: 'drift',
+        label: 'Allocation drift',
+        value: fmtPct(data.allocation_drift_pct ?? 0),
+        deltaKind:
+          Math.abs(data.allocation_drift_pct ?? 0) > 5
+            ? 'neg'
+            : Math.abs(data.allocation_drift_pct ?? 0) > 2
+              ? 'flat'
+              : 'pos',
+        sparkline: sparklines.drift ?? [],
+        testId: 'hero-drift',
+      },
+    ],
+    [data, sparklines],
+  );
 
   return (
-    <div
-      data-testid="portfolio-summary"
-      style={{
-        background: 'var(--bg-surface, #0F1F3A)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 12,
-        padding: 24,
-        transition: 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-      }}
-    >
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary, #94A3B8)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Portfolio Value
-        </div>
-        <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--text-primary, #E8F4FD)', fontVariantNumeric: 'tabular-nums' }}>
-          {fmt.format(animatedTotal)}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <div data-testid="daily-change" style={{
-          flex: 1, minWidth: 120,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: 8, padding: '12px 16px',
-        }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted, #64748B)', marginBottom: 4 }}>Daily Change</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: isPositive ? '#34D399' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
-            {isPositive ? '▲' : '▼'} {fmt.format(animatedChange)} ({pct(dailyChangePct)})
+    <div className="portfolio-hero" role="group" aria-label="Portfolio hero metrics" data-testid="portfolio-hero">
+      {tiles.map((t) => (
+        <article
+          key={t.key}
+          className={`portfolio-hero-tile${t.deltaKind ? ` portfolio-hero-tile--${t.deltaKind}` : ''}`}
+          data-testid={t.testId}
+        >
+          <span className="portfolio-hero-label">{t.label}</span>
+          <span className="portfolio-hero-value">{t.value}</span>
+          <div className="portfolio-hero-meta">
+            {t.delta && (
+              <span className={`portfolio-hero-delta portfolio-hero-delta--${t.deltaKind}`}>{t.delta}</span>
+            )}
+            {t.sparkline && t.sparkline.length > 0 && <MiniSparkline values={t.sparkline} kind={t.deltaKind} />}
           </div>
-        </div>
-
-        <div style={{
-          flex: 1, minWidth: 120,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: 8, padding: '12px 16px',
-        }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted, #64748B)', marginBottom: 4 }}>Total Return</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: totalReturnPct >= 0 ? '#34D399' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>
-            {pct(totalReturnPct)}
-          </div>
-        </div>
-
-        <div style={{
-          flex: 1, minWidth: 120,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: 8, padding: '12px 16px',
-        }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted, #64748B)', marginBottom: 4 }}>Cash</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary, #E8F4FD)', fontVariantNumeric: 'tabular-nums' }}>
-            {fmt.format(animatedCash)}
-          </div>
-        </div>
-      </div>
+        </article>
+      ))}
     </div>
   );
 }

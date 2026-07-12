@@ -1,95 +1,67 @@
-import { useAnimatedNumber } from '../../hooks/useAnimatedNumber';
+import { useEffect, useState } from 'react';
 import type { ReadinessResult } from '../../api/retirement';
+import { useAnimatedNumber } from '../../hooks/useAnimatedNumber';
 
-interface Props {
-  data: ReadinessResult | null;
+interface RetirementScoreNewProps {
+  data: ReadinessResult;
+  currentAge: number;
+  retirementAge: number;
 }
 
-const STROKE_DASH = 283; // 2 * PI * 45
-const COLORS: Record<number, { ring: string; text: string }> = {
-  0: { ring: '#ef4444', text: 'var(--color-danger)' },
-  1: { ring: '#f59e0b', text: 'var(--color-warning)' },
-  2: { ring: '#10b981', text: 'var(--color-success)' },
-};
-
-function colorForScore(s: number) {
-  if (s < 40) return COLORS[0];
-  if (s < 70) return COLORS[1];
-  return COLORS[2];
+function useCountdown(from: number, to: number): number {
+  const [v, setV] = useState(Math.max(0, to - from));
+  useEffect(() => {
+    setV(Math.max(0, to - from));
+  }, [from, to]);
+  return v;
 }
 
-const BREAKDOWN_ITEMS: [string, keyof ReadinessResult['breakdown']][] = [
-  ['Projection', 'projection'],
-  ['Savings Rate', 'savings_rate'],
-  ['Funded Ratio', 'funded_ratio'],
-  ['Age Benchmark', 'age_benchmark'],
-];
+export default function RetirementScore({ data, currentAge, retirementAge }: RetirementScoreNewProps) {
+  const animatedScore = useAnimatedNumber(data.score);
+  const animatedFunded = useAnimatedNumber(data.funded_pct);
+  const years = useCountdown(currentAge, retirementAge);
+  const closeToRetirement = years < 5;
+  const color: string =
+    animatedScore >= 75 ? 'oklch(0.72 0.16 170)' : animatedScore >= 50 ? 'oklch(0.78 0.14 75)' : 'oklch(0.65 0.18 25)';
 
-export default function RetirementScore({ data }: Props) {
-  if (!data) return <div className="retirement-score empty">No readiness data</div>;
-
-  const { score, label, breakdown, details } = data;
-  const animated = useAnimatedNumber(score, { decimals: 0 });
-  const funded = useAnimatedNumber(details.funded_percentage, { decimals: 1 });
-  const c = colorForScore(score);
-  const offset = STROKE_DASH - (STROKE_DASH * Math.min(100, animated)) / 100;
+  const ringR = 70;
+  const ringC = 2 * Math.PI * ringR;
+  const ringDash = (Math.min(100, animatedScore) / 100) * ringC;
 
   return (
-    <div className="retirement-score">
-      <div className="score-gauge">
-        <svg viewBox="0 0 120 120" className="gauge-svg">
-          <circle cx="60" cy="60" r="45" fill="none" stroke="var(--color-border)" strokeWidth="8" />
+    <section className="retirement-countdown" data-testid="retirement-score" aria-label="Retirement readiness">
+      <div className="retirement-countdown-ring">
+        <svg width="170" height="170" viewBox="0 0 170 170" aria-hidden="true">
+          <circle cx="85" cy="85" r={ringR} fill="none" stroke="oklch(0.25 0.02 210 / 0.55)" strokeWidth="9" />
           <circle
-            cx="60" cy="60" r="45" fill="none" stroke={c.ring}
-            strokeWidth="8" strokeLinecap="round"
-            strokeDasharray={STROKE_DASH} strokeDashoffset={offset}
-            transform="rotate(-90 60 60)"
-            style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.22, 1, 0.36, 1)' }}
+            cx="85"
+            cy="85"
+            r={ringR}
+            fill="none"
+            stroke={color}
+            strokeWidth="9"
+            strokeDasharray={`${ringDash} ${ringC - ringDash}`}
+            transform="rotate(-90 85 85)"
+            strokeLinecap="round"
           />
-          <text x="60" y="52" textAnchor="middle" className="gauge-score"
-            fill={c.text} fontSize="28" fontWeight="700">
-            {animated}
-          </text>
-          <text x="60" y="72" textAnchor="middle" className="gauge-label"
-            fill="var(--color-muted)" fontSize="11">
-            / 100
-          </text>
         </svg>
-      </div>
-
-      <div className="score-meta">
-        <div className="score-label">{label}</div>
-        <div className="score-funded">
-          <span className="funded-value">{funded}%</span> funded
-        </div>
-        <div className="score-detail">
-          Median nest egg: ${Math.round(details.median_nest_egg).toLocaleString()}
-        </div>
-        <div className="score-detail">
-          Monthly: ${Math.round(details.median_monthly_income).toLocaleString()}/mo
+        <div className="retirement-countdown-number" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {years}
         </div>
       </div>
-
-      <div className="score-breakdown">
-        {BREAKDOWN_ITEMS.map(([name, key]) => {
-          const val = breakdown[key];
-          return (
-            <div key={key} className="breakdown-item">
-              <span className="breakdown-name">{name}</span>
-              <span className="breakdown-bar-track">
-                <span
-                  className="breakdown-bar"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, val))}%`,
-                    backgroundColor: colorForScore(val).ring,
-                  }}
-                />
-              </span>
-              <span className="breakdown-value">{val}</span>
-            </div>
-          );
-        })}
+      <span className="retirement-countdown-label">
+        {closeToRetirement ? 'Less than 5 years — review glide-path' : `Years to retirement`}
+      </span>
+      <div style={{ display: 'flex', gap: 24, marginTop: 12, justifyContent: 'center' }}>
+        <div>
+          <span className="retirement-countdown-label">Readiness score</span>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color }}>{Math.round(animatedScore)}/100</div>
+        </div>
+        <div>
+          <span className="retirement-countdown-label">Funded %</span>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{Math.round(animatedFunded)}%</div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

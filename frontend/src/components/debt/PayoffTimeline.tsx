@@ -1,105 +1,98 @@
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useEffect, useRef, useState } from 'react';
 import type { PayoffPlan } from '@fin/shared';
 
-interface Props {
+interface PayoffTimelineProps {
   plan: PayoffPlan | null;
 }
 
-const FMT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
-function formatTooltip(value: number | string) {
-  if (typeof value === 'string') return value;
-  return FMT.format(value);
+interface Milestone {
+  month: number;
+  label: string;
+  pct: number;
+  payoffMonth: number;
 }
 
-export default function PayoffTimeline({ plan }: Props) {
-  if (!plan || plan.schedule.length === 0) {
+function milestonesForPlan(plan: PayoffPlan | null): Milestone[] {
+  if (!plan || !plan.months) return [];
+  const totalMonths = Math.max(1, plan.months);
+  const checkpoints: Array<{ pct: number; label: string }> = [
+    { pct: 0.25, label: '25% cleared' },
+    { pct: 0.5, label: 'Halfway' },
+    { pct: 0.75, label: '75% cleared' },
+  ];
+  const result: Milestone[] = checkpoints.map((c) => ({
+    month: Math.round(totalMonths * c.pct),
+    label: c.label,
+    pct: c.pct,
+    payoffMonth: totalMonths,
+  }));
+  result.push({ month: totalMonths, label: 'Debt-free', pct: 1, payoffMonth: totalMonths });
+  return result;
+}
+
+export default function PayoffTimeline({ plan }: PayoffTimelineProps) {
+  const milestones = milestonesForPlan(plan);
+  const segRef = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    const el = segRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setRevealed(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setRevealed(true);
+            io.disconnect();
+          }
+        }
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [plan?.months]);
+
+  if (!plan) {
     return (
-      <div className="debt-payoff-section">
-        <h2>Payoff Timeline</h2>
-        <p className="empty-state" style={{ padding: '1rem', color: 'var(--text-muted)' }}>
-          No payoff plan yet. Add debts to see your timeline.
-        </p>
-      </div>
+      <section className="payoff-timeline" data-testid="payoff-timeline">
+        <header className="payoff-timeline-header">
+          <h2>Payoff timeline</h2>
+          <p className="payoff-timeline-empty">Run a strategy to see projected milestones.</p>
+        </header>
+      </section>
     );
   }
 
-  const payoffDate = plan.payoff_date
-    ? new Date(plan.payoff_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : `${plan.total_months} months`;
-
-  const years = Math.floor(plan.total_months / 12);
-  const months = plan.total_months % 12;
-  const duration = years > 0 ? `${years}y ${months}m` : `${months}m`;
-
-  // Map PayoffMonth to chart-friendly keys
-  const chartData = plan.schedule.map((p) => ({
-    month: p.month,
-    balance: p.balance_remaining,
-    principal: p.principal_paid,
-    interest: p.interest_paid,
-  }));
-
   return (
-    <div className="debt-payoff-section">
-      <h2>Payoff Timeline</h2>
-
-      <div className="payoff-highlights">
-        <div className="payoff-highlight">
-          <span className="payoff-highlight-label">Payoff Date</span>
-          <span className="payoff-highlight-value">{payoffDate}</span>
-        </div>
-        <div className="payoff-highlight">
-          <span className="payoff-highlight-label">Duration</span>
-          <span className="payoff-highlight-value">{duration}</span>
-        </div>
-        <div className="payoff-highlight">
-          <span className="payoff-highlight-label">Total Interest</span>
-          <span className="payoff-highlight-value">{FMT.format(plan.total_interest)}</span>
-        </div>
+    <section className="payoff-timeline" data-testid="payoff-timeline">
+      <header className="payoff-timeline-header">
+        <h2>Payoff timeline</h2>
+        <p>
+          Total <strong>{plan.months}</strong> months to debt-free · interest <strong>${Math.round(plan.total_interest).toLocaleString()}</strong>
+        </p>
+      </header>
+      <div className={`payoff-track ${revealed ? 'payoff-track--revealed' : ''}`} ref={segRef}>
+        <div className="payoff-track-bar" />
+        <div className="payoff-track-fill" style={{ width: revealed ? '100%' : '0%' }} />
+        {milestones.map((m, i) => (
+          <div
+            key={i}
+            className="payoff-milestone"
+            style={{ ['--milestone-x' as string]: `${(m.pct * 100).toFixed(1)}%` }}
+            data-pct={`${Math.round(m.pct * 100)}%`}
+            data-testid={`payoff-milestone-${Math.round(m.pct * 100)}`}
+          >
+            <span className="payoff-milestone-dot" />
+            <span className="payoff-milestone-label">{m.label}</span>
+            <span className="payoff-milestone-time">{m.month === 0 ? 'now' : `${m.month} mo`}</span>
+          </div>
+        ))}
       </div>
-
-      <ResponsiveContainer width="100%" height={250}>
-        <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-          <defs>
-            <linearGradient id="debtPayoffGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--bio-debt)" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="var(--bio-debt)" stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="oklch(25% 0.02 200)" />
-          <XAxis
-            dataKey="month"
-            stroke="var(--text-muted)"
-            tick={{ fontSize: 11 }}
-            label={{ value: 'Month', position: 'insideBottom', offset: -5, style: { fill: 'var(--text-muted)', fontSize: 11 } }}
-          />
-          <YAxis
-            stroke="var(--text-muted)"
-            tick={{ fontSize: 11 }}
-            tickFormatter={formatTooltip}
-            width={80}
-          />
-          <Tooltip
-            contentStyle={{
-              background: 'var(--surface-raised)',
-              border: '1px solid var(--surface-overlay)',
-              borderRadius: 8,
-              color: 'var(--text-primary)',
-              fontSize: 'var(--text-xs)',
-            }}
-            formatter={(value: unknown) => formatTooltip(value as number)}
-            labelFormatter={(label) => `Month ${label}`}
-          />
-          <Area
-            type="monotone"
-            dataKey="balance"
-            stroke="var(--bio-debt)"
-            strokeWidth={2}
-            fill="url(#debtPayoffGradient)"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+    </section>
   );
 }

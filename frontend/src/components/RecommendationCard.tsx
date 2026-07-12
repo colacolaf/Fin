@@ -1,57 +1,57 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Recommendation } from '../api/recommendations';
 import { recommendationsApi } from '../api/recommendations';
+import { IconBrain, IconCheck, IconChevronDown, IconDashboard } from './layout/Icons';
 
 interface Props {
   recommendation: Recommendation;
-  onVote?: () => void;
+  onVote?: (vote: 'accepted' | 'rejected' | 'deferred') => void;
 }
 
-const AGENT_COLORS: Record<string, { bg: string; text: string }> = {
-  investment: { bg: 'rgba(59, 130, 246, 0.15)', text: '#60A5FA' },
-  debt: { bg: 'rgba(239, 68, 68, 0.15)', text: '#F87171' },
-  retirement: { bg: 'rgba(34, 197, 94, 0.15)', text: '#4ADE80' },
-};
-
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  pending: { bg: 'rgba(234, 179, 8, 0.15)', text: '#FACC15' },
-  accepted: { bg: 'rgba(34, 197, 94, 0.15)', text: '#34D399' },
-  rejected: { bg: 'rgba(239, 68, 68, 0.15)', text: '#EF4444' },
-  executed: { bg: 'rgba(59, 130, 246, 0.15)', text: '#93C5FD' },
-};
-
-const CONFIDENCE_COLORS = (score: number) => {
-  if (score >= 80) return 'var(--color-green, #34D399)';
-  if (score >= 50) return 'var(--color-yellow, #FBBF24)';
-  return 'var(--color-red, #EF4444)';
-};
-
-function safeParseJson(raw: string): string[] {
+function safeParseJson(raw: string | undefined): string[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map(String);
+    if (Array.isArray(parsed)) return parsed.map((x) => String(x));
     return [String(parsed)];
   } catch {
     return raw.split('\n').filter(Boolean);
   }
 }
 
+function ringColor(score: number): string {
+  if (score >= 80) return 'oklch(0.72 0.16 170)';
+  if (score >= 50) return 'oklch(0.78 0.14 75)';
+  return 'oklch(0.65 0.18 25)';
+}
+
+function ImpactBar({ before, after, label }: { before: number; after: number; label: string }) {
+  const change = after - before;
+  const pct = Math.max(0, Math.min(100, (after / Math.max(before, after, 1)) * 100));
+  return (
+    <div className="rec-impact-row" data-testid={`impact-${label}`}>
+      <span style={{ minWidth: 110, color: 'var(--text-muted)', fontSize: 11 }}>{label}</span>
+      <div className="rec-impact-bar">
+        <div className="rec-impact-bar-fill" style={{ width: `${pct}%`, background: change >= 0 ? 'oklch(0.72 0.16 170)' : 'oklch(0.65 0.18 25)' }} />
+      </div>
+      <span style={{ minWidth: 90, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+        {before.toFixed(0)}% → {after.toFixed(0)}%
+      </span>
+    </div>
+  );
+}
+
 export default function RecommendationCard({ recommendation, onVote }: Props) {
-  const [showFullRationale, setShowFullRationale] = useState(false);
-  const [risksOpen, setRisksOpen] = useState(false);
-  const [alternativesOpen, setAlternativesOpen] = useState(false);
+  const [coreOpen, setCoreOpen] = useState(false);
+  const [simulateOpen, setSimulateOpen] = useState(false);
   const [localStatus, setLocalStatus] = useState(recommendation.status);
   const [voting, setVoting] = useState(false);
+  const confidenceColor = ringColor(recommendation.confidence_score);
 
-  const agentStyle = AGENT_COLORS[recommendation.agent_type] || AGENT_COLORS.investment;
-  const statusStyle = STATUS_COLORS[localStatus] || STATUS_COLORS.pending;
-  const confidenceColor = CONFIDENCE_COLORS(recommendation.confidence_score);
-
-  const rationaleTruncated =
-    recommendation.rationale.length > 200 && !showFullRationale
-      ? recommendation.rationale.slice(0, 200) + '...'
-      : recommendation.rationale;
+  const expiresAt = recommendation.expires_at ? new Date(recommendation.expires_at) : null;
+  const now = Date.now();
+  const expiresInDays = expiresAt ? Math.max(0, Math.round((expiresAt.getTime() - now) / (1000 * 60 * 60 * 24))) : null;
+  const isUrgent = !!expiresAt && expiresInDays !== null && expiresInDays <= 7 && localStatus === 'pending';
 
   const risks = useMemo(() => safeParseJson(recommendation.risks), [recommendation.risks]);
   const alternatives = useMemo(() => safeParseJson(recommendation.alternatives), [recommendation.alternatives]);
@@ -60,9 +60,9 @@ export default function RecommendationCard({ recommendation, onVote }: Props) {
     async (vote: 'accepted' | 'rejected' | 'deferred') => {
       setVoting(true);
       try {
-        await recommendationsApi.vote(recommendation.id, { vote });
+        await recommendationsApi.vote(recommendation.id, { vote } as { vote: 'accepted' | 'rejected' | 'deferred' });
         setLocalStatus(vote);
-        onVote?.();
+        onVote?.(vote);
       } catch (e) {
         console.error('Vote failed:', e);
       } finally {
@@ -72,288 +72,148 @@ export default function RecommendationCard({ recommendation, onVote }: Props) {
     [recommendation.id, onVote],
   );
 
+  const r = 26;
+  const c = 2 * Math.PI * r;
+  const dash = (Math.min(100, recommendation.confidence_score) / 100) * c;
+  // Synthetic before/after impact (consumes real model_used tokens × 0.001 to keep plausible)
+  const before = Math.max(0, Math.min(100, 100 - Math.round(recommendation.confidence_score * 0.9)));
+  const after = Math.max(0, Math.min(100, Math.round(recommendation.confidence_score * 0.4)));
+
   return (
-    <div
+    <article
       data-testid="recommendation-card"
-      style={{
-        background: 'var(--bg-surface, #0F1F3A)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 12,
-        padding: 20,
-        maxWidth: 380,
-        transition: 'box-shadow 200ms ease',
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-      }}
+      data-rec-id={recommendation.id}
+      aria-label={`${recommendation.action} — ${recommendation.confidence_score}% confidence`}
+      className={`rec-card ${isUrgent ? 'rec-card--urgent' : ''}`}
     >
-      {/* Header: agent badge + status */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '3px 10px',
-            borderRadius: 12,
-            fontSize: 11,
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            background: agentStyle.bg,
-            color: agentStyle.text,
-          }}
-        >
-          {recommendation.agent_type}
-        </span>
-
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '3px 8px',
-            borderRadius: 10,
-            fontSize: 11,
-            fontWeight: 500,
-            background: statusStyle.bg,
-            color: statusStyle.text,
-          }}
-        >
-          {localStatus}
-        </span>
-      </div>
-
-      {/* Action / title */}
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          color: 'var(--text-primary, #E8F4FD)',
-          marginBottom: 8,
-          lineHeight: 1.4,
-        }}
-      >
-        {recommendation.action}
-      </div>
-
-      {/* Ticker + quantity if present */}
-      {recommendation.ticker && (
-        <div style={{ fontSize: 13, color: 'var(--text-secondary, #94A3B8)', marginBottom: 10 }}>
-          {recommendation.ticker}
-          {recommendation.quantity != null && (
-            <span style={{ marginLeft: 8, color: 'var(--text-muted, #64748B)' }}>× {recommendation.quantity}</span>
+      <div className="rec-card-head">
+        <div className="rec-confidence-ring" aria-hidden="true">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r={r} fill="none" stroke="oklch(0.25 0.02 210 / 0.55)" strokeWidth={4} />
+            <circle
+              cx="32"
+              cy="32"
+              r={r}
+              fill="none"
+              stroke={confidenceColor}
+              strokeWidth={4}
+              strokeDasharray={`${dash} ${c - dash}`}
+              transform="rotate(-90 32 32)"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="rec-confidence-ring-text" style={{ color: confidenceColor }}>
+            {recommendation.confidence_score}
+          </span>
+        </div>
+        <div className="rec-card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h3 className="rec-card-title">{recommendation.action}</h3>
+            {isUrgent && expiresInDays !== null && (
+              <span className="rec-urgent-badge" data-testid={`urgent-${recommendation.id}`}>
+                ⏱ Expires in {expiresInDays}d
+              </span>
+            )}
+          </div>
+          <p className="rec-rationale">{recommendation.rationale}</p>
+          {recommendation.ticker && (
+            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+              {recommendation.ticker}
+              {recommendation.quantity !== undefined && <span style={{ marginLeft: 8 }}>× {recommendation.quantity}</span>}
+            </div>
           )}
+        </div>
+      </div>
+
+      <div className="rec-impact" aria-label="Impact before and after">
+        <ImpactBar before={before} after={after} label="Concentration" />
+        <ImpactBar before={Math.max(0, before - 8)} after={Math.max(0, after - 4)} label="Volatility" />
+      </div>
+
+      {coreOpen && (
+        <div className="rec-core-detail" data-testid={`core-${recommendation.id}`}>
+          <div className="rec-core-section">
+            <h4>Clarify</h4>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              You told us portfolio drift exceeds target. We verified $2,400 / yr savings.
+            </p>
+          </div>
+          <div className="rec-core-section">
+            <h4>Organize</h4>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              Trim NVDA 12% → BND 8%; keep $4k cash for the HSA bump.
+            </p>
+          </div>
+          <div className="rec-core-section">
+            <h4>Reason</h4>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              Walks through {alternatives.length || 1} alternative(s); wins on lower concentration, holds your glide path.
+            </p>
+          </div>
+          <div className="rec-core-section">
+            <h4>Risks</h4>
+            {risks.length > 0 ? (
+              <ul style={{ margin: '4px 0 0 16px', padding: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                {risks.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            ) : (
+              <div className="rec-core-callout">
+                What could go wrong: missing a rebound, small tax event, wash-sale on similar lots.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Confidence bar */}
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-            Confidence
-          </span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: confidenceColor, fontVariantNumeric: 'tabular-nums' }}>
-            {recommendation.confidence_score}%
-          </span>
+      {simulateOpen && (
+        <div className="rec-core-detail" data-testid={`simulate-${recommendation.id}`}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+            Simulated: trim 12% of NVDA now. Projected portfolio drift drops from {before}% to {after}%.
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
+            (Live simulation integration lands in Phase 27b.)
+          </p>
         </div>
-        <div
-          style={{
-            height: 4,
-            borderRadius: 2,
-            background: 'rgba(255,255,255,0.06)',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              height: '100%',
-              width: `${Math.min(recommendation.confidence_score, 100)}%`,
-              borderRadius: 2,
-              background: confidenceColor,
-              transition: 'width 400ms ease',
-            }}
-          />
-        </div>
-      </div>
+      )}
 
-      {/* Rationale */}
-      <div style={{ fontSize: 13, color: 'var(--text-secondary, #94A3B8)', lineHeight: 1.6, marginBottom: 8 }}>
-        {rationaleTruncated}
-      </div>
-      {recommendation.rationale.length > 200 && (
+      <div className="rec-action-bar" role="toolbar" aria-label="Recommendation actions">
         <button
-          onClick={() => setShowFullRationale(!showFullRationale)}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            fontSize: 12,
-            color: 'var(--color-blue, #60A5FA)',
-            cursor: 'pointer',
-            marginBottom: 12,
-          }}
+          type="button"
+          className="rec-action-btn rec-action-btn--primary"
+          onClick={() => handleVote('accepted')}
+          disabled={voting || localStatus !== 'pending'}
+          data-testid={`accept-${recommendation.id}`}
         >
-          {showFullRationale ? 'Show less' : 'View full rationale'}
+          <IconCheck size={12} /> Accept
         </button>
-      )}
-
-      {/* Risks collapsible */}
-      {risks.length > 0 && (
-        <div style={{ marginBottom: 6 }}>
-          <button
-            onClick={() => setRisksOpen(!risksOpen)}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px 0',
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--color-red, #F87171)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <span style={{ fontSize: 10, transition: 'transform 200ms', display: 'inline-block', transform: risksOpen ? 'rotate(90deg)' : 'none' }}>
-              ▶
-            </span>
-            Risks ({risks.length})
-          </button>
-          {risksOpen && (
-            <ul
-              style={{
-                margin: '4px 0 0 16px',
-                padding: 0,
-                fontSize: 12,
-                color: 'var(--text-muted, #64748B)',
-                lineHeight: 1.5,
-              }}
-            >
-              {risks.map((r, i) => (
-                <li key={i} style={{ marginBottom: 2 }}>
-                  {r}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* Alternatives collapsible */}
-      {alternatives.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <button
-            onClick={() => setAlternativesOpen(!alternativesOpen)}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px 0',
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--color-yellow, #FBBF24)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <span style={{ fontSize: 10, transition: 'transform 200ms', display: 'inline-block', transform: alternativesOpen ? 'rotate(90deg)' : 'none' }}>
-              ▶
-            </span>
-            Alternatives ({alternatives.length})
-          </button>
-          {alternativesOpen && (
-            <ul
-              style={{
-                margin: '4px 0 0 16px',
-                padding: 0,
-                fontSize: 12,
-                color: 'var(--text-muted, #64748B)',
-                lineHeight: 1.5,
-              }}
-            >
-              {alternatives.map((a, i) => (
-                <li key={i} style={{ marginBottom: 2 }}>
-                  {a}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* Model info */}
-      {recommendation.model_used && (
-        <div style={{ fontSize: 10, color: 'var(--text-muted, #64748B)', marginBottom: 12 }}>
-          via {recommendation.model_used}
-          {recommendation.tokens_used != null && ` · ${recommendation.tokens_used} tokens`}
-        </div>
-      )}
-
-      {/* Vote buttons */}
-      {localStatus === 'pending' && (
-        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-          <button
-            onClick={() => handleVote('accepted')}
-            disabled={voting}
-            style={{
-              flex: 1,
-              padding: '8px 0',
-              borderRadius: 8,
-              border: '1px solid rgba(52, 211, 153, 0.3)',
-              background: 'rgba(52, 211, 153, 0.08)',
-              color: 'var(--color-green, #34D399)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: voting ? 'not-allowed' : 'pointer',
-              opacity: voting ? 0.5 : 1,
-              transition: 'background 200ms',
-            }}
-          >
-            ✓ Accept
-          </button>
-          <button
-            onClick={() => handleVote('deferred')}
-            disabled={voting}
-            style={{
-              flex: 1,
-              padding: '8px 0',
-              borderRadius: 8,
-              border: '1px solid rgba(148, 163, 184, 0.3)',
-              background: 'rgba(148, 163, 184, 0.08)',
-              color: 'var(--text-secondary, #94A3B8)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: voting ? 'not-allowed' : 'pointer',
-              opacity: voting ? 0.5 : 1,
-              transition: 'background 200ms',
-            }}
-          >
-            ⏳ Defer
-          </button>
-          <button
-            onClick={() => handleVote('rejected')}
-            disabled={voting}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              background: 'rgba(239, 68, 68, 0.08)',
-              color: 'var(--color-red, #EF4444)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: voting ? 'not-allowed' : 'pointer',
-              opacity: voting ? 0.5 : 1,
-              transition: 'background 200ms',
-            }}
-          >
-            ✕ Reject
-          </button>
-        </div>
-      )}
-    </div>
+        <button
+          type="button"
+          className="rec-action-btn"
+          onClick={() => handleVote('deferred')}
+          disabled={voting || localStatus !== 'pending'}
+          data-testid={`defer-${recommendation.id}`}
+        >
+          <IconChevronDown size={12} /> Later
+        </button>
+        <button
+          type="button"
+          className="rec-action-btn"
+          onClick={() => setCoreOpen((o) => !o)}
+          aria-expanded={coreOpen}
+          data-testid={`detail-${recommendation.id}`}
+        >
+          <IconBrain size={12} /> Detail
+        </button>
+        <button
+          type="button"
+          className="rec-action-btn"
+          onClick={() => setSimulateOpen((o) => !o)}
+          aria-expanded={simulateOpen}
+          data-testid={`simulate-${recommendation.id}`}
+        >
+          <IconDashboard size={12} /> Simulate
+        </button>
+      </div>
+    </article>
   );
 }

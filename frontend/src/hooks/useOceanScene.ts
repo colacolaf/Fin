@@ -1,5 +1,10 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 interface FinData {
   id: number;
@@ -18,18 +23,68 @@ interface AgentState {
   lastSync: number | null;
 }
 
+interface OceanSceneOptions {
+  /** Stable ref that always points at the latest { x, y } mouse offset. The hook reads `mouseRef.current` on each animation frame, so deps never re-fire. */
+  mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+  /** Honour prefers-reduced-motion. Disables orbit swirl, parallax shifts, camera tilt. */
+  reducedMotion: boolean;
+}
+
 const WIRE_NORMAL_RECOMPUTE_INTERVAL = 5; // frames
+const PARALLAX_LAYERS = 3; // 3 haze planes (Phase 22 fix #1)
+const PARALLAX_BASE_Z = [-3.2, -1.6, -0.4];
+const PARALLAX_OPACITY = [0.06, 0.10, 0.16];
+
+// Lightweight radial vignette — sits between bloom and OutputPass.
+const VignetteShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    darkness: { value: 0.55 },
+    radius: { value: 0.85 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float darkness;
+    uniform float radius;
+    varying vec2 vUv;
+    void main() {
+      vec4 col = texture2D(tDiffuse, vUv);
+      vec2 uv = vUv - 0.5;
+      float d = length(uv) / radius;
+      float vig = smoothstep(1.0, 0.4, d);
+      col.rgb *= mix(1.0 - darkness, 1.0, vig);
+      gl_FragColor = col;
+    }
+  `,
+};
 
 export function useOceanScene(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   agentState: AgentState,
+  options: OceanSceneOptions,
 ) {
   const finsRef = useRef<FinData[]>([]);
   const clockRef = useRef<THREE.Clock>(new THREE.Clock());
+  // Cache camera baseline so parallax offsets return to neutral cleanly.
+  const cameraBaseRef = useRef<{ x: number; y: number; z: number }>({
+    x: 0,
+    y: 3,
+    z: 12,
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    const reducedMotion = options.reducedMotion;
+    const mouse = options.mouseRef;
 
     // ── Scene setup ──
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -39,13 +94,12 @@ export function useOceanScene(
     renderer.toneMappingExposure = 1.0;
 
     const scene = new THREE.Scene();
-
-    // Dark ocean fog — depth falloff
     scene.fog = new THREE.FogExp2(0x0a1929, 0.00015);
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.5, 100);
     camera.position.set(0, 3, 12);
     camera.lookAt(0, 0, 0);
+    cameraBaseRef.current = { x: 0, y: 3, z: 12 };
 
     // ── Lighting ──
     scene.add(new THREE.AmbientLight(0x0a3d5c, 0.6));
@@ -56,7 +110,6 @@ export function useOceanScene(
 
     const bioLights: THREE.PointLight[] = [];
     const bioColors = [0x00cc99, 0x0099ff, 0x00ffaa];
-
     for (let i = 0; i < 3; i++) {
       const light = new THREE.PointLight(bioColors[i], 0, 8);
       light.position.set((i - 1) * 3, -1, 0);
@@ -64,7 +117,7 @@ export function useOceanScene(
       bioLights.push(light);
     }
 
-    // ── Ocean surface (single shared BufferGeometry) ──
+    // ── Ocean surface — SHARED BufferGeometry across ocean + wireframe (Phase 19 rule) ──
     const oceanGeom = new THREE.PlaneGeometry(30, 30, 80, 80);
     oceanGeom.rotateX(-Math.PI / 2);
 
@@ -89,9 +142,6 @@ export function useOceanScene(
     ocean.position.y = -2;
     scene.add(ocean);
 
-    // Wireframe overlay — SHARES the same BufferGeometry as the ocean.
-    // MeshBasicMaterial({ wireframe: true }) reads edges from the live geometry,
-    // so updating oceanGeom.attributes.position flows to both meshes.
     const wireMat = new THREE.MeshBasicMaterial({
       color: 0x1a4a6a,
       wireframe: true,
@@ -101,6 +151,24 @@ export function useOceanScene(
     const wireOcean = new THREE.Mesh(oceanGeom, wireMat);
     wireOcean.position.copy(ocean.position);
     scene.add(wireOcean);
+
+    // ── Phase 22 fix #1: Parallax haze planes (3 layers — no geometry churn) ──
+    const hazeLayers: THREE.Mesh[] = [];
+    if (!reducedMotion) {
+      for (let i = 0; i < PARALLAX_LAYERS; i++) {
+        const layerGeom = new THREE.PlaneGeometry(60, 30);
+        const layerMat = new THREE.MeshBasicMaterial({
+          color: i === 0 ? 0x0c2a44 : i === 1 ? 0x14406a : 0x1f5a85,
+          transparent: true,
+          opacity: PARALLAX_OPACITY[i],
+          depthWrite: false,
+        });
+        const mesh = new THREE.Mesh(layerGeom, layerMat);
+        mesh.position.set(0, -1, PARALLAX_BASE_Z[i]);
+        scene.add(mesh);
+        hazeLayers.push(mesh);
+      }
+    }
 
     // ── Particles (bioluminescent plankton) ──
     const particleCount = 400;
@@ -130,7 +198,7 @@ export function useOceanScene(
     const particles = new THREE.Points(particleGeom, particleMat);
     scene.add(particles);
 
-    // ── Fins (agent proxy shapes) ──
+    // ── Fins (3D agent proxy shapes) ──
     const finGroup = new THREE.Group();
     scene.add(finGroup);
 
@@ -156,7 +224,8 @@ export function useOceanScene(
           roughness: 0.3,
           metalness: 0.5,
           emissive: fin.hue,
-          emissiveIntensity: 0.3,
+          // Phase 22 fix #4: selective bloom — emissive fins glow above the bloom threshold.
+          emissiveIntensity: 0.6,
         }),
       );
       mesh.position.set(fin.x, fin.y, fin.z);
@@ -177,11 +246,31 @@ export function useOceanScene(
       finGroup.add(ring);
     });
 
-    // ── Resize handler ──
+    // ── Phase 22 fix #4: Post-processing pipeline (selective bloom + vignette + output) ──
+    // Skipped under reduced-motion per the brief; CSS vignette provides fallback lighting.
+    const composer = !reducedMotion
+      ? (() => {
+          const c = new EffectComposer(renderer);
+          c.addPass(new RenderPass(scene, camera));
+          const bloom = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            0.35, // strength
+            0.85, // radius
+            0.55, // threshold — only emissive (>0.55 luma) elements bloom
+          );
+          c.addPass(bloom);
+          c.addPass(new ShaderPass(VignetteShader));
+          c.addPass(new OutputPass());
+          return c;
+        })()
+      : null;
+
+    // ── Resize handler (covers renderer, composer, and post-processing) ──
     const onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      if (composer) composer.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', onResize);
 
@@ -193,7 +282,7 @@ export function useOceanScene(
       frame++;
       const t = clockRef.current.getElapsedTime();
 
-      // Gentle ocean sway — update positions in place (no clone).
+      // Gentle ocean sway — update positions in place (no clone / no dispose).
       const verts = oceanGeom.attributes.position;
       for (let i = 0; i < verts.count; i++) {
         const x = verts.getX(i);
@@ -204,13 +293,10 @@ export function useOceanScene(
       }
       verts.needsUpdate = true;
 
-      // Recompute vertex normals only periodically; physics deformation is
-      // smooth enough that one recompute every N frames is visually identical.
       if (frame % WIRE_NORMAL_RECOMPUTE_INTERVAL === 0) {
         oceanGeom.computeVertexNormals();
       }
 
-      // Fins bob and rotate
       finGroup.children.forEach((child) => {
         if (!child.userData.finId && child.userData.parentFinId === undefined) return;
         if (child.userData.parentFinId !== undefined) {
@@ -244,11 +330,27 @@ export function useOceanScene(
         pSizes.needsUpdate = true;
       }
 
-      camera.position.x = Math.sin(t * 0.1) * 12;
-      camera.position.z = Math.cos(t * 0.1) * 12;
+      // ── Phase 22 fix #1: mouse-tilt camera offset (gated by reducedMotion) ──
+      // Under prefers-reduced-motion the camera anchors to its base position.
+      if (!reducedMotion) {
+        const targetX = cameraBaseRef.current.x + mouse.current.x * 0.6;
+        const targetY = cameraBaseRef.current.y + mouse.current.y * -0.4;
+        camera.position.x += (targetX - camera.position.x) * 0.05;
+        camera.position.y += (targetY - camera.position.y) * 0.05;
+        camera.position.z = cameraBaseRef.current.z + Math.sin(t * 0.1) * 0.6;
+      }
       camera.lookAt(0, 0, 0);
 
-      renderer.render(scene, camera);
+      // ── Phase 22 fix #1: parallax haze planes drift with mouse (motion-gated) ──
+      for (let i = 0; i < hazeLayers.length; i++) {
+        const mesh = hazeLayers[i];
+        const k = (i + 1) * 0.4; // farther layers move more
+        mesh.position.x = mouse.current.x * k;
+        mesh.position.y = mouse.current.y * k * 0.5;
+      }
+
+      if (composer) composer.render();
+      else renderer.render(scene, camera);
     };
     animate();
 
@@ -263,6 +365,10 @@ export function useOceanScene(
       particleGeom.dispose();
       particleMat.dispose();
       finGeom.dispose();
+      hazeLayers.forEach((mesh) => {
+        mesh.geometry.dispose();
+        (mesh.material as THREE.Material).dispose();
+      });
       finGroup.children.forEach((c) => {
         if (c instanceof THREE.Mesh) {
           c.geometry.dispose();
@@ -271,5 +377,5 @@ export function useOceanScene(
       });
       scene.clear();
     };
-  }, [canvasRef, agentState]);
+  }, [canvasRef, agentState, options.reducedMotion]);
 }

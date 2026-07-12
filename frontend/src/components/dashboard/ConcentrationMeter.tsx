@@ -1,61 +1,97 @@
 import { useMemo } from 'react';
-import { useAnimatedNumber } from '../../hooks/useAnimatedNumber';
 import type { Holding } from '@fin/shared';
 
-interface Props {
+interface ConcentrationMeterProps {
   holdings: Holding[];
 }
 
-export default function ConcentrationMeter({ holdings }: Props) {
-  const { maxAllocation, topSymbol } = useMemo(() => {
-    if (!holdings.length) return { maxAllocation: 0, topSymbol: '' };
-    const top = holdings.reduce((max, h) => h.allocation_pct > max.allocation_pct ? h : max, holdings[0]);
-    return { maxAllocation: top.allocation_pct, topSymbol: top.symbol };
+function classify(value: number, okMax: number, watchMax: number) {
+  if (value <= okMax) return 'ok';
+  if (value <= watchMax) return 'watch';
+  return 'reduce';
+}
+
+export default function ConcentrationMeter({ holdings }: ConcentrationMeterProps) {
+  const stats = useMemo(() => {
+    if (!holdings.length) return null;
+    const total =
+      holdings.reduce((sum, h) => sum + (h.market_value ?? h.allocation_pct ?? 0), 0) || 1;
+    const ranked = [...holdings]
+      .map((h) => ({ ...h, weight: ((h.market_value ?? h.allocation_pct ?? 0) / total) * 100 }))
+      .sort((a, b) => b.weight - a.weight);
+    const top = ranked[0]?.weight ?? 0;
+    const top5 = ranked.slice(0, 5).reduce((s, h) => s + h.weight, 0);
+    return { top, top5 };
   }, [holdings]);
 
-  const animatedPct = useAnimatedNumber(maxAllocation, { decimals: 1 });
-
-  const barColor = maxAllocation < 20 ? '#34D399' : maxAllocation <= 40 ? '#F59E0B' : '#EF4444';
+  if (!stats) return null;
 
   return (
-    <div data-testid="concentration-meter" style={{
-      background: 'var(--bg-surface, #0F1F3A)',
-      border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: 12, padding: 24,
-    }}>
-      <h3 style={{ margin: 0, marginBottom: 16, fontSize: 16, fontWeight: 600, color: 'var(--text-primary, #E8F4FD)' }}>
-        Portfolio Concentration
-      </h3>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <div data-testid="concentration-warning" className={maxAllocation > 30 ? 'concentration-warning' : ''} style={{
-          flex: 1,
-          height: 8,
-          borderRadius: 4,
-          background: 'rgba(255,255,255,0.06)',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%',
-            borderRadius: 4,
-            background: barColor,
-            width: `${Math.min(maxAllocation, 100)}%`,
-            transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)',
-          }} />
-        </div>
-        <span style={{
-          fontSize: 18,
-          fontWeight: 700,
-          color: barColor,
-          fontVariantNumeric: 'tabular-nums',
-          minWidth: 60,
-          textAlign: 'right',
-        }}>
-          {animatedPct}%
+    <section className="concentration-meter" data-testid="concentration-meter">
+      <header className="concentration-meter-header">
+        <h3>Concentration</h3>
+        <span className="concentration-meter-blurb">
+          Larger single positions = more idiosyncratic risk.
+        </span>
+      </header>
+      <div className="concentration-dual">
+        <Gauge
+          label="Largest holding"
+          value={stats.top}
+          kind={classify(stats.top, 12, 20)}
+          testId="concentration-top"
+        />
+        <Gauge
+          label="Top 5"
+          value={stats.top5}
+          kind={classify(stats.top5, 35, 55)}
+          testId="concentration-top5"
+        />
+      </div>
+    </section>
+  );
+}
+
+function Gauge({ label, value, kind, testId }: { label: string; value: number; kind: 'ok' | 'watch' | 'reduce'; testId: string }) {
+  const angle = Math.min(180, (value / 100) * 180);
+  const radius = 70;
+  const cx = 90;
+  const cy = 90;
+  const x = cx + radius * Math.cos((Math.PI - angle) * (Math.PI / 180));
+  const y = cy - radius * Math.sin((Math.PI - angle) * (Math.PI / 180));
+  const arc = `M ${cx - radius} ${cy} A ${radius} ${radius} 0 ${angle > 180 ? 1 : 0} 1 ${x} ${y}`;
+  const color =
+    kind === 'reduce'
+      ? 'oklch(0.6 0.18 25)'
+      : kind === 'watch'
+        ? 'oklch(0.78 0.14 75)'
+        : 'oklch(0.72 0.16 170)';
+
+  return (
+    <div className={`concentration-gauge concentration-gauge--${kind}`} data-testid={testId}>
+      <svg width="180" height="100" viewBox="0 0 180 100" aria-hidden="true">
+        <path
+          d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+          fill="none"
+          stroke="oklch(0.25 0.02 210 / 0.65)"
+          strokeWidth="10"
+          strokeLinecap="round"
+        />
+        <path
+          d={arc}
+          fill="none"
+          stroke={color}
+          strokeWidth="10"
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="concentration-gauge-readout">
+        <span className="concentration-gauge-value">{value.toFixed(1)}%</span>
+        <span className={`concentration-gauge-kind concentration-gauge-kind--${kind}`}>
+          {kind === 'ok' ? 'OK' : kind === 'watch' ? 'Watch' : 'Reduce'}
         </span>
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-secondary, #94A3B8)' }}>
-        Highest: <span style={{ color: 'var(--accent-cyan, #00D4FF)', fontWeight: 600 }}>{topSymbol}</span>
-      </div>
+      <span className="concentration-gauge-label">{label}</span>
     </div>
   );
 }
