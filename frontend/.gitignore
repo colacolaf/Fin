@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright test artifacts (regenerated per `npx playwright test` run).
+playwright-report/
+test-results/

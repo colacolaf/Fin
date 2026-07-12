@@ -1139,6 +1139,7 @@ body {
   .connector-card:hover, .agent-pref-card:hover { transform: none; }
 }
 
+.cm-tooltip {
   background: var(--memory-modal-bg) !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

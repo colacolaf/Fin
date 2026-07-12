@@ -20,7 +20,7 @@ import {
   triggerIntegrationSync,
   testAlpacaConnection,
 } from '../api/integrations';
-import Input from '../components/ui/forms/Input';
+import { Input } from '../components/ui/forms/Input';
 import Select from '../components/ui/forms/Select';
 import Toggle from '../components/ui/forms/Toggle';
 import Slider from '../components/ui/forms/Slider';

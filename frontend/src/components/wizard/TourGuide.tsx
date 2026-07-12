@@ -1,4 +1,4 @@
-import Joyride, { STATUS, type CallBackProps, type Step } from 'react-joyride';
+import { Joyride, STATUS, type CallBackProps, type Step } from 'react-joyride';
 
 interface Props {
   run: boolean;
