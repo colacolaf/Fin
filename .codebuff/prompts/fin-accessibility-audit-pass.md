@@ -14,7 +14,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 2. `frontend/src/styles/ocean.css` — every OKLCH color has to pass `>=4.5:1` contrast for body text against its bg; large text `>=3:1`; interactive elements `>=3:1`
 3. `frontend/src/components/layout/Sidebar.tsx` — currently no `aria-current="page"` on the active route (Phase 21 polish short-cut)
 4. `frontend/src/components/ui/Skeleton.tsx`, `Toast.tsx`, `CommandPalette.tsx`, `KeyboardShortcuts.tsx` — verify aria-live / aria-busy / aria-modal patterns
-5. `frontend/src/components/layout/ChromeShell.tsx` (or App.tsx's `AppBody`) — the right place to mount a `<a className="skip-to-content">`
+5. `frontend/src/App.tsx` — its `AppBody` mounts Sidebar + TopBar; this is the right place to mount `<a className="skip-to-content">`
 6. `frontend/src/hooks/useGlobalHotkeys.ts` — combo parsing must accept screen-reader-friendly labels
 7. `frontend/src/components/ui/forms/Toggle.tsx`, `Slider.tsx`, `SegmentedControl.tsx` — verify ARIA roles/values
 8. `package.json` — `@axe-core/playwright ^4.12.1` is already a devDep; use it
@@ -40,7 +40,19 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 - **Form-field labels always wired** — `<Field label="Theme">` renders `<label htmlFor=…>` if the child has `id`. Verify the auto-derive from id-aware primitives (Input/Select/Toggle/Slider/SegmentedControl).
 - **No `prefers-color-scheme` mismatch** — currently no "system" theme actually responds to OS preference. Wire `window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', …)` and apply to `document.documentElement.dataset.theme` when theme preference is "system" (existing `fin.theme` localStorage key).
 
-**Scope of THIS pass:** `frontend/src/components/a11y/SkipToContent.tsx` (NEW), `frontend/src/components/ui/Toast.tsx` (extend with separate live-regions per tone + aria-levels), `frontend/src/components/layout/Sidebar.tsx` (add `aria-current="page"` on active), `frontend/src/components/ui/forms/Slider.tsx` (verify valuetext wiring), `frontend/src/App.tsx` (mount SkipToContent + listen to prefers-color-scheme changes), `frontend/src/utils/audit.ts` (axe-core helper for tests), `frontend/src/styles/ocean.css` (add reduced-motion overrides for any missing anim transitions), `frontend/e2e/specs/37-accessibility.spec.ts` (NEW), `frontend/src/hooks/useTheme.ts` (NEW lightweight) or extend existing pattern. **Frontend only.**
+**Scope of THIS pass (≤10 files — counted & verified):**
+- `frontend/src/components/a11y/SkipToContent.tsx` (NEW)
+- `frontend/src/utils/riskLabels.ts` (NEW — `RISK_LABELS` + `riskLabel(v)`; ~30 LOC)
+- `frontend/src/hooks/useTheme.ts` (NEW — `prefers-color-scheme` listener, lightweight)
+- `frontend/src/utils/audit.ts` (NEW — `runAxeCheck(page)` helper for tests)
+- `frontend/src/components/ui/Toast.tsx` (extend with separate live-regions per tone + aria-levels)
+- `frontend/src/components/layout/Sidebar.tsx` (add `aria-current="page"` on active)
+- `frontend/src/components/ui/forms/Slider.tsx` (verify valuetext wiring)
+- `frontend/src/App.tsx` (mount SkipToContent + listen to prefers-color-scheme changes)
+- `frontend/src/styles/ocean.css` (add reduced-motion overrides for any missing anim transitions)
+- `frontend/e2e/specs/37-accessibility.spec.ts` (NEW)
+
+**Total: 10 files.** Within budget.
 
 ## GitHub repos referenced
 
@@ -98,11 +110,11 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 - In `frontend/src/components/ui/Toast.tsx`, the viewport renders two `<div>` containers: one `role="status" aria-live="polite"` and one `role="alert" aria-live="assertive"`. Toasts route: success/info → status, error/warn → alert. The viewport itself: `role="presentation"` so SR doesn't see "list of 4 items".
 - Each individual toast keeps its internal role only as a label anchor (`aria-labelledby`) pointing to the toast title content.
 
-### 4 · Slider `aria-valuetext` is semantic
+### 4 · Slider `aria-valuetext` is semantic + `riskLabels.ts` provides format
 **Bug:** When user tabs to the risk slider, VoiceOver reads "7" or "70 percent" — not "7 of 10, Aggressive".
 
 **Do:**
-- In `frontend/src/components/ui/forms/Slider.tsx`, ensure the `aria-valuetext` prop is wired and the App.tsx/Settings.tsx callers pass a function `(v) => \`${v}/10, \${riskLabel(v)}\``. Create `frontend/src/utils/riskLabels.ts` with:
+- Create `frontend/src/utils/riskLabels.ts`:
   ```ts
   export const RISK_LABELS = ['Conservative','Moderate','Balanced','Growth','Aggressive'];
   export function riskLabel(v: number): string {
@@ -113,26 +125,39 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
     return 'Aggressive';
   }
   ```
-- Confidence slider: `aria-valuetext={v => \`${v}%, ${actionLevel(v)}\`}` with a similar `confidenceLabels`.
-- Verify in `<Settings />` flows.
+- Confidence slider gives `aria-valuetext={`${v}%, ${actionLevel(v)}`}` with a similar `confidenceLabels` map in the same file.
+- In `frontend/src/Settings.tsx` consumers, pass `ariaLabelFormatter` props to Slider; verify `<Slider testId={...} ariaLabel={...} labelFormatter={v => \`${riskLabel(v)}\`}>` reads out as `7/10, Aggressive`.
 
 ### 5 · Wire `prefers-color-scheme: dark|light` + `prefers-reduced-motion` final pass
 **Bug:** "system" theme doesn't follow OS preference; reduced-motion overrides missing in 4 places.
 
 **Do:**
-- Extend `frontend/src/App.tsx` (or `frontend/src/hooks/useTheme.ts` NEW lightweight):
+- Create `frontend/src/hooks/useTheme.ts`:
   - On mount + on `matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ...)`, if `localStorage['fin.theme'] === 'system'`, set `document.documentElement.dataset.theme = matches ? 'dark' : 'light'`.
   - On every other theme choice, write the literal to localStorage and stop listening (or set a noop addEventListener for system mode).
-- Reduce motion: when `localStorage['fin.reducedMotion'] === 'true'`, attach `html[data-reduced-motion='true']` and ensure every CSS rule using transitions/animations uses `html[data-reduced-motion='true'] * { animation: none !important; transition: none !important; }` blanket override. Audit ocean.css for: fade-in keyframes in CommandPalette, BottomSheet (Phase 36), onboarding-card-rise, coach-marks-tooltip-rise, etc.
+  - Export `useTheme(): { theme, effectiveTheme, setTheme }`.
+- Reduced-motion: when `localStorage['fin.reducedMotion'] === 'true'`, attach `html[data-reduced-motion='true']` and ensure every CSS rule using transitions/animations uses `html[data-reduced-motion='true'] * { animation: none !important; transition: none !important; }` blanket override. Audit ocean.css for: fade-in keyframes in CommandPalette, BottomSheet (Phase 36), onboarding-card-rise, coach-marks-tooltip-rise, etc.
 
 ### 6 · axe-core sweep + integration test
 **Bug:** No measurable accessibility baseline. CI doesn't enforce.
 
 **Do:**
+- Create `frontend/src/utils/audit.ts`:
+  ```ts
+  import AxeBuilder from '@axe-core/playwright';
+  import type { Page } from '@playwright/test';
+  export async function runAxeCheck(page: Page, opts?: { tags?: string[] }): Promise<void> {
+    const tags = opts?.tags ?? ['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa'];
+    const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+    if (result.violations.length > 0) {
+      throw new Error(`axe-core violations:\n${JSON.stringify(result.violations.map(v => ({ id: v.id, impact: v.impact, desc: v.description, nodes: v.nodes.length })), null, 2)}`);
+    }
+  }
+  ```
 - Create `frontend/e2e/specs/37-accessibility.spec.ts`:
   ```ts
   import { test, expect } from '@playwright/test';
-  import AxeBuilder from '@axe-core/playwright';
+  import { runAxeCheck } from '../utils/audit';
 
   const ROUTES = ['/', '/portfolio', '/debt', '/retirement', '/memory', '/orchestrate', '/recommendations', '/execution', '/community', '/backtest', '/settings'];
 
@@ -141,10 +166,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
       test(`${route} has zero WCAG2AA violations`, async ({ page }) => {
         await page.goto(route);
         await page.waitForLoadState('networkidle');
-        const accessibilityScanResults = await new AxeBuilder({ page })
-          .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa'])
-          .analyze();
-        expect(accessibilityScanResults.violations).toEqual([]);
+        await runAxeCheck(page);
       });
     }
   });
@@ -170,8 +192,8 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 4. **No new heavy deps.** No `react-axe` runtime; `axe-core` is test-only.
 5. **Performance** — accessibility add-ons (`<a className="skip-to-content">`) add < 100 bytes of HTML. Live-region roles cost nothing render-wise.
 6. **Micro-interactions < 300ms** per Emil Kowalski. Skip-link reveal 150ms ease-out; reduced-motion → instant.
-7. **Ponytail principle** — drop any redundant `<div aria-hidden>` wrappers. **One** `data-testid` per a11y surface (`skip-to-content`, `aria-current`).
-8. **`@subagent-driven-development` mandatory** — sequence 1 → 2 → 3 → 4 → 5 → 6 (Playwright last because failures block 5's results). Ship ≤10 files.
+7. **Ponytail principle** — drop any redundant `<div aria-hidden>` wrappers. **One** `data-testid` per a11y surface (`skip-to-content`, `aria-current`, etc.).
+8. **`@subagent-driven-development` mandatory** — sequence 1 → 2 → 3 → 4 → 5 → 6 (Playwright last because failures block 5's results). Ship exactly 10 files.
 
 ---
 
@@ -202,13 +224,13 @@ cd frontend && npx playwright test e2e/specs/37-accessibility.spec.ts --reporter
 6. Tab through CommandPalette: cycles within results, never escapes.
 7. Lighthouse a11y = 100 on all routes.
 8. Playwright e2e 37-accessibility passes.
-9. Self-review with `@code-review-and-quality`: tight diff ≤ 10 files, no drive-by refactors.
+9. Self-review with `@code-review-and-quality`: tight diff ≤ 10 files (you counted 10; no extras).
 
 ---
 
 ## Deliverable format
 
-Reply with: bullet list of files changed, anything skipped (with reason), and any new tech debt. **Strict ≤10 modified files.** Stop and ask before ballooning scope.
+Reply with: bullet list of files changed (must be exactly 10), anything skipped (with reason), and any new tech debt. **Strict ≤10 files.** Stop and ask before ballooning scope.
 
 **Visual continuity — non-negotiable:** the skip-to-content link in the same glassmorphic language. `aria-current` doesn't visually change anything — `.active` already conveys state. Reduced-motion audit: every new animation must include the override. Re-read `frontend/src/styles/ocean.css`.
 
