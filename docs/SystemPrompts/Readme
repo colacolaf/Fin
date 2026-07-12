@@ -3,8 +3,12 @@ Complete Specification for Multi-Agent Financial AI Assistant
 
 📋 DOCUMENTS IN THIS PACKAGE
 This folder contains the complete system prompt specification and implementation guide for Fin's three AI agents:
+
+0. 00_universal_system_prompt.md
+The prompt prepended to EVERY user request, regardless of agent. Defines the shared F.I.R.M. reasoning framework, memory rules, web search rules, and standardized output format.
+
 1. 01_investment_agent_system_prompt.md
-The portfolio optimization agent that analyzes holdings, identifies risks, and recommends rebalancing trades.
+The portfolio optimization agent that analyzes holdings, identifies risks, and recommends rebalancing trades. Inherits the Universal System Prompt and applies F.I.R.M. to portfolio structure.
 Key responsibilities:
 
 Analyze diversification and concentration risk
@@ -12,11 +16,11 @@ Identify tax-loss harvesting opportunities
 Recommend rebalancing with quantified impact
 Educate on asset allocation and fees
 
-Output: Markdown response with embedded JSON confidence scores
+Output: Markdown response with embedded structured JSON
 Triggers when: User asks about portfolio, wants recommendations, or connects Alpaca
 
 2. 02_debt_agent_system_prompt.md
-The loan optimization specialist that helps users eliminate debt strategically.
+The loan optimization specialist that helps users eliminate debt strategically. Inherits the Universal System Prompt and applies F.I.R.M. to debt payoff and cash flow.
 Key responsibilities:
 
 Analyze payoff strategies (Avalanche vs Snowball)
@@ -24,11 +28,11 @@ Identify consolidation and refinancing opportunities
 Resolve the critical "debt vs investment" dilemma
 Recommend optimal payoff timeline with cashflow impact
 
-Output: Clear recommendations with before/after projections
+Output: Markdown response with embedded structured JSON
 Triggers when: User asks about debt, connects Plaid, or wants payoff strategy
 
 3. 03_retirement_agent_system_prompt.md
-The retirement planning specialist focused on 401(k) optimization and contribution strategy.
+The retirement planning specialist focused on 401(k) optimization and contribution strategy. Inherits the Universal System Prompt and applies F.I.R.M. to retirement readiness.
 Key responsibilities:
 
 Calculate retirement readiness (funded %)
@@ -36,7 +40,7 @@ Maximize employer match (free money priority)
 Optimize account types (Traditional vs Roth)
 Project retirement income and identify gaps
 
-Output: Actionable recommendations with retirement impact
+Output: Markdown response with embedded structured JSON
 Triggers when: User asks about retirement, 401(k), or retirement readiness
 
 4. 04_user_context_file_schema.md
@@ -63,6 +67,12 @@ How to update context after votes
 Deployment with Docker Compose
 Testing and debugging
 
+6. 06_System_architecture_agent_orchestration_flow.md
+Visual guide to the request-response flow, context injection, voting flow, and multi-agent coordination.
+
+7. 07_prompt_template_library.md
+Reusable markdown blocks for composing agent prompts at runtime. Defines `{{UNIVERSAL_PERSONA}}`, `{{FIRM_FRAMEWORK}}`, `{{MEMORY_DIRECTIVE}}`, `{{WEB_SEARCH_RULES}}`, `{{OUTPUT_SCHEMA}}`, and agent-specific role blocks.
+
 
 🎯 QUICK OVERVIEW: HOW IT WORKS
 User Journey
@@ -78,7 +88,7 @@ User Journey
    ↓
 6. Backend sends to Ollama (local LLM)
    ↓
-7. Ollama processes with Investment Agent logic (C.O.R.E. framework)
+7. Ollama processes with Investment Agent logic (F.I.R.M. framework)
    ↓
 8. Agent generates recommendation with confidence scores
    ↓
@@ -145,11 +155,11 @@ All three agent prompts follow the same R.C.T.F. Framework:
 ├─ What format for output?
 └─ What should they NOT do?
 
-[FRAMEWORK: C.O.R.E.]
-├─ CLARIFY: Ask questions, fill gaps
-├─ ORGANIZE: Structure the problem
-├─ REASON: Think through trade-offs
-└─ EXPLAIN: Make reasoning transparent
+[FRAMEWORK: F.I.R.M.]
+├─ FRAME: Define the gap between reality and goal
+├─ INSPECT: Read context & memory, weight relevance
+├─ RESEARCH: Search when confidence is <80%
+└─ MAKE THE CALL: Deliver one actionable recommendation
 
 [PRIORITY ORDER]
 └─ How to rank competing recommendations
@@ -368,7 +378,7 @@ A: Fin degrades gracefully. Can't generate new recommendations, but can display 
 
 01_investment_agent_system_prompt.md
 ├─ Full system prompt for Investment Agent
-├─ C.O.R.E. framework applied to portfolios
+├─ F.I.R.M. framework applied to portfolios
 ├─ Priority order for recommendations
 ├─ Web search strategy
 └─ Output format with examples
@@ -438,8 +448,8 @@ If you have questions: Check the FAQ in this README
 
 📌 VERSION INFO
 
-Version: 1.0
-Last Updated: June 2026
+Version: 2.0
+Last Updated: July 2026
 Status: Production-Ready
 Authors: Fin Core Team
 

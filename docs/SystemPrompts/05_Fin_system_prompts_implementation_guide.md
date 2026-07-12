@@ -2,13 +2,16 @@ IMPLEMENTATION GUIDE: FIN SYSTEM PROMPTS
 For backend developers integrating agents with Ollama + FastAPI
 
 QUICK START
-These four documents define the complete agent system for Fin:
+These documents define the complete agent system for Fin:
 
+00_universal_system_prompt.md - Prompt prepended to every request; defines F.I.R.M. framework, memory rules, and output format
 01_investment_agent_system_prompt.md - Portfolio analysis & rebalancing
 02_debt_agent_system_prompt.md - Loan optimization & payoff strategy
 03_retirement_agent_system_prompt.md - 401(k)/IRA planning
 04_user_context_file_schema.md - Data structure passed to agents
 05_implementation_guide.md - This document (how to implement)
+06_System_architecture_agent_orchestration_flow.md - Visual flow reference
+07_prompt_template_library.md - Reusable blocks for composing prompts
 
 
 ARCHITECTURE: HOW AGENTS RECEIVE & USE CONTEXT
@@ -31,10 +34,9 @@ Save recommendation to database
           ↓
 Return to frontend
 System Prompt Structure
-[System Role + Instructions]
-[C.O.R.E. Framework]
-[Priority Rules]
-[Output Format Specification]
+[Universal System Prompt - 00_universal_system_prompt.md]
+[Agent-Specific Role + Rules - 01/02/03_*_system_prompt.md]
+[Prompt Template Blocks - 07_prompt_template_library.md]
 
 ---
 [User Context File - injected here]
@@ -42,37 +44,67 @@ System Prompt Structure
 ---
 [User's actual request: "Analyze my portfolio" or "Help with debt payoff"]
 
+The final prompt is assembled from reusable template blocks defined in 07_prompt_template_library.md. This keeps prompts consistent, versionable, and easy to update across all agents.
+
 IMPLEMENTATION STEPS
 1. STORE SYSTEM PROMPTS IN DATABASE OR FILES
 Option A: File-based (simpler)
 /app/prompts/
+├── universal.md
 ├── investment_agent.md
 ├── debt_agent.md
-└── retirement_agent.md
+├── retirement_agent.md
+└── template_blocks/
+    ├── universal_persona.md
+    ├── firm_framework.md
+    ├── memory_directive.md
+    ├── web_search_rules.md
+    ├── output_schema.md
+    ├── agent_role_investment.md
+    ├── agent_role_debt.md
+    └── agent_role_retirement.md
 Load at startup:
 python# FastAPI startup
 import os
 
 SYSTEM_PROMPTS = {
+    "universal": open("prompts/universal.md").read(),
     "investment": open("prompts/investment_agent.md").read(),
     "debt": open("prompts/debt_agent.md").read(),
     "retirement": open("prompts/retirement_agent.md").read(),
 }
+
+# Optional: load reusable template blocks
+TEMPLATE_BLOCKS = {}
+for block_file in os.listdir("prompts/template_blocks"):
+    name = block_file.replace(".md", "").upper()
+    TEMPLATE_BLOCKS[name] = open(f"prompts/template_blocks/{block_file}").read()
+
 Option B: Database-based (better for hot updates)
 sqlCREATE TABLE agent_prompts (
     id INTEGER PRIMARY KEY,
-    agent_type TEXT UNIQUE (investment|debt|retirement),
+    agent_type TEXT UNIQUE (universal|investment|debt|retirement),
     system_prompt TEXT,
     version INTEGER,
     updated_at TIMESTAMP,
     is_active BOOLEAN
 );
+
+CREATE TABLE prompt_template_blocks (
+    id INTEGER PRIMARY KEY,
+    block_name TEXT UNIQUE,
+    content TEXT,
+    version INTEGER,
+    updated_at TIMESTAMP
+);
 Load into cache:
 python@app.on_event("startup")
 async def load_prompts():
-    global SYSTEM_PROMPTS
+    global SYSTEM_PROMPTS, TEMPLATE_BLOCKS
     prompts = db.query(AgentPrompt).filter_by(is_active=True)
     SYSTEM_PROMPTS = {p.agent_type: p.system_prompt for p in prompts}
+    blocks = db.query(PromptTemplateBlock).all()
+    TEMPLATE_BLOCKS = {b.block_name.upper(): b.content for b in blocks}
 2. LOAD USER CONTEXT FILE
 python# In your database layer
 def get_user_context(user_id: str) -> dict:
@@ -101,17 +133,21 @@ async def get_recommendation(agent_type: str, current_user: User):
 3. CALL AGENT WITH INJECTED CONTEXT
 pythonimport requests
 import json
+from string import Template
 
 def call_agent(agent_type: str, context: dict, user_message: str) -> dict:
-    """Call Ollama with system prompt + context + user message"""
+    """Call Ollama with universal prompt + agent prompt + context + user message"""
     
-    # Load system prompt for this agent
-    system_prompt = SYSTEM_PROMPTS[agent_type]
+    # Load universal prompt and agent-specific prompt
+    universal_prompt = SYSTEM_PROMPTS["universal"]
+    agent_prompt = SYSTEM_PROMPTS[agent_type]
     
     # Inject context file as part of system prompt
     context_str = json.dumps(context, indent=2)
     
-    full_system = f"""{system_prompt}
+    full_system = f"""{universal_prompt}
+
+{agent_prompt}
 
 ---
 ## USER CONTEXT (Auto-Injected)
@@ -138,17 +174,24 @@ def call_agent(agent_type: str, context: dict, user_message: str) -> dict:
     
     return response.json()["response"]
 4. PARSE AGENT RESPONSE
-Agent responses include markdown + embedded JSON. Example:
-markdown## Recommendation Title
+Agent responses include markdown + embedded structured JSON. Example:
+markdown## Trim NVDA to Cap Tech at 30%
 
-**What to do**: [action]
+**The Recommendation**: Sell $5,000 of NVDA and buy $5,000 of VTI...
 
-**Confidence Score**:
+**The Hard Truth**: ...
+
 ```json
 {
-  "overall": 82,
-  "reasoning_quality": 90,
-  ...
+  "recommendation_type": "REBALANCE",
+  "confidence_score": {
+    "overall": 82,
+    "math_certainty": 90,
+    "data_completeness": 85,
+    "memory_alignment": 75
+  },
+  "impact_metrics": { ... },
+  "backend_actions": [ ... ]
 }
 ```
 
@@ -158,19 +201,20 @@ pythonimport re
 import json
 
 def parse_recommendation(response: str) -> dict:
-    """Extract confidence JSON from markdown response"""
+    """Extract structured JSON from markdown response"""
     
     # Find JSON block
     json_match = re.search(r'```json\n({.*?})\n```', response, re.DOTALL)
     if not json_match:
-        raise ValueError("No confidence score found in response")
+        raise ValueError("No structured JSON found in response")
     
-    confidence_json = json.loads(json_match.group(1))
+    structured_json = json.loads(json_match.group(1))
     
     return {
         "raw_response": response,
-        "confidence": confidence_json,
-        "recommendation_text": response.split("## Recommendation")[1] if "## Recommendation" in response else response
+        "structured": structured_json,
+        "confidence": structured_json.get("confidence_score", {}),
+        "recommendation_text": response.split("## ")[1].split("\n")[0] if "## " in response else response
     }
 5. UPDATE USER CONTEXT AFTER VOTE
 When user votes on recommendation:
