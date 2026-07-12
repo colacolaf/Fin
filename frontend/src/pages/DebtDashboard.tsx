@@ -6,6 +6,7 @@ import DebtSummary from '../components/debt/DebtSummary';
 import PayoffStrategyToggle, { type Strategy } from '../components/debt/PayoffStrategyToggle';
 import PayoffTimeline from '../components/debt/PayoffTimeline';
 import DebtAccountCard from '../components/debt/DebtAccountCard';
+import { DebtSkeleton } from '../components/ui/PageSkeleton';
 import type {
   DebtAccount,
   DebtSummary as DebtSummaryType,
@@ -210,7 +211,7 @@ export default function DebtDashboard() {
   if (loading) {
     return (
       <div className="debt-dashboard" data-testid="debt-dashboard">
-        <div className="loading" data-testid="debt-loading">Loading debt dashboard...</div>
+        <DebtSkeleton />
       </div>
     );
   }

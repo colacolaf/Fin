@@ -8,6 +8,7 @@ import MemoryCommandPalette from '../components/memory/MemoryCommandPalette';
 import MemoryGraph from '../components/memory/MemoryGraph';
 import { useMemory } from '../hooks/useMemory';
 import { searchMemory } from '../api/memory';
+import { MemorySkeleton } from '../components/ui/PageSkeleton';
 
 type RightPane = 'outline' | 'graph';
 
@@ -101,19 +102,6 @@ export default function MemoryExplorer() {
     { key: 'patterns', label: 'Patterns' },
     { key: 'daily', label: 'Daily' },
   ];
-    const cached = notes.find((n) => n.title === title);
-    if (cached) {
-      await handleSelect(cached.permalink);
-      return;
-    }
-    try {
-      const results = await searchMemory(title);
-      const match = results.find((n) => n.title === title) ?? results[0];
-      if (match) await handleSelect(match.permalink);
-    } catch {
-      /* swallow — older backends may not expose search */
-    }
-  }, [notes, handleSelect]);
 
   const visibleNotes = useMemo(() => {
     if (!filteredTagPath) return notes;
@@ -205,9 +193,15 @@ export default function MemoryExplorer() {
             />
           </>
         ) : (
-          <div className="memory-empty" data-testid="memory-editor-empty">
-            {loading ? 'Loading notes…' : error ?? 'No note open — open one from the sidebar (⌘K to search).'}
-          </div>
+          loading ? (
+            <div data-testid="memory-editor-empty">
+              <MemorySkeleton />
+            </div>
+          ) : (
+            <div className="memory-empty" data-testid="memory-editor-empty">
+              {error ?? 'No note open — open one from the sidebar (⌘K to search).'}
+            </div>
+          )
         )}
       </main>
 

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import ScoreRing from '../components/ScoreRing';
 import { executionApi } from '../api/execution';
 import type { ExecutionAction, ExecutionStats } from '../api/execution';
+import { ExecutionSkeleton } from '../components/ui/PageSkeleton';
 
 type FilterTab = 'pending' | 'completed' | 'rejected';
 type View = 'queue' | 'history';
@@ -156,12 +157,7 @@ export default function ExecutionDashboard() {
         <div className="settings-callout fail" data-testid="execution-error">{error}</div>
       )}
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: 48 }}>
-          <div className="spinner" />
-          <p style={{ color: 'oklch(0.6 0.01 240)', marginTop: 12 }}>Loading execution data…</p>
-        </div>
-      )}
+      {loading && <ExecutionSkeleton />}
 
       {!loading && !error && view === 'queue' && (
         <>

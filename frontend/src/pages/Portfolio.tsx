@@ -8,6 +8,7 @@ import HoldingsTable from '../components/dashboard/HoldingsTable';
 import ConcentrationMeter from '../components/dashboard/ConcentrationMeter';
 import SectorRadar from '../components/dashboard/SectorRadar';
 import { IconChevronRight, IconPortfolio, IconAnalytics, IconResearch } from '../components/layout/Icons';
+import { PortfolioSkeleton } from '../components/ui/PageSkeleton';
 import type { PortfolioData, PerformancePeriod } from '@fin/shared';
 
 const PERIODS: PerformancePeriod[] = ['1D', '1W', '1M', '3M', '1Y', 'YTD', 'ALL'];
@@ -116,11 +117,7 @@ export default function Portfolio() {
   }, [data]);
 
   if (loading) {
-    return (
-      <div data-testid="portfolio-loading" style={{ padding: 32, color: 'oklch(0.7 0.01 200)', textAlign: 'center' }}>
-        Loading portfolio…
-      </div>
-    );
+    return <PortfolioSkeleton />;
   }
 
   if (error) {

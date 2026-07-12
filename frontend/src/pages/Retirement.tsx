@@ -6,6 +6,7 @@ import ProjectionChart from '../components/retirement/ProjectionChart';
 import AccountBreakdown from '../components/retirement/AccountBreakdown';
 import ContributionOptimizer from '../components/retirement/ContributionOptimizer';
 import TaxStrategy from '../components/retirement/TaxStrategy';
+import { RetirementSkeleton } from '../components/ui/PageSkeleton';
 
 const DEFAULT_PROFILE: RetirementProfile = {
   current_age: 30,
@@ -127,6 +128,8 @@ export default function RetirementPage() {
       </header>
 
       {error && <div className="settings-callout fail" data-testid="retirement-error">{error}</div>}
+
+      {loading && <RetirementSkeleton />}
 
       {!loading && readiness && profile.current_age !== undefined && profile.retirement_age !== undefined && (
         <RetirementScore

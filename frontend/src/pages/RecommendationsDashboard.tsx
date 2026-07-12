@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { Recommendation } from '../api/recommendations';
 import { recommendationsApi } from '../api/recommendations';
 import RecommendationCard from '../components/RecommendationCard';
+import { RecommendationsSkeleton } from '../components/ui/PageSkeleton';
 
 type AgentFilter = 'all' | 'investment' | 'debt' | 'retirement';
 type StatusFilter = 'all' | 'pending' | 'accepted' | 'rejected' | 'executed';
@@ -187,7 +188,7 @@ export default function RecommendationsDashboard() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 32, color: 'var(--text-muted)' }}>Loading recommendations…</div>
+        <RecommendationsSkeleton />
       ) : (
         <div className="recommendations-list" data-testid="recommendations-list" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {filtered.length === 0 ? (

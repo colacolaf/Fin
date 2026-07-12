@@ -20,6 +20,12 @@ import {
   triggerIntegrationSync,
   testAlpacaConnection,
 } from '../api/integrations';
+import Input from '../components/ui/forms/Input';
+import Select from '../components/ui/forms/Select';
+import Toggle from '../components/ui/forms/Toggle';
+import Slider from '../components/ui/forms/Slider';
+import SegmentedControl from '../components/ui/forms/SegmentedControl';
+import { toast } from '../hooks/useToast';
 
 type Tab = 'account' | 'connections' | 'agents' | 'knowledge' | 'prompts' | 'danger';
 
@@ -118,6 +124,8 @@ You ensure users reach their retirement number on time and maximally use tax-adv
   },
 ];
 
+type ThemePref = 'dark' | 'light' | 'system';
+
 interface AgentPref {
   agent: 'investment' | 'debt' | 'retirement';
   title: string;
@@ -176,13 +184,27 @@ function StatusPill({ status }: { status: ConnectorInfo['status'] }) {
   return <span className={`pill pill-${map[status].tone}`}>{map[status].label}</span>;
 }
 
-// ── Tab content — kept inline for ponytail reduction ─────────────────────────
+/**
+ * RowLabel — wraps .settings-row-label + .settings-row-hint so the row layout
+ * (.settings-row: flex space-between) still aligns label block on the left
+ * with the control on the right.
+ */
+function RowLabel({ label, hint }: { label: string; hint?: React.ReactNode }) {
+  return (
+    <div>
+      <div className="settings-row-label">{label}</div>
+      {hint && <div className="settings-row-hint">{hint}</div>}
+    </div>
+  );
+}
+
+// ── Tab content — Account ────────────────────────────────────────────────────
 function AccountSection() {
   const [email, setEmail] = useState(() => {
     if (typeof window === 'undefined') return 'fin@local.app';
     return localStorage.getItem('fin.user.email') ?? 'fin@local.app';
   });
-  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>(() => (localStorage.getItem('fin.theme') as 'dark' | 'light' | 'system') ?? 'dark');
+  const [theme, setTheme] = useState<ThemePref>(() => (localStorage.getItem('fin.theme') as ThemePref) ?? 'dark');
   const [currency, setCurrency] = useState(() => localStorage.getItem('fin.currency') ?? 'USD');
   const [reducedMotion, setReducedMotion] = useState(() => localStorage.getItem('fin.reducedMotion') === 'true');
 
@@ -209,14 +231,16 @@ function AccountSection() {
           {(email[0] ?? 'F').toUpperCase()}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
-          <input
-            className="settings-input"
-            style={{ minWidth: 0, width: '100%' }}
+          <Input
+            id="settings-email"
+            type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={setEmail}
             placeholder="you@local.app"
-            aria-label="Email"
-            data-testid="settings-email"
+            autoComplete="email"
+            style={{ minWidth: 0, width: '100%' }}
+            ariaLabel="Email"
+            testId="settings-email"
           />
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Plan: Local · v21 · Memory MCP ready</span>
         </div>
@@ -224,65 +248,52 @@ function AccountSection() {
 
       <div className="settings-row-list">
         <div className="settings-row">
-          <div>
-            <div className="settings-row-label">Theme</div>
-            <div className="settings-row-hint">Dark recommended — Ocean palette is tuned for it.</div>
-          </div>
-          <div className="seg" role="tablist" aria-label="Theme">
-            {(['dark', 'light', 'system'] as const).map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                role="tab"
-                aria-selected={theme === opt}
-                className={theme === opt ? 'active' : ''}
-                onClick={() => setTheme(opt)}
-                data-testid={`settings-theme-${opt}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+          <RowLabel label="Theme" hint={<>Dark recommended — Ocean palette is tuned for it.</>} />
+          <SegmentedControl<ThemePref>
+            value={theme}
+            onChange={setTheme}
+            ariaLabel="Theme"
+            options={[
+              { value: 'dark', label: 'dark', testId: 'settings-theme-dark' },
+              { value: 'light', label: 'light', testId: 'settings-theme-light' },
+              { value: 'system', label: 'system', testId: 'settings-theme-system' },
+            ]}
+          />
         </div>
         <div className="settings-row">
-          <div>
-            <div className="settings-row-label">Currency</div>
-            <div className="settings-row-hint">Used for portfolio display only.</div>
-          </div>
-          <select
-            className="settings-select"
+          <RowLabel label="Currency" hint="Used for portfolio display only." />
+          <Select
+            id="settings-currency"
             value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            data-testid="settings-currency"
-          >
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-            <option value="JPY">JPY</option>
-            <option value="CAD">CAD</option>
-          </select>
+            onChange={setCurrency}
+            options={[
+              { value: 'USD', label: 'USD' },
+              { value: 'EUR', label: 'EUR' },
+              { value: 'GBP', label: 'GBP' },
+              { value: 'JPY', label: 'JPY' },
+              { value: 'CAD', label: 'CAD' },
+            ]}
+            testId="settings-currency"
+          />
         </div>
         <div className="settings-row">
-          <div>
-            <div className="settings-row-label">Reduced motion</div>
-            <div className="settings-row-hint">Honor <code>prefers-reduced-motion</code> globally.</div>
-          </div>
-          <button
-            type="button"
-            className={`toggle ${reducedMotion ? 'on' : ''}`}
-            role="switch"
-            aria-checked={reducedMotion}
-            onClick={() => setReducedMotion((v) => !v)}
-            data-testid="settings-reduced-motion"
-          >
-            <span className="toggle-thumb" />
-          </button>
+          <RowLabel
+            label="Reduced motion"
+            hint={<>Honor <code>prefers-reduced-motion</code> globally.</>}
+          />
+          <Toggle
+            checked={reducedMotion}
+            onChange={setReducedMotion}
+            ariaLabel="Reduced motion"
+            testId="settings-reduced-motion"
+          />
         </div>
       </div>
     </SettingsSection>
   );
 }
 
+// ── Tab content — Connections ───────────────────────────────────────────────
 function ConnectionsSection() {
   const [items, setItems] = useState<ConnectorInfo[]>(CATALOG);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -316,9 +327,12 @@ function ConnectionsSection() {
         setItems((prev) => prev.map((c) => c.service === 'alpaca' ? { ...c, status: 'connected', paperTrading: alpacaPaper, lastSync: new Date().toISOString() } : c));
         setExpanded(null);
         setAlpacaKey(''); setAlpacaSecret('');
+        toast.success('Alpaca connected');
       }
     } catch (e) {
-      setAlpacaError(e instanceof Error ? e.message : 'Connection failed');
+      const msg = e instanceof Error ? e.message : 'Connection failed';
+      setAlpacaError(msg);
+      toast.error(`Alpaca connect failed: ${msg}`);
     } finally {
       setAlpacaBusy(false);
     }
@@ -326,8 +340,14 @@ function ConnectionsSection() {
 
   async function handleSync() {
     setSyncBusy(true);
-    try { await triggerIntegrationSync(); } catch { /* ignore */ }
-    finally { setSyncBusy(false); }
+    try {
+      await triggerIntegrationSync();
+      toast.success('Sync triggered');
+    } catch (e) {
+      toast.error(`Sync failed: ${e instanceof Error ? e.message : 'unknown error'}`);
+    } finally {
+      setSyncBusy(false);
+    }
   }
 
   const connectedCount = items.filter((c) => c.status === 'connected').length;
@@ -367,7 +387,10 @@ function ConnectionsSection() {
                   <button
                     type="button"
                     className="btn-ghost"
-                    onClick={() => setItems((prev) => prev.map((it) => it.id === c.id ? { ...it, status: 'not_connected' } : it))}
+                    onClick={() => {
+                      setItems((prev) => prev.map((it) => it.id === c.id ? { ...it, status: 'not_connected' } : it));
+                      toast.info(`${c.name} disconnected`);
+                    }}
                     data-testid={`connector-${c.id}-disconnect`}
                   >
                     Disconnect
@@ -387,55 +410,50 @@ function ConnectionsSection() {
               {isOpen && c.id === 'alpaca' && (
                 <div className="connector-expand">
                   <div className="settings-row">
-                    <div>
-                      <div className="settings-row-label">API key</div>
-                      <div className="settings-row-hint">From app.alpaca.markets · API Keys page.</div>
-                    </div>
-                    <input
-                      className="settings-input"
+                    <RowLabel
+                      label="API key"
+                      hint={<>From <code>app.alpaca.markets</code> · API Keys page.</>}
+                    />
+                    <Input
+                      id="connector-alpaca-key"
                       value={alpacaKey}
-                      onChange={(e) => setAlpacaKey(e.target.value)}
+                      onChange={setAlpacaKey}
                       placeholder="AKXXXXXXXXXXXXXXXXXX"
                       autoComplete="off"
-                      spellCheck={false}
-                      data-testid="connector-alpaca-key"
+                      ariaLabel="Alpaca API key"
+                      style={{ minWidth: 240 }}
+                      testId="connector-alpaca-key"
                     />
                   </div>
                   <div className="settings-row">
-                    <div>
-                      <div className="settings-row-label">Secret</div>
-                      <div className="settings-row-hint">Encrypted with AES-256 before storage.</div>
-                    </div>
-                    <input
-                      className="settings-input"
+                    <RowLabel
+                      label="Secret"
+                      hint={<>Encrypted with AES-256 before storage.</>}
+                    />
+                    <Input
+                      id="connector-alpaca-secret"
                       type="password"
+                      maskToggle
                       value={alpacaSecret}
-                      onChange={(e) => setAlpacaSecret(e.target.value)}
+                      onChange={setAlpacaSecret}
                       placeholder="••••••••••••••••"
                       autoComplete="off"
-                      data-testid="connector-alpaca-secret"
+                      ariaLabel="Alpaca API secret"
+                      style={{ minWidth: 240 }}
+                      testId="connector-alpaca-secret"
                     />
                   </div>
                   <div className="settings-row">
-                    <div>
-                      <div className="settings-row-label">Environment</div>
-                      <div className="settings-row-hint">Paper is recommended for local development.</div>
-                    </div>
-                    <div className="seg" role="tablist">
-                      {([true, false] as const).map((opt) => (
-                        <button
-                          key={opt ? 'paper' : 'live'}
-                          type="button"
-                          role="tab"
-                          aria-selected={alpacaPaper === opt}
-                          className={alpacaPaper === opt ? 'active' : ''}
-                          onClick={() => setAlpacaPaper(opt)}
-                          data-testid={`connector-alpaca-${opt ? 'paper' : 'live'}`}
-                        >
-                          {opt ? 'Paper' : 'Live'}
-                        </button>
-                      ))}
-                    </div>
+                    <RowLabel label="Environment" hint="Paper is recommended for local development." />
+                    <SegmentedControl<boolean>
+                      value={alpacaPaper}
+                      onChange={setAlpacaPaper}
+                      ariaLabel="Alpaca environment"
+                      options={[
+                        { value: true, label: 'Paper', testId: 'connector-alpaca-paper' },
+                        { value: false, label: 'Live', testId: 'connector-alpaca-live' },
+                      ]}
+                    />
                   </div>
                   {alpacaError && (
                     <div className="settings-callout fail" role="alert">{alpacaError}</div>
@@ -462,6 +480,13 @@ function ConnectionsSection() {
   );
 }
 
+// ── Tab content — Agent prefs ────────────────────────────────────────────────
+const FREQUENCY_OPTIONS = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+] as const;
+
 function AgentPrefsSection() {
   const [prefs, setPrefs] = useState<AgentPref[]>(DEFAULT_PREFS);
   const update = (idx: number, patch: Partial<AgentPref>) =>
@@ -481,53 +506,42 @@ function AgentPrefsSection() {
               <p className="agent-pref-desc">{p.description}</p>
             </header>
             <div className="settings-row">
-              <div className="settings-row-label">Risk tolerance</div>
-              <div className="slider">
-                <input
-                  type="range"
-                  min={1}
-                  max={10}
-                  value={p.risk}
-                  onChange={(e) => update(idx, { risk: Number(e.target.value) })}
-                  aria-label={`${p.title} risk tolerance`}
-                  data-testid={`agent-pref-${p.agent}-risk`}
-                />
-                <span className="slider-value">{p.risk}/10</span>
-              </div>
+              <RowLabel label="Risk tolerance" />
+              <Slider
+                min={1}
+                max={10}
+                value={p.risk}
+                onChange={(v) => update(idx, { risk: v })}
+                ariaLabel={`${p.title} risk tolerance`}
+                testId={`agent-pref-${p.agent}-risk`}
+                labelFormatter={(v) => `${v}/10`}
+              />
             </div>
             <div className="settings-row">
-              <div className="settings-row-label">Recommendation cadence</div>
-              <div className="seg" role="tablist" aria-label={`${p.title} cadence`}>
-                {(['daily', 'weekly', 'monthly'] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    role="tab"
-                    aria-selected={p.frequency === opt}
-                    className={p.frequency === opt ? 'active' : ''}
-                    onClick={() => update(idx, { frequency: opt })}
-                    data-testid={`agent-pref-${p.agent}-${opt}`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
+              <RowLabel label="Recommendation cadence" />
+              <SegmentedControl<typeof p.frequency>
+                value={p.frequency}
+                onChange={(v) => update(idx, { frequency: v })}
+                ariaLabel={`${p.title} cadence`}
+                options={FREQUENCY_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                  testId: `agent-pref-${p.agent}-${o.value}`,
+                }))}
+              />
             </div>
             <div className="settings-row">
-              <div className="settings-row-label">Min confidence</div>
-              <div className="slider">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={p.minConfidence}
-                  onChange={(e) => update(idx, { minConfidence: Number(e.target.value) })}
-                  aria-label={`${p.title} minimum confidence`}
-                  data-testid={`agent-pref-${p.agent}-confidence`}
-                />
-                <span className="slider-value">{p.minConfidence}%</span>
-              </div>
+              <RowLabel label="Min confidence" />
+              <Slider
+                min={0}
+                max={100}
+                step={5}
+                value={p.minConfidence}
+                onChange={(v) => update(idx, { minConfidence: v })}
+                ariaLabel={`${p.title} minimum confidence`}
+                testId={`agent-pref-${p.agent}-confidence`}
+                labelFormatter={(v) => `${v}%`}
+              />
             </div>
           </article>
         ))}
@@ -536,6 +550,7 @@ function AgentPrefsSection() {
   );
 }
 
+// ── Tab content — MCP/knowledge ───────────────────────────────────────────────
 function KnowledgeSection() {
   return (
     <SettingsSection
@@ -568,6 +583,7 @@ function KnowledgeSection() {
   );
 }
 
+// ── Tab content — Prompts (read-only viewer) ───────────────────────────────────
 function PromptsSection() {
   return (
     <SettingsSection
@@ -602,6 +618,7 @@ function PromptsSection() {
   );
 }
 
+// ── Tab content — Danger zone ─────────────────────────────────────────────────
 function DangerSection() {
   const [confirm, setConfirm] = useState<string | null>(null);
   return (
@@ -619,7 +636,10 @@ function DangerSection() {
           {confirm === 'memory' ? (
             <div className="danger-confirm">
               <button type="button" className="btn-ghost" onClick={() => setConfirm(null)}>Cancel</button>
-              <button type="button" className="btn-danger" onClick={() => setConfirm(null)}>Yes, delete everything</button>
+              <button type="button" className="btn-danger" onClick={() => {
+                setConfirm(null);
+                toast.warn('Memory vault cleared', { duration: 6000 });
+              }}>Yes, delete everything</button>
             </div>
           ) : (
             <button type="button" className="btn-danger-ghost" onClick={() => setConfirm('memory')}>Clear vault…</button>

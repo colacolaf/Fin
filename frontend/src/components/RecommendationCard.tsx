@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Recommendation } from '../api/recommendations';
 import { recommendationsApi } from '../api/recommendations';
+import { toast } from '../hooks/useToast';
 import { IconBrain, IconCheck, IconChevronDown, IconDashboard } from './layout/Icons';
 
 interface Props {
@@ -64,7 +65,10 @@ export default function RecommendationCard({ recommendation, onVote }: Props) {
         setLocalStatus(vote);
         onVote?.(vote);
       } catch (e) {
-        console.error('Vote failed:', e);
+        console.debug('Vote failed:', e);
+        toast.error('Could not record your vote', {
+          action: { label: 'Retry', onClick: () => { void handleVote(vote); } },
+        });
       } finally {
         setVoting(false);
       }

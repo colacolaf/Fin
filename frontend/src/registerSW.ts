@@ -13,8 +13,8 @@ export function registerSW(): void {
 
   const updateSW = registerPwaSW({
     onNeedRefresh() {
-      // New content available — dispatch event for UI update banner
-      window.dispatchEvent(new CustomEvent("sw-update-available"));
+      // New content available — UI listener in App.tsx turns this into a toast.
+      window.dispatchEvent(new CustomEvent("sw:update-available"));
     },
     onOfflineReady() {
       console.debug("[SW] App ready for offline use");
@@ -26,7 +26,9 @@ export function registerSW(): void {
       }
     },
     onRegisterError(error) {
-      console.error("[SW] Registration failed:", error);
+      // Phase 31: surface to UI via toast instead of just console.
+      console.debug("[SW] Registration failed:", error);
+      window.dispatchEvent(new CustomEvent("sw:registration-failed", { detail: error }));
     },
   });
 

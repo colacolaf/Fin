@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { backtestApi, type StrategyTemplate } from "../api/backtest";
+import { toast } from "../hooks/useToast";
 
 interface Props {
   onSelect?: (template: StrategyTemplate) => void;
@@ -51,19 +52,23 @@ export default function StrategyBuilder({ onSelect, editId }: Props) {
   const handleSave = async () => {
     if (!name.trim() || !code.trim()) return;
     setLoading(true);
+    const nameAtSave = name.trim();
+    const op = editingId
+      ? backtestApi.updateStrategy(editingId, { name, category, strategy_code: code, description })
+      : backtestApi.createStrategy({ name, category, strategy_code: code, description });
     try {
-      if (editingId) {
-        await backtestApi.updateStrategy(editingId, { name, category, strategy_code: code, description });
-      } else {
-        await backtestApi.createStrategy({ name, category, strategy_code: code, description });
-      }
+      await toast.promise(op, {
+        loading: "Saving strategy\u2026",
+        success: `Saved "${nameAtSave}"`,
+        error: "Save failed \u2014 your code is preserved in the editor",
+      });
       await loadTemplates();
       setName("");
       setCode(DEFAULT_CODE);
       setDescription("");
       setEditingId(null);
-    } catch (e) {
-      console.error("Save failed", e);
+    } catch {
+      // toast already informed the user; preserve form state.
     } finally {
       setLoading(false);
     }
@@ -71,9 +76,15 @@ export default function StrategyBuilder({ onSelect, editId }: Props) {
 
   const handleDelete = async (id: string) => {
     try {
-      await backtestApi.deleteStrategy(id);
+      await toast.promise(backtestApi.deleteStrategy(id), {
+        loading: "Deleting\u2026",
+        success: "Deleted",
+        error: "Delete failed \u2014 try again",
+      });
       await loadTemplates();
-    } catch { /* ignore */ }
+    } catch {
+      // toast already informed the user.
+    }
   };
 
   const handleSelect = (t: StrategyTemplate) => {
