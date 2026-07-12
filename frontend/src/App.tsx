@@ -10,6 +10,7 @@ import ExecutionDashboard from "./pages/ExecutionDashboard";
 import CommunityDashboard from "./pages/CommunityDashboard";
 import RecommendationsDashboard from "./pages/RecommendationsDashboard";
 import BacktestDashboard from "./pages/BacktestDashboard";
+import Settings from "./pages/Settings";
 import OfflinePage from "./pages/OfflinePage";
 import NetworkTransition from "./components/NetworkTransition";
 import OfflineBanner from "./components/OfflineBanner";
@@ -35,6 +36,7 @@ function App() {
           <Route path="/execution" element={<ExecutionDashboard />} />
           <Route path="/community" element={<CommunityDashboard />} />
           <Route path="/backtest" element={<BacktestDashboard />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/" element={<Dashboard />} />
         </Routes>
       </NetworkTransition>
