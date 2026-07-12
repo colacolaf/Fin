@@ -47,70 +47,41 @@
     <path d="M720 120 Q740 95 765 112 Q790 95 810 120 Q830 130 810 148 L740 148 Q715 148 720 120 Z"/>
   </g>
 
-  <!-- Sidebar -->
-  <rect x="0" y="0" width="200" height="600" fill="#0B1B2B"/>
-  <text x="24" y="45" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="22" font-weight="700">Fin</text>
-  <text x="24" y="90" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12" font-weight="600">MENU</text>
-  <text x="24" y="120" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="16">Dashboard</text>
-  <text x="24" y="155" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Portfolio</text>
-  <text x="24" y="190" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Analytics</text>
-  <text x="24" y="225" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Settings</text>
-  <text x="24" y="285" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12" font-weight="600">AGENTS</text>
-  <text x="24" y="315" fill="#2FE0A8" font-family="Inter, sans-serif" font-size="16">Investment</text>
-  <text x="24" y="350" fill="#FF6B6B" font-family="Inter, sans-serif" font-size="16">Debt</text>
-  <text x="24" y="385" fill="#FFD166" font-family="Inter, sans-serif" font-size="16">Retirement</text>
-
-  <!-- Main content area -->
-  <rect x="200" y="0" width="700" height="600" fill="url(#oceanGrad)"/>
+  <!-- Main content area (waves stay here, not under sidebar) -->
+  <rect x="60" y="0" width="840" height="600" fill="url(#oceanGrad)"/>
 
   <!-- Top bar -->
-  <text x="240" y="45" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="24" font-weight="600">Welcome back</text>
-  <text x="760" y="45" fill="#5A7A96" font-family="Inter, sans-serif" font-size="14">Last sync: 2 min ago</text>
+  <text x="100" y="45" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="24" font-weight="600">Welcome back</text>
+  <text x="820" y="45" fill="#5A7A96" font-family="Inter, sans-serif" font-size="14">Last sync: 2 min ago</text>
 
-  <!-- Investment Agent -->
-  <g transform="translate(480, 140)" class="fin">
-    <!-- Badge -->
-    <rect x="-70" y="-35" width="160" height="32" rx="16" fill="#FFFFFF" stroke="#2FE0A8" stroke-width="1.5" opacity="0.95"/>
-    <text x="0" y="-14" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="14" font-weight="600" text-anchor="middle">82% confidence</text>
-    <text x="55" y="-14" fill="#5A7A96" font-family="Inter, sans-serif" font-size="14" text-anchor="middle">ℹ</text>
-    <circle cx="85" cy="-19" r="5" fill="#2FE0A8"/>
-
-    <!-- Detailed Fin -->
-    <path d="M-22 45 C-22 15 -12 -5 0 -15 C8 -8 14 5 18 25 C20 35 16 42 12 45 C8 40 4 38 0 38 C-4 38 -8 40 -12 45 C-16 42 -22 38 -22 45 Z" fill="#2FE0A8" filter="url(#glow)"/>
-    <path d="M-8 25 Q0 30 8 25" fill="none" stroke="#1A9E75" stroke-width="1.5" opacity="0.5"/>
-    <text x="0" y="70" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="16" font-weight="500" text-anchor="middle">Investment</text>
+  <!-- Slide-out sidebar (shown open) -->
+  <g>
+    <rect x="0" y="0" width="220" height="600" fill="#0B1B2B" rx="0 16 16 0"/>
+    <!-- Close button -->
+    <circle cx="190" cy="30" r="14" fill="#143A5C"/>
+    <path d="M184 24 L196 36 M196 24 L184 36" stroke="#F0F4F8" stroke-width="2" stroke-linecap="round"/>
+    <text x="24" y="45" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="22" font-weight="700">Fin</text>
+    <text x="24" y="90" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12" font-weight="600">MENU</text>
+    <text x="24" y="120" fill="#F0F4F8" font-family="Inter, sans-serif" font-size="16">Dashboard</text>
+    <text x="24" y="155" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Portfolio</text>
+    <text x="24" y="190" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Analytics</text>
+    <text x="24" y="225" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="16">Settings</text>
+    <text x="24" y="285" fill="#8BAAC6" font-family="Inter, sans-serif" font-size="12" font-weight="600">AGENTS</text>
+    <text x="24" y="315" fill="#2FE0A8" font-family="Inter, sans-serif" font-size="16">Investment</text>
+    <text x="24" y="350" fill="#FF6B6B" font-family="Inter, sans-serif" font-size="16">Debt</text>
+    <text x="24" y="385" fill="#FFD166" font-family="Inter, sans-serif" font-size="16">Retirement</text>
   </g>
 
-  <!-- Debt Agent -->
-  <g transform="translate(300, 260)" class="fin">
-    <!-- Badge -->
-    <rect x="-70" y="-35" width="160" height="32" rx="16" fill="#FFFFFF" stroke="#FF6B6B" stroke-width="1.5" opacity="0.95"/>
-    <text x="0" y="-14" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="14" font-weight="600" text-anchor="middle">67% confidence</text>
-    <text x="55" y="-14" fill="#5A7A96" font-family="Inter, sans-serif" font-size="14" text-anchor="middle">ℹ</text>
-    <circle cx="85" cy="-19" r="5" fill="#FFD166"/>
-
-    <!-- Detailed Fin -->
-    <path d="M-22 45 C-22 15 -12 -5 0 -15 C8 -8 14 5 18 25 C20 35 16 42 12 45 C8 40 4 38 0 38 C-4 38 -8 40 -12 45 C-16 42 -22 38 -22 45 Z" fill="#FF6B6B" filter="url(#glow)"/>
-    <path d="M-8 25 Q0 30 8 25" fill="none" stroke="#CC4A4A" stroke-width="1.5" opacity="0.5"/>
-    <text x="0" y="70" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="16" font-weight="500" text-anchor="middle">Debt</text>
+  <!-- Open sidebar button (visible when sidebar is closed) -->
+  <g>
+    <rect x="20" y="20" width="40" height="40" rx="8" fill="#0B1B2B" opacity="0.9"/>
+    <line x1="30" y1="30" x2="50" y2="30" stroke="#F0F4F8" stroke-width="2" stroke-linecap="round"/>
+    <line x1="30" y1="40" x2="50" y2="40" stroke="#F0F4F8" stroke-width="2" stroke-linecap="round"/>
+    <line x1="30" y1="50" x2="50" y2="50" stroke="#F0F4F8" stroke-width="2" stroke-linecap="round"/>
   </g>
 
-  <!-- Retirement Agent -->
-  <g transform="translate(640, 360)" class="fin">
-    <!-- Badge -->
-    <rect x="-60" y="-35" width="140" height="32" rx="16" fill="#FFFFFF" stroke="#FFD166" stroke-width="1.5" opacity="0.95"/>
-    <text x="0" y="-14" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="14" font-weight="600" text-anchor="middle">No data</text>
-    <text x="40" y="-14" fill="#5A7A96" font-family="Inter, sans-serif" font-size="14" text-anchor="middle">ℹ</text>
-    <circle cx="65" cy="-19" r="5" fill="#FF6B6B"/>
-
-    <!-- Detailed Fin -->
-    <path d="M-22 45 C-22 15 -12 -5 0 -15 C8 -8 14 5 18 25 C20 35 16 42 12 45 C8 40 4 38 0 38 C-4 38 -8 40 -12 45 C-16 42 -22 38 -22 45 Z" fill="#FFD166" filter="url(#glow)"/>
-    <path d="M-8 25 Q0 30 8 25" fill="none" stroke="#CC9A3D" stroke-width="1.5" opacity="0.5"/>
-    <text x="0" y="70" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="16" font-weight="500" text-anchor="middle">Retirement</text>
-  </g>
-
-  <!-- Waves -->
-  <g transform="translate(200,0)">
+  <!-- Waves (contained in main area, x > 60) -->
+  <g transform="translate(60,0)">
     <!-- Back wave -->
     <path class="wave-back" d="M0 520 Q70 500 140 520 T280 520 T420 520 T560 520 T700 520 V600 H0 Z" fill="#3A8CC8" opacity="0.7"/>
 
@@ -123,6 +94,47 @@
     <path class="foam" d="M270 545 Q290 535 310 545 Q330 555 350 545 Q330 560 310 555 Q290 560 270 545 Z" fill="#FFFFFF" opacity="0.9"/>
     <path class="foam" d="M450 545 Q470 535 490 545 Q510 555 530 545 Q510 560 490 555 Q470 560 450 545 Z" fill="#FFFFFF" opacity="0.9"/>
     <path class="foam" d="M630 545 Q650 535 670 545 Q690 555 710 545 Q690 560 670 555 Q650 560 630 545 Z" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+
+  <!-- Fins riding each wave -->
+  <!-- Investment fin on back wave -->
+  <g transform="translate(200, 500)" class="fin">
+    <path d="M-18 45 C-18 15 -8 -5 0 -15 C8 -8 14 5 18 25 C20 35 16 42 12 45 C8 40 4 38 0 38 C-4 38 -8 40 -12 45 C-16 42 -18 38 -18 45 Z" fill="#2FE0A8" filter="url(#glow)"/>
+    <text x="0" y="65" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="14" font-weight="500" text-anchor="middle">Investment</text>
+  </g>
+
+  <!-- Debt fin on mid wave -->
+  <g transform="translate(420, 520)" class="fin">
+    <path d="M-18 45 C-18 15 -8 -5 0 -15 C8 -8 14 5 18 25 C20 35 16 42 12 45 C8 40 4 38 0 38 C-4 38 -8 40 -12 45 C-16 42 -18 38 -18 45 Z" fill="#FF6B6B" filter="url(#glow)"/>
+    <text x="0" y="65" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="14" font-weight="500" text-anchor="middle">Debt</text>
+  </g>
+
+  <!-- Retirement fin on fore wave -->
+  <g transform="translate(640, 540)" class="fin">
+    <path d="M-18 45 C-18 15 -8 -5 0 -15 C8 -8 14 5 18 25 C20 35 16 42 12 45 C8 40 4 38 0 38 C-4 38 -8 40 -12 45 C-16 42 -18 38 -18 45 Z" fill="#FFD166" filter="url(#glow)"/>
+    <text x="0" y="65" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="14" font-weight="500" text-anchor="middle">Retirement</text>
+  </g>
+
+  <!-- Confidence badges -->
+  <g transform="translate(200, 460)">
+    <rect x="-60" y="0" width="120" height="28" rx="14" fill="#FFFFFF" stroke="#2FE0A8" stroke-width="1.5" opacity="0.95"/>
+    <text x="0" y="18" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="13" font-weight="600" text-anchor="middle">82% confidence</text>
+    <text x="45" y="18" fill="#5A7A96" font-family="Inter, sans-serif" font-size="13" text-anchor="middle">ℹ</text>
+    <circle cx="70" cy="14" r="4" fill="#2FE0A8"/>
+  </g>
+
+  <g transform="translate(420, 480)">
+    <rect x="-60" y="0" width="120" height="28" rx="14" fill="#FFFFFF" stroke="#FF6B6B" stroke-width="1.5" opacity="0.95"/>
+    <text x="0" y="18" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="13" font-weight="600" text-anchor="middle">67% confidence</text>
+    <text x="45" y="18" fill="#5A7A96" font-family="Inter, sans-serif" font-size="13" text-anchor="middle">ℹ</text>
+    <circle cx="70" cy="14" r="4" fill="#FFD166"/>
+  </g>
+
+  <g transform="translate(640, 500)">
+    <rect x="-50" y="0" width="100" height="28" rx="14" fill="#FFFFFF" stroke="#FFD166" stroke-width="1.5" opacity="0.95"/>
+    <text x="0" y="18" fill="#0B1B2B" font-family="Inter, sans-serif" font-size="13" font-weight="600" text-anchor="middle">No data</text>
+    <text x="35" y="18" fill="#5A7A96" font-family="Inter, sans-serif" font-size="13" text-anchor="middle">ℹ</text>
+    <circle cx="55" cy="14" r="4" fill="#FF6B6B"/>
   </g>
 
   <!-- Info popup example (Investment) -->

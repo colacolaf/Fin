@@ -125,31 +125,35 @@ Content:
 
 ### 4.4 Sidebar
 
-A persistent left sidebar (not overlay) on desktop, slide-out drawer on mobile:
+A slide-in/out sidebar on the left. On desktop it can be toggled open/closed; on mobile it is a full-screen drawer.
 
 ```
-┌──────────────┐
-│  Fin         │
-│              │
-│  Dashboard   │
-│  Portfolio   │
-│  Analytics   │
-│  Settings    │
-│              │
-│  Agents      │
-│  ─────────   │
-│  Investment  │
-│  Debt        │
-│  Retirement  │
-└──────────────┘
+Closed state:                    Open state:
+┌──┐                             ┌──────────────┐
+│≡ │  Welcome back                │  Fin         │
+│  │                              │              │
+│  │  [waves + fins]             │  Dashboard   │
+│  │                              │  Portfolio   │
+│  │                              │  Analytics   │
+│  │                              │  Settings    │
+│  │                              │              │
+│  │                              │  Agents      │
+│  │                              │  ─────────   │
+│  │                              │  Investment  │
+│  │                              │  Debt        │
+│  │                              │  Retirement  │
+└──┘                             └──────────────┘
 ```
 
-Items:
-- Dashboard
-- Portfolio
-- Analytics
-- Settings
-- Agent shortcuts (Investment, Debt, Retirement)
+- **Open button**: Hamburger icon in the top-left corner
+- **Close button**: X icon in the top-right corner of the sidebar
+- **Waves**: contained entirely within the main content area; they never extend under the sidebar
+- **Items**:
+  - Dashboard
+  - Portfolio
+  - Analytics
+  - Settings
+  - Agent shortcuts (Investment, Debt, Retirement)
 
 Each agent item navigates to the agent’s chat/context view as a fallback if the fin tap is missed.
 
