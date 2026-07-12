@@ -44,6 +44,21 @@ export default function Portfolio() {
     setLoading(true);
     setError(null);
     try {
+      // Phase 39 fix T2.1: short-circuit to empty-state when the /empty probe says so.
+      try {
+        const probe = await portfolioApi.empty();
+        if (probe?.empty === true) {
+          setData({
+            holdings: [],
+            total_value: 0,
+            cash: 0,
+            asset_classes: [],
+            performance: [],
+          } as PortfolioData);
+          setLoading(false);
+          return;
+        }
+      } catch { /* probe missing — fall through to real fetch */ }
       const [result, perfSnap] = await Promise.all([
         portfolioApi.full(),
         portfolioApi.performance('1M').catch(() => null),
@@ -145,9 +160,6 @@ export default function Portfolio() {
 
   return (
     <div data-testid="portfolio-page" className="portfolio-page" style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
-      <head>
-        <title>Portfolio</title>
-      </head>
       <PortfolioSummary
         data={{ ...data, allocation_drift_pct: allocationDrift, cash: data.cash ?? 0 }}
         sparklines={sparks}

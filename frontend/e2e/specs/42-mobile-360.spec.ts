@@ -6,11 +6,16 @@
  * the sidebar collapses below the SDK breakpoint, and the topbar
  * stays inside the visible width.
  *
- * Ponytail: no per-route screenshots — the existing 12-mobile.spec
- * and 15-ocean-dashboard.spec already cover behavior. This is a
- * cheap, deterministic structural check for every page × viewport.
+ * Phase 39 updates:
+ *   - T6: replaces the `header[role="banner"] .first()` workaround with
+ *     the unambiguous `data-testid="app-topbar"` testid.
+ *   - T7: the empty-state centering invariant now uses parent-center
+ *     (within ±20px of parent column center) instead of viewport-center
+ *     (within 20% of viewport width, which leaked 213px on desktop).
+ *   - T5: uses the wrapped `test` from `cleanConsole` to enforce console
+ *     cleanliness on every test in this describe.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../utils/cleanConsole';
 import { ROUTES } from '../utils/routes';
 
 const VIEWPORTS: ReadonlyArray<{ name: string; width: number; height: number }> = [
@@ -45,19 +50,20 @@ test.describe('42 — viewport sweep', () => {
       test('topbar stays within the visible width', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('domcontentloaded');
-        // App.tsx nests the TopBar inside a layout that also emits a
-        // <header role="banner">; .first() resolves the strict-mode locator
-        // violation deterministically.
-        const topbar = page.locator('header[role="banner"]').first();
+        // Phase 39 T6: app shell root testid picks the TopBar deterministically,
+        // no `.first()` workaround required.
+        const topbar = page.locator('[data-testid="app-topbar"]');
         await expect(topbar).toBeVisible();
         const box = await topbar.boundingBox();
         expect(box).not.toBeNull();
         expect(box!.width).toBeLessThanOrEqual(vp.width + 1);
       });
 
-      test('empty state is centered when present', async ({ page }) => {
-        // Hit /debt (single-fetch + our local mock) for a deterministic empty
-        // state, instead of /portfolio (multi-fetch race conditions).
+      // Phase 39 T7: EmptyState centeredness is structural — the element
+      // sits inside its content column. The previous 20% viewport-width
+      // heuristic leaked 213px on desktop (column narrower than viewport).
+      // We now sample the immediate parent and assert within ±20px.
+      test('empty state is centered within its parent column', async ({ page }) => {
         await page.route('**/api/debt/summary', (r) =>
           r.fulfill({
             status: 200,
@@ -70,21 +76,22 @@ test.describe('42 — viewport sweep', () => {
         const empty = page.locator('[data-testid^="empty-state-"]').first();
         if ((await empty.count()) > 0) {
           await expect(empty).toBeVisible();
-          const box = await empty.boundingBox();
-          expect(box).not.toBeNull();
-          const center = (box!.x + box!.width) / 2;
-          // EmptyState is centered within its content column, which is narrower
-          // than the viewport at desktop widths (the layout adds a side rail).
-          // Using a fixed multiplier of 20% of viewport width absorbs the
-          // observed 28px (tablet) and 213px (desktop) column-driven drift.
-          // Tightening this ratio would re-fail the desktop test because the
-          // content column itself isn't viewport-centered — see Phase 39
-          // followup for a "centered within column" redesign.
-          const tolerancePx = Math.round(vp.width * 0.2);
+          const eBox = await empty.boundingBox();
+          const pBox = await empty.evaluate((el) => {
+            const parent = el.parentElement;
+            if (!parent) return null;
+            const r = parent.getBoundingClientRect();
+            return { x: r.x, y: r.y, width: r.width, height: r.height };
+          });
+          expect(eBox).not.toBeNull();
+          expect(pBox).not.toBeNull();
+          const eCenter = eBox!.x + eBox!.width / 2;
+          const pCenter = pBox!.x + pBox!.width / 2;
+          const drift = Math.abs(eCenter - pCenter);
           expect(
-            Math.abs(center - vp.width / 2),
-            `empty state off-center by ${Math.abs(center - vp.width / 2).toFixed(1)}px (tolerance ${tolerancePx}px)`,
-          ).toBeLessThan(tolerancePx);
+            drift,
+            `empty state off-center within parent by ${drift.toFixed(1)}px (tolerance 20px)`,
+          ).toBeLessThan(20);
         } else {
           test.skip(true, 'no empty state to verify');
         }

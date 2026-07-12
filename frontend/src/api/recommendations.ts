@@ -95,4 +95,7 @@ export const recommendationsApi = {
     }),
 
   health: () => api<{ ok: boolean; model: string; available_models: string[] }>('/recommendations/health'),
+
+  // Phase 39 fix T2.2: probe endpoint — returns { empty: true } when there are no active recs.
+  empty: () => api<{ empty: boolean }>('/recommendations/empty'),
 };

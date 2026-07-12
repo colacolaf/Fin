@@ -26,13 +26,14 @@ export const ROUTES = [
 export type Route = (typeof ROUTES)[number];
 
 export const EMPTY_STATE_SLUGS: ReadonlyArray<{ slug: string; route: Route; whenMock: string | null }> = [
-  { slug: 'portfolio-empty', route: '/portfolio', whenMock: '/api/portfolio/full' },
+  // Phase 39 fix T2.1-T2.5: every multi-fetch route now has a single-endpoint /empty probe.
+  { slug: 'portfolio-empty', route: '/portfolio', whenMock: '/api/portfolio/empty' },
   { slug: 'debt-empty', route: '/debt', whenMock: '/api/debt/summary' },
-  { slug: 'memory-empty', route: '/memory', whenMock: null /* natural first-paint */ },
-  { slug: 'recommendations-empty', route: '/recommendations', whenMock: '/api/recommendations' },
-  { slug: 'execution-empty', route: '/execution', whenMock: '/api/execution/pending' },
+  { slug: 'memory-empty', route: '/memory', whenMock: '/api/memory/empty' },
+  { slug: 'recommendations-empty', route: '/recommendations', whenMock: '/api/recommendations/empty' },
+  { slug: 'execution-empty', route: '/execution', whenMock: '/api/execution/empty' },
   { slug: 'community-empty', route: '/community', whenMock: null /* rendered when not opted-in */ },
   { slug: 'backtest-empty', route: '/backtest', whenMock: '/api/backtest/runs' },
   // Phase 38c explicit regression — leaked slug when MultiAgent shipped.
-  { slug: 'multiagent-empty', route: '/orchestrate', whenMock: null /* natural first-paint */ },
+  { slug: 'multiagent-empty', route: '/orchestrate', whenMock: '/api/orchestrate/empty' },
 ];

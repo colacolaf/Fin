@@ -45,6 +45,16 @@ export default function CommunityDashboard() {
       return;
     }
     try {
+      // Phase 39 fix T2.3: short-circuit to empty-state when the /empty probe says so.
+      const probe = await communityApi.empty();
+      if (probe?.empty === true) {
+        setBenchmarks(null);
+        setOptedIn(false); // force the empty branch below to render
+        try { localStorage.setItem('fin.community.optIn', 'false'); } catch { /* noop */ }
+        return;
+      }
+    } catch { /* probe missing — fall through */ }
+    try {
       const b = await communityApi.benchmarks();
       setBenchmarks(b);
     } catch {

@@ -13,7 +13,7 @@
  * covers the *PWA contract surface* a user agent checks on first
  * install.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../utils/cleanConsole';
 
 test.describe('43 — PWA / offline smoke', () => {
   test('manifest link present and resolves to a real PWA manifest', async ({ page }) => {

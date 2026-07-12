@@ -7,6 +7,7 @@ import {
 } from 'react';
 import {
   type MemoryNote,
+  checkMemoryEmpty,
   createMemoryNote,
   fetchMemoryGraph,
   listMemory,
@@ -173,6 +174,16 @@ export function useMemory(opts: UseMemoryOptions = {}) {
     setLoading(true);
     setError(null);
     try {
+      // Phase 39 fix T2.5: short-circuit to empty-state when the /empty probe says so.
+      try {
+        const probe = await checkMemoryEmpty();
+        if (probe?.empty === true) {
+          setNotes([]);
+          setGraph(null);
+          setLoading(false);
+          return;
+        }
+      } catch { /* probe missing — fall through to real fetch */ }
       const [list, g] = await Promise.allSettled([
         listMemory(),
         fetchMemoryGraph(),

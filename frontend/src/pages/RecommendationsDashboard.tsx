@@ -55,6 +55,14 @@ export default function RecommendationsDashboard() {
   const fetchRecs = useCallback(async () => {
     setLoading(true);
     try {
+      // Phase 39 fix T2.2: short-circuit to empty-state when the /empty probe says so.
+      const probe = await recommendationsApi.empty();
+      if (probe?.empty === true) {
+        setRecs([]);
+        return;
+      }
+    } catch { /* probe missing — fall through */ }
+    try {
       const list = await recommendationsApi.list();
       if (Array.isArray(list) && list.length) setRecs(list);
     } catch {

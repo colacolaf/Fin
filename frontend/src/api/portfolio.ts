@@ -19,4 +19,8 @@ export const portfolioApi = {
   assetClasses: () => api<AssetClassBreakdown[]>('/portfolio/asset-classes'),
 
   full: () => api<PortfolioData>('/portfolio/full'),
+
+  // Phase 39 fix T2.1: probe endpoint — returns { empty: true } when the user has no holdings,
+  // so the page can short-circuit to the EmptyState branch synchronously.
+  empty: () => api<{ empty: boolean }>('/portfolio/empty'),
 };

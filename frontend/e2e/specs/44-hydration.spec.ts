@@ -14,14 +14,13 @@
  *   - no console message whose text mentions "hydra" or "Hydration"
  *   - the React root mounts (we can read the root's first child)
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../utils/cleanConsole';
 import { ROUTES } from '../utils/routes';
 
-// Phase 39 — known app bugs surfaced by this spec. Re-enable when:
-//   - /portfolio no longer renders a <div> inside <head> (DOM-nesting fix), OR
-//   - /execution returns an empty pending list for an unauthenticated client
-//     instead of throwing "Not authenticated".
-const KNOWN_APP_BUG_ROUTES = new Set(['/portfolio', '/execution']);
+// Phase 39 — KNOWN_APP_BUG_ROUTES was emptied by T1 + T3 (memory wired with
+// /empty probe + DOM-nesting fix in Portfolio.tsx's loaded branch). New
+// entries here require a concrete app bug + a non-fixable this-pass.
+const KNOWN_APP_BUG_ROUTES = new Set<string>([]);
 
 test.describe('44 — hydration / first-paint', () => {
   for (const route of ROUTES) {

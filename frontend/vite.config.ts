@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { visualizer } from "rollup-plugin-visualizer";
 import path from "node:path";
 
 // https://vite.dev/config/
@@ -52,7 +53,34 @@ export default defineConfig({
         enabled: false, // SW disabled in dev to avoid stale cache issues
       },
     }),
+    // Phase 39 fix T8.3: rollup-plugin-visualizer gated on env flag.
+    // Run `BUILD_ANALYZE=true npx vite build` to produce dist/stats.html.
+    ...(process.env.BUILD_ANALYZE
+      ? [visualizer({ filename: "dist/stats.html", gzipSize: true })]
+      : []),
   ],
+
+  build: {
+    rollupOptions: {
+      output: {
+        // Phase 39 fix T8.3: chunk the four heaviest deps identified by a
+        // previous stats.html analysis so each lands under the 2 MiB
+        // PWA precache limit. Tune after re-running the analyzer.
+        manualChunks: {
+          three: ["three", "@react-three/fiber", "@react-three/drei"],
+          codemirror: [
+            "@uiw/react-codemirror",
+            "@codemirror/state",
+            "@codemirror/view",
+            "@codemirror/lang-markdown",
+            "@codemirror/theme-one-dark",
+          ],
+          framer: ["framer-motion"],
+          charts: ["recharts"],
+        },
+      },
+    },
+  },
 
   resolve: {
     alias: {

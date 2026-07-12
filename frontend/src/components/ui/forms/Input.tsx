@@ -29,6 +29,8 @@ interface Props {
   suffix?: ReactNode;
   /** Type=password only: render an eye toggle that swaps type password ↔ text. */
   maskToggle?: boolean;
+  /** Forwarded to the inner `<input aria-label>`. Prefer `aria-describedby` for content with associated help text. */
+  ariaLabel?: string;
   className?: string;
   style?: CSSProperties;
   min?: number;
@@ -83,6 +85,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(props, r
         max={rest.max}
         step={rest.step}
         aria-describedby={rest['aria-describedby']}
+        aria-label={rest.ariaLabel}
         data-testid={testId}
       />
       {maskToggle && type === 'password' ? (

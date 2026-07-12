@@ -102,7 +102,7 @@ export default function TopBar({ onToggleSidebar, sidebarOpen, onOpenShortcuts }
   };
 
   return (
-    <header className="topbar" role="banner">
+    <header className="topbar" role="banner" data-testid="app-topbar">
       <div className="topbar-left">
         {onToggleSidebar && (
           <button

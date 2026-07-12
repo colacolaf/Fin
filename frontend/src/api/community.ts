@@ -60,4 +60,8 @@ export const communityApi = {
 
   voteSummary: (recommendationId: string) =>
     api<VoteSummary>(`/community/vote-summary/${recommendationId}`),
+
+  // Phase 39 fix T2.3: probe endpoint — returns { empty: true } when the user has not opted in
+  // or their cohort has too few peers to share signals.
+  empty: () => api<{ empty: boolean }>('/community/empty'),
 };

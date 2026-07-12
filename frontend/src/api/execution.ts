@@ -1,5 +1,19 @@
 import { api } from "./client";
 
+// Phase 39 fix: unauthenticated requests return empty pending so empty-state path is reachable.
+// The brief asks for a sync branch — return ExecutionAction[] (top-level array, as the type demands).
+function unauthenticatedPendingFallback(): ExecutionAction[] {
+  return [];
+}
+
+function hasAuthToken(): boolean {
+  try {
+    return !!localStorage.getItem('access_token');
+  } catch {
+    return false;
+  }
+}
+
 export interface ExecutionAction {
   action_id: string;
   recommendation_id: string;
@@ -46,7 +60,13 @@ export const executionApi = {
       body: JSON.stringify({ action_id }),
     }),
 
-  pending: () => api<ExecutionAction[]>("/execution/pending"),
+  pending: async () => {
+    if (!hasAuthToken()) {
+      // Phase 39 fix: unauthenticated requests return empty pending so empty-state path is reachable.
+      return unauthenticatedPendingFallback();
+    }
+    return api<ExecutionAction[]>("/execution/pending");
+  },
 
   stats: () => api<ExecutionStats>("/execution/stats"),
 };

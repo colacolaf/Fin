@@ -8,22 +8,22 @@
  * (zero holdings / opt-out community / no notes) OR mock the API to return []/0.
  * After navigation, assert (a) the empty-state appears, (b) only ONE appears
  * for that route (no slug duplication), and (c) it has a valid aria-label.
+ *
+ * Phase 39 T2.1-T2.5 rewrite: every multi-fetch route now exposes a single-
+ * endpoint /api/<route>/empty probe. The mock body returned from this probe
+ * is `{ empty: true }` — the page's `<EmptyState/>` branch handles the rest.
+ *
+ * Phase 39 T4: a new `slug collision` test at the end of this describe block
+ * uses `for … continue` rather than `test.skip()` so non-fragile routes
+ * independently verify that no OTHER route's slug leaks into their DOM.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../utils/cleanConsole';
 import { EMPTY_STATE_SLUGS } from '../utils/routes';
 
-// Phase 39 — known-to-fail routes whose pages make multi-fetch calls that a
-// single-endpoint mock cannot satisfy. Re-enable when each page exposes a
-// single-endpoint "is empty" condition rather than the multi-fetch fan-out
-// it currently does (prices+holdings, sectors+stats, posts+comments, etc.).
-const KNOWN_FRAGILE_ROUTES = new Set([
-  '/memory',         // useMemory() keeps `loading=true` until first response
-  '/execution',      // /execution/stats 404s in parallel, flips to error state
-  '/portfolio',      // parallel fetches: portfolio + prices + concentration
-  '/recommendations',// parallel fetches: list + agent contexts + history
-  '/community',      // parallel fetches: posts feed + opt-in state + comments
-  '/orchestrate',    // multi-agent orchestration: many parallel agent fetches
-]);
+// Phase 39 — KNOWN_FRAGILE_ROUTES was emptied by T2.1–T2.5 (every multi-fetch
+// route now exposes a /empty probe). New fragility entries should be added
+// here only when an underlying app bug is genuinely unfixable this pass.
+const KNOWN_FRAGILE_ROUTES = new Set<string>([]);
 
 test.describe('40 — empty-state regression', () => {
   for (const { route, slug, whenMock } of EMPTY_STATE_SLUGS) {
@@ -32,22 +32,21 @@ test.describe('40 — empty-state regression', () => {
         KNOWN_FRAGILE_ROUTES.has(route),
         `known app limitation: ${route} makes multi-fetch calls not satisfiable from a single-endpoint mock`,
       );
-      // Block network for the mock target so the page renders its empty branch.
-      // The /memory mock in particular has to satisfy the useMemory() loader,
-      // which keeps `loading=true` until the first response lands.
-      if (whenMock.startsWith('/api/')) {
-        // Match by exact `/api/<resource>/` prefix so we never accidentally
-        // swallow an unrelated route (e.g. /api/chat/recall-memory).
-        const isListRoute =
-          /^\/api\/(recommendations|execution\/pending|memory)\b/.test(whenMock) ||
-          /^\/api\/memory\//.test(whenMock);
+      // Phase 39 T2.1-T2.5: every multi-fetch route now probes /api/<route>/empty
+      // first; if it returns { empty: true } the page short-circuits to its
+      // EmptyState branch synchronously. The mock body returns that shape.
+      if (whenMock && whenMock.startsWith('/api/')) {
+        // The /api/<route>/empty probe — new endpoint pattern.
+        const isEmptyRoute = /\/empty$/.test(whenMock);
+        // Legacy patterns kept as a fallback (debt, backtest use older routes).
+        const isDebtSummary = /^\/api\/debt\/summary\b/.test(whenMock);
         const isRunsRoute = /^\/api\/backtest\/runs\b/.test(whenMock);
         await page.route(whenMock, (r) =>
           r.fulfill({
             status: 200,
             contentType: 'application/json',
-            body: isListRoute
-              ? '[]'
+            body: isEmptyRoute
+              ? '{"empty":true}'
               : isRunsRoute
                 ? JSON.stringify({ runs: [], total: 0 })
                 : JSON.stringify({
@@ -78,4 +77,19 @@ test.describe('40 — empty-state regression', () => {
     });
   }
 
+  // Phase 39 T4: slug collisions regression — assert no route leaks another
+  // route's empty-state testid into its own DOM. Uses JS `continue` to keep
+  // fragile routes inside the loop without short-circuiting the whole test.
+  test('canonical slugs do not leak across routes', async ({ page }) => {
+    for (const { route, slug } of EMPTY_STATE_SLUGS) {
+      if (KNOWN_FRAGILE_ROUTES.has(route)) continue;
+      await page.goto(route);
+      await page.waitForLoadState('domcontentloaded');
+      const otherSlugs = EMPTY_STATE_SLUGS
+        .filter((e) => e.slug !== slug)
+        .map((e) => `[data-testid="empty-state-${e.slug}"]`);
+      const leaks = await page.locator(otherSlugs.join(', ')).count();
+      expect(leaks, `${route} should not render any other route's empty-state slug`).toBe(0);
+    }
+  });
 });

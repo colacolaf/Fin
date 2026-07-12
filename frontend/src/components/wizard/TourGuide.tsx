@@ -1,4 +1,14 @@
-import { Joyride, STATUS, type CallBackProps, type Step } from 'react-joyride';
+import { Joyride, STATUS, type Step } from 'react-joyride';
+
+// Phase 39 fix T8.1: react-joyride 3.x no longer exports `CallBackProps` as a top-level type.
+// Use a minimal semantic shape that covers the fields we read; this keeps the prop narrowly
+// typed without widening to `any` or `Record<string, unknown>`.
+interface JoyrideCallbackData {
+  status: string;
+  index?: number;
+  type?: string;
+  action?: string;
+}
 
 interface Props {
   run: boolean;
@@ -43,7 +53,7 @@ const TOUR_STEPS: Step[] = [
 ];
 
 export default function TourGuide({ run, onFinish }: Props) {
-  const handleCallback = (data: CallBackProps) => {
+  const handleCallback = (data: JoyrideCallbackData) => {
     const { status } = data;
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       onFinish();

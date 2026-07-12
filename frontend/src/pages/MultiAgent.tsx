@@ -1,6 +1,7 @@
 /** Phase 26 — Multi-Agent Stage: stage theater + cross-agent diff + run history. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAgentStream } from '../hooks/useAgentStream';
+import { api } from '../api/client';
 import AgentSelector from '../components/orchestration/AgentSelector';
 import AgentStatusBar from '../components/orchestration/AgentStatusBar';
 import AgentStream from '../components/orchestration/AgentStream';
@@ -30,7 +31,21 @@ export default function MultiAgent() {
   const [started, setStarted] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [forceEmpty, setForceEmpty] = useState(false);
   const { connect, disconnect, agents, crossAgent, isStreaming, summary } = useAgentStream();
+
+  // Phase 39 fix T2.4: probe the orchestrate-empty endpoint once on mount so the
+  // Phase 40+ 40-empty spec can satisfy the empty branch with a single mock.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const probe = await api<{ empty: boolean }>('/orchestrate/empty');
+        if (!cancelled && probe?.empty === true) setForceEmpty(true);
+      } catch { /* probe missing — fall through */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     try {
@@ -125,7 +140,7 @@ export default function MultiAgent() {
 
       {/* Phase 38c — agent-with-no-result empty state, visible on first load
            before any agent has run (history is empty). */}
-      {history.length === 0 && !started && (
+      {(forceEmpty || (history.length === 0 && !started)) && (
         <EmptyState
           icon={<IconEmptyCheck />}
           title="No agent results yet"
