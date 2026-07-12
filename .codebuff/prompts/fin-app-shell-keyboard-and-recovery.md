@@ -62,7 +62,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 **Bug:** Only Memory page has a palette. Power users hit `⌘K` everywhere else and nothing happens.
 
 **Do:**
-- Create `frontend/src/components/ui/CommandPalette.tsx`. Glassmorphic centered modal (mirror Phase 20's `MemoryPalette` — same `.memory-palette` look but reuse the class names `copalette` instead so Phase 20 isn't broken).
+- Create `frontend/src/components/ui/CommandPalette.tsx`. Glassmorphic centered modal that **supersedes Phase 20's local `MemoryPalette`** — keep `frontend/src/components/memory/MemoryCommandPalette.tsx` around as a barrel of `Memory`-scoped commands the global palette imports, then delete the duplicated wrapper. Both share the same `fuse.js` search runtime (`PALETTE_INDEX ⊃ MEMORY_PALETTE_INDEX`) so Memory's [[wikilink]] results appear inside `⌘K` when on `/memory` and hide elsewhere. Reuse the existing `.memory-palette` CSS classes (don't duplicate `copalette-*`).
 - Three section groups in results:
   - **NAVIGATE** — all 13 routes from Sidebar Phase 21 (`Dashboard`, `Portfolio`, `Debt`, `Retirement`, `Multi-Agent`, `Recommendations`, `Execution`, `Memory`, `Community`, `Analytics`, `Backtest`, `Questions`, `Research`, `Settings`)
   - **ACTIONS** — `Sync now`, `Run Investment agent`, `Run Debt agent`, `Run Retirement agent`, `Open today's daily note (memory)`, `Mark all recommendations read`
