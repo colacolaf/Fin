@@ -181,5 +181,58 @@ Confidence formula: reported as two numbers, never merged — guaranteed_portion
 FindSkills_Debt (meta-skill)
 Steps: Same rules-based keyword/intent matching approach as FindSkills_Investment (see Investment Agent skill catalog for the shared methodology) — extract debt-type entities (credit card, student loan, mortgage, personal loan), extract intent (payoff timing, strategy comparison, consolidation/refinance evaluation, debt-vs-invest), score against each skill's Purpose line, return top 3-5 ranked matches with one-line reasons.
 
+ADVANCED SKILLS
+14. OptimizeDebtMarginStrategy — ADVANCED SKILL
+Purpose: Evaluate using portfolio margin or a securities-backed line of credit (SBLOC) to retire higher-interest unsecured consumer debt.
+Steps:
+- Identify unsecured debts with APR > 10% and the user's eligible portfolio collateral (taxable brokerage only — never retirement accounts).
+- Compare the SBLOC/margin interest rate against the debt APR.
+- Compute the breakeven paydown period and the portfolio decline threshold that would trigger a margin call.
+- Flag the behavioral risk: paying off a credit card with a SBLOC frees up the card for re-accumulation of debt.
+- Only recommend if the user's portfolio is at least 3x the proposed loan amount and they have stable income.
+
+Confidence formula: 0.65 — the math is straightforward, but margin call risk and behavioral risk are material and hard to quantify.
+
+15. AnalyzeMortgageRecastOpportunity — ADVANCED SKILL
+Purpose: Compare a lump-sum principal paydown + loan recast against investing the lump sum or paying down other debts.
+Steps:
+- Take the user's mortgage terms (balance, rate, remaining term, servicer recast fee/policy).
+- Compute the new monthly payment after recasting the reduced balance over the remaining term.
+- Compare total cash-flow relief and interest savings vs. investing the lump sum at the user's expected return.
+- Only recommend recasting if the user plans to stay in the home long enough to recover the recast fee via lower payments.
+
+Confidence formula: 0.85 with confirmed servicer recast terms; 0.55 if recast fee/policy is estimated.
+
+16. EvaluateDebtForbearanceImpact — ADVANCED SKILL
+Purpose: Compute the true long-term compounding cost of temporary hardship forbearance or deferment.
+Steps:
+- Take the debt terms and the forbearance period (e.g., 6-12 months).
+- Determine whether interest accrues during forbearance (common for student loans; rare for mortgages under CARES-style forbearance).
+- Compute the new balance at the end of forbearance and the extended payoff timeline.
+- Compare total interest paid: forbearance path vs. continuing minimum payments without forbearance.
+- Present the forbearance as a cash-flow tool, not a forgiveness tool.
+
+Confidence formula: 0.9 — the amortization math is deterministic given accurate forbearance terms.
+
+17. DesignBehavioralMicroPaymentIntervention — ADVANCED SKILL
+Purpose: Use predictive cash-flow analysis to identify small, safe-to-spend amounts that can be auto-routed to debt principal.
+Steps:
+- Analyze 90 days of transaction history (Plaid) to identify recurring income and essential expenses.
+- Compute a "safe-to-sweep" amount per day/week that won't jeopardize bill payments or emergency fund goals.
+- Propose an automatic micro-payment schedule to the highest-interest active debt.
+- Track adherence and adjust the sweep amount based on actual cash-flow variance.
+
+Confidence formula: 0.7 — depends on transaction categorization accuracy and income stability; drop to 0.5 if income is irregular.
+
+18. AnalyzeVariableRateShock — ADVANCED SKILL
+Purpose: Stress-test variable-rate debts against projected interest-rate hikes.
+Steps:
+- Identify variable-rate debts: ARMs, HELOCs, credit cards, some private student loans.
+- Pull current benchmark rates (SOFR, prime rate) and consensus forward projections.
+- Compute monthly payment increases at +1%, +2%, and +3% rate scenarios.
+- Re-rank the debt payoff waterfall to prioritize variable-rate debts if shocks would materially impact cash flow.
+
+Confidence formula: 0.75 — rate projections are uncertain; the stress-test arithmetic is deterministic.
+
 Appendix: Generic Confidence Formula (fallback only)
 confidence = 0.9 × data_source_reliability × input_recency_factor, where data_source_reliability = 1.0 for Plaid-verified data, 0.75 for manually-entered data; input_recency_factor decays as in AnalyzeAllDebts above. Every skill in this file specifies its own formula and this fallback should rarely be needed.

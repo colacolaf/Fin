@@ -53,10 +53,10 @@ This document routes skills to models. It is **hybrid**: it lists real, currentl
 | Gemini 1.5 Pro | Google | $3.50/M | $10.50/M | 1M | Excellent | ✅ Real |
 | Gemini 1.5 Flash | Google | $0.35/M | $1.05/M | 1M | Good | ✅ Real |
 | DeepSeek-V3 | DeepSeek | $0.27/M | $1.10/M | 64k | Excellent | ✅ Real |
+| DeepSeek V4 Pro | DeepSeek | $0.435/M | $0.87/M | 1M | Excellent | ✅ Real |
 | **GPT-5.5** | OpenAI | *(projected)* | *(projected)* | 1M+ | Excellent | ⏳ 2026 |
 | **Claude Sonnet 5** | Anthropic | *(projected)* | *(projected)* | 200k | Excellent | ⏳ 2026 |
 | **Gemini 3.5 Flash** | Google | *(projected)* | *(projected)* | 1M | Good | ⏳ 2026 |
-| **DeepSeek V4 Pro** | DeepSeek | *(projected)* | *(projected)* | 1M | Excellent | ⏳ 2026 |
 | **Qwen 3.7 Max** | Alibaba | *(projected)* | *(projected)* | 1M+ | Excellent | ⏳ 2026 |
 
 ### Local / Self-Hosted Models
@@ -81,9 +81,27 @@ This document routes skills to models. It is **hybrid**: it lists real, currentl
 | **Local Privacy** | Mistral 7B / Qwen 2.5 | $0 + GPU | Complete privacy, one-time cost |
 | **Hybrid (Recommended)** | Local for simple skills, Cloud for fiduciary skills | $20–80 | Balance privacy, cost, quality |
 
+## Free Tier / Open Source Providers
+
+These options are viable for Fin users who want low or zero cost. **Privacy varies dramatically** — see the training/privacy column.
+
+| Provider / Tool | Model | Context | Limits / Notes | Privacy / Training Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Google AI Studio** | Gemini 1.5 Pro / Flash | 1M | ~1,500 req/day | ⚠️ Trains on data unless in EU/Enterprise |
+| **Groq** | Llama 3.3 70B, Mixtral | 128k+ | 1,000 req/day (very fast) | 🔒 Opt-in only / clear policies |
+| **Mistral API** | Codestral / Large | 32k+ | ~1B tokens/mo free | 🔒 Opt-in to training |
+| **Cerebras** | Llama 3.3 70B | 128k | ~1M tokens/day | 🔒 Non-training usage |
+| **GitHub Models** | GPT-4o, Sonnet 3.5 | varied | 150–1,000 req/day | 🔒 No training on API data |
+| **Zhipu (Open Source)** | GLM-5.2 | 1M | MIT License, benchmark leader | 🔒 Self-hosted |
+| **Moonshot (API)** | Kimi K2.7 Code | - | Multi-step agentic | Check provider terms |
+| **Microsoft (Open)** | Phi-4 | - | On-device, fast | 🔒 Local |
+
+> **Note on Freebuff:** Freebuff is a CLI coding agent tool, not a model hub or LLM provider. It can interface with models like DeepSeek or Kimi, but it does not itself provide model inference.
+
 ## Important Notes
 
 - **Projected models are speculative.** Do not hard-code them as defaults. Use them only in architecture discussions and swap them in once released.
 - **Default MVP model:** `Mistral 7B` via Ollama for local-first, privacy-preserving operation.
 - **Fallback cloud model:** `GPT-4o-mini` for skills that need fast, cheap reasoning when local hardware is insufficient.
+- **Free tier data privacy check:** Free consumer tiers (e.g., Google AI Studio) often default to using query data for model training. Traffic carrying PII or financial data must route through enterprise endpoints, self-hosted open-source models (e.g., GLM-5.2, Phi-4), or free APIs that guarantee opt-in-only training policies (GitHub Models, Groq).
 - **Update this matrix quarterly** as new models are released and benchmarked.

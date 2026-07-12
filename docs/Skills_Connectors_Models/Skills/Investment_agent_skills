@@ -278,6 +278,63 @@ Score each skill's relevance using keyword and intent overlap against that skill
 Return the top 3-5 matches ranked by relevance score, each with a one-line reason (see the worked examples in FIN_SKILLS_AND_CONNECTORS.md §6 for the expected output shape).
 
 
+ADVANCED SKILLS
+21. AnalyzeOptionsHedgingStrategy — ADVANCED SKILL
+Purpose: Evaluate whether covered calls or protective puts can generate yield or cap downside on concentrated positions.
+Steps:
+- Identify holdings with concentration risk (≥10% of portfolio or ≥15% of a single non-index position).
+- Pull options chain data for the ticker (via Alpaca options API or Polygon.io in Phase 2).
+- For covered calls: compute annualized premium income vs. cap on upside; flag if the strike is below the user's cost basis (would force a loss if assigned).
+- For protective puts: compute annualized insurance cost as a percentage of position value and compare to the position's beta-adjusted downside risk.
+- Only recommend options strategies if the user has explicitly opted into options in Settings and acknowledged the risks.
+- Never recommend naked options or speculative option buying.
+
+Confidence formula: 0.75 — options pricing is precise, but the recommendation depends on user risk tolerance and market conditions; drop to 0.5 if real-time options data is unavailable.
+
+22. AnalyzeMacroEconomicStressTest — ADVANCED SKILL, MULTI-SUBAGENT
+Purpose: Simulate portfolio drawdowns against specific historical macro shocks rather than randomized Monte Carlo paths.
+Steps:
+- Define shock scenarios: 1970s stagflation, 2008 financial crisis, 2022 rate shock, dot-com bust, COVID crash.
+- For each scenario, pull historical asset-class returns (equities, bonds, gold, cash) during the shock period.
+- Apply those returns to the user's current allocation for a 12-36 month window.
+- Report peak-to-trough drawdown, recovery time, and how the user's current allocation compares to a benchmark 60/40 portfolio.
+- Suggest allocation adjustments only if the user's current portfolio would materially underperform the benchmark in multiple scenarios.
+
+Confidence formula: 0.8 for the historical return arithmetic; 0.6 for the forward-looking applicability of any historical scenario.
+
+23. AnalyzeDirectIndexingOpportunity — ADVANCED SKILL
+Purpose: Compare standard ETF holdings against a direct indexing strategy for component-level tax-loss harvesting.
+Steps:
+- Identify the user's largest ETF holdings (e.g., VTI, VOO, SPY).
+- Pull the ETF's current holdings list and weights.
+- Simulate the tax-loss harvesting opportunities available at the individual stock level over the past 12-24 months.
+- Estimate the additional after-tax alpha from direct indexing vs. the ETF, net of estimated management fees and tracking error.
+- Only recommend direct indexing if the user's taxable portfolio is large enough (typically >$100k) to justify the complexity.
+
+Confidence formula: 0.7 — depends on historical tax-loss estimates and fee assumptions; drop to 0.5 if the user's portfolio is below the complexity threshold.
+
+24. CalculateYieldCurveAnticipation — ADVANCED SKILL
+Purpose: Adjust recommended fixed-income duration based on current Treasury yield curve shape.
+Steps:
+- Pull current Treasury yields (3-month, 2-year, 10-year, 30-year).
+- Compute curve slope (10Y − 2Y) and inversion status.
+- If the curve is inverted or flattening, recommend shortening duration to reduce interest-rate risk.
+- If the curve is steepening, recommend extending duration to lock in higher yields.
+- Frame as a tactical adjustment, not a timing signal.
+
+Confidence formula: 0.85 — yield curve data is precise; the recommendation is lower confidence (0.65) because curve signals are noisy and lagging.
+
+25. EvaluateSecuritiesBackedLineOfCredit (SBLOC) — ADVANCED SKILL
+Purpose: Analyze whether borrowing against the portfolio is preferable to selling assets and triggering capital gains.
+Steps:
+- Identify the user's concentrated/high-gain position and the purpose of the funds (e.g., down payment, debt payoff).
+- Compare: (a) selling assets and paying capital gains tax, (b) borrowing via SBLOC/margin at current rates.
+- Compute the breakeven holding period where deferring taxes beats borrowing costs.
+- Flag margin call risk and the requirement to maintain a minimum portfolio value.
+- Only recommend SBLOC for users with stable income and a portfolio well above the lender's minimum (typically $100k+).
+
+Confidence formula: 0.7 — depends on interest rate assumptions and tax bracket estimates; never exceed 0.8 because margin risk is real.
+
 Appendix: Generic Confidence Formula (fallback only)
 If a skill above doesn't specify its own formula, use:
 confidence = 0.9 × data_freshness_factor × data_completeness_factor

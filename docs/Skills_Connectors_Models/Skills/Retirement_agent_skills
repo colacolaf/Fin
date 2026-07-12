@@ -309,6 +309,69 @@ SUBAGENT 3 — Synthesizer & Plain-Language Narrator
 
 ---
 
+## ADVANCED SKILLS
+
+### 18. OptimizeMedicareIRMAASurcharge — ADVANCED SKILL
+
+**Steps**:
+1. Project the user's future Modified Adjusted Gross Income (MAGI) including RMDs, Roth conversions, dividends, interest, and capital gains.
+2. Pull the current-year IRMAA cliff thresholds (these are published annually by Medicare and adjust with inflation).
+3. Identify any planned Roth conversions or RMDs that would push MAGI across an IRMAA cliff.
+4. Compute the exact "tax-equivalent" cost of the surcharge: additional Medicare premium × 2 years (lookback period) ÷ marginal tax rate.
+5. Recommend reducing conversion/RMD size to stay below the cliff, or bunching conversions into alternating years to stay under the cliff in non-conversion years.
+
+**Confidence formula**: `0.85` for the arithmetic given known income projections; drops to `0.6` if future income is highly uncertain.
+
+---
+
+### 19. EvaluateAnnuityRiskTransfer — ADVANCED SKILL
+
+**Steps**:
+1. Take the user's retirement age, portfolio value, and desired guaranteed income floor.
+2. Pull current SPIA (Single Premium Immediate Annuity) and DIA (Deferred Income Annuity) payout quotes from a connected annuity data provider or ask the user to provide a quote.
+3. Compare the annuity's implied internal rate of return against a portfolio drawdown strategy using the same expected return and longevity assumptions.
+4. Report the tradeoff: guaranteed income vs. loss of liquidity, loss of bequest, and inflation risk (unless the annuity is inflation-indexed).
+5. Only recommend annuitizing a portion of the portfolio (typically 20-40%) if the user values guaranteed income highly and has sufficient liquid assets remaining.
+
+**Confidence formula**: `0.75` with a real annuity quote; `0.5` if using estimated payout rates.
+
+---
+
+### 20. AnalyzeCharitableRemainderTrust — ADVANCED SKILL
+
+**Steps**:
+1. Determine if the user has appreciated assets (e.g., concentrated stock, real estate) and charitable intent.
+2. Compare three strategies: (a) sell and donate after-tax proceeds, (b) donate appreciated assets directly to a Donor Advised Fund (DAF), (c) place assets in a Charitable Remainder Trust (CRT) for income + remainder charity.
+3. Compute the upfront charitable deduction, avoided capital gains tax, and income stream for each.
+4. Recommend the simplest strategy that meets the user's goals; CRTs are complex and should only be recommended for large gifts (typically >$250k).
+
+**Confidence formula**: `0.7` — tax calculations are standard, but CRT structuring requires legal review; flag this explicitly.
+
+---
+
+### 21. PlanGenerationalWealthTransfer — ADVANCED SKILL
+
+**Steps**:
+1. Pull the user's state of residence and estimate state estate tax exposure.
+2. Compare current federal lifetime gift/estate exemption against projected estate value.
+3. Model annual gift-tax exclusions, lifetime gifts, and trust structures (SLAT, IDGT, GRAT) where appropriate.
+4. Recommend a phased gifting strategy to use exemption before potential legislative reductions.
+5. Strongly recommend involving an estate attorney for any trust implementation.
+
+**Confidence formula**: `0.6` — estate law is volatile and state-specific; this skill provides directional planning only.
+
+---
+
+### 22. OptimizeMultiYearBracketSmoothing — ADVANCED SKILL, MULTI-SUBAGENT
+
+**Steps**:
+1. SUBAGENT 1 — Income Projection: Build a 10-year projection of taxable income, RMDs, Social Security, and planned Roth conversions.
+2. SUBAGENT 2 — Bracket Solver: Use a constrained optimization to determine the exact amount to withdraw from Traditional, Roth, and taxable accounts each year to fill the user's target tax bracket without crossing into the next bracket.
+3. SUBAGENT 3 — Synthesizer: Present a year-by-year drawdown and conversion plan, including the estimated lifetime tax savings vs. a naive fixed-order strategy.
+4. Re-run annually as tax law, account values, and income assumptions change.
+
+**Confidence formula**: `0.75` for the bracket arithmetic; `0.5` for long-year projections due to tax-law uncertainty.
+
 ## Appendix: Generic Confidence Formula (fallback only)
 
 `confidence = 0.85 × (1 − 0.01 × years_to_horizon) × input_completeness_factor`, floored at `0.3`. As with the other two agent files, every skill above defines its own formula deliberately — this fallback exists only for genuinely novel skills added after this document's last verification date, and should trigger a documentation-update task rather than being relied upon long-term.
