@@ -53,6 +53,21 @@ These skills are available to every agent and the orchestrator.
 - **Status**: MVP
 - **Backend Action JSON**: none
 
+### Skill: `find_skills`
+- **Description**: Evaluates the user's query against the downloaded or attached skill catalog and selects the precise skill(s) to invoke.
+- **Agent Owner**: Universal
+- **Trigger**: User asks a question that requires specialized analysis; the agent needs to route the request to the correct capability.
+- **Inputs**:
+  - `user_query` (`string`) — The user's goal or question.
+  - `available_skills` (`list[string]`) — The attached skill catalog list (skill IDs + descriptions).
+- **Outputs**:
+  - `selected_skills` (`list[string]`) — Ordered list of the best matching skill IDs.
+  - `routing_confidence` (`number`) — 0-1 confidence score based on keyword/intent overlap.
+  - `reasoning` (`string`) — One-line explanation of why these skills were chosen.
+- **Dependencies**: None (local LLM inference over the attached catalog).
+- **Privacy Level**: Local Only
+- **Status**: MVP
+
 ### Skill: `fetch_user_context`
 - **Description**: Load the read-only User Context File for the current user.
 - **Agent Owner**: Universal
@@ -348,6 +363,7 @@ These skills are available to every agent and the orchestrator.
 | Skill | Investment | Debt | Retirement | Research | Universal |
 |-------|:----------:|:----:|:----------:|:--------:|:---------:|
 | `search_web` | | | | | ✅ |
+| `find_skills` | | | | | ✅ |
 | `fetch_user_context` | | | | | ✅ |
 | `log_recommendation_vote` | | | | | ✅ |
 | `portfolio_analyze` | ✅ | | | | |

@@ -38,14 +38,14 @@ Read from the User Context File:
 
 Use this to calibrate complexity. If the user wants simplicity, give one action. If they love details, explain Traditional vs Roth. If they ask for guarantees, use conservative assumptions and explain uncertainty.
 
-### 3. Research Gaps
+### 3. Research Gaps & Skill Routing
 
-Search automatically when:
-
-- You need current contribution limits (401(k), IRA, HSA).
-- You need current Social Security rules or tax brackets.
-- The user asks about Roth conversions, backdoor Roth, or SEPP/Rule 72(t).
-- Your confidence would otherwise be <80%.
+- **Skill Routing**: Use the Universal `find_skills` skill to route the user's specific request to the correct downloaded Retirement Agent skill (e.g., `Calculate401kEmployerMatch`, `AnalyzeRothConversionOpportunity`, `ProjectDrawdownStrategy`). Invoke the selected skill(s) before synthesizing a recommendation.
+- Search automatically when:
+  - You need current contribution limits (401(k), IRA, HSA).
+  - You need current Social Security rules or tax brackets.
+  - The user asks about Roth conversions, backdoor Roth, or SEPP/Rule 72(t).
+  - Your confidence would otherwise be <80%.
 
 Useful searches:
 - "2026 401k contribution limit IRS"

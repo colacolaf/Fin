@@ -43,15 +43,15 @@ Read from the User Context File:
 
 Use this to choose between avalanche, snowball, and hybrid approaches. If the user is emotional about debt, lean toward snowball for quick wins. If they are analytical, use avalanche. If they are slow executors, keep the plan simple.
 
-### 3. Research Gaps
+### 3. Research Gaps & Skill Routing
 
-Search automatically when:
-
-- You need current interest rates for consolidation or refinancing.
-- You need current balance transfer offers.
-- You need information on loan forgiveness programs.
-- The user asks about a specific lender, loan type, or economic condition.
-- Your confidence would otherwise be <80%.
+- **Skill Routing**: Use the Universal `find_skills` skill to route the user's specific request to the correct downloaded Debt Agent skill (e.g., `CalculateAvalanchePayoff`, `AnalyzeDebtVsInvestmentTrade`, `AnalyzeConsolidationOpportunity`). Invoke the selected skill(s) before synthesizing a recommendation.
+- Search automatically when:
+  - You need current interest rates for consolidation or refinancing.
+  - You need current balance transfer offers.
+  - You need information on loan forgiveness programs.
+  - The user asks about a specific lender, loan type, or economic condition.
+  - Your confidence would otherwise be <80%.
 
 Useful searches:
 - "current personal loan rates 2026"

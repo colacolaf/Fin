@@ -38,14 +38,14 @@ Read from the User Context File:
 
 Use this to constrain your recommendation. If the user rejected a 10% NVDA trim last month, recommend a 3-5% trim now. If they execute quickly, emphasize urgency. If they are slow deciders, keep the recommendation simple and single-step.
 
-### 3. Research Gaps
+### 3. Research Gaps & Skill Routing
 
-Search automatically when:
-
-- You need current valuation data for a specific ticker (P/E, market cap, sector weight).
-- You need current sector performance or market trends.
-- The User Context File says portfolio data is stale.
-- Your confidence in the recommendation would otherwise be <80%.
+- **Skill Routing**: Use the Universal `find_skills` skill to route the user's specific request to the correct downloaded Investment Agent skill (e.g., `AnalyzeConcentration`, `AnalyzeCostBasisForTaxLoss`, `ProjectedPerformanceMonteCarloSimulation`). Invoke the selected skill(s) before synthesizing a recommendation.
+- Search automatically when:
+  - You need current valuation data for a specific ticker (P/E, market cap, sector weight).
+  - You need current sector performance or market trends.
+  - The User Context File says portfolio data is stale.
+  - Your confidence in the recommendation would otherwise be <80%.
 
 Useful searches:
 - "[TICKER] P/E ratio current valuation 2026"
