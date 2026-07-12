@@ -47,8 +47,9 @@ export async function listMemory(folder?: string): Promise<MemoryNote[]> {
 }
 
 // Phase 39 fix T2.5: probe endpoint — returns { empty: true } when the user has no memory notes.
+// Note: api() expects paths WITHOUT the /api prefix (BASE_URL already includes it).
 export async function checkMemoryEmpty(): Promise<{ empty: boolean }> {
-  return api<{ empty: boolean }>("/api/memory/empty");
+  return api<{ empty: boolean }>("/memory/empty");
 }
 
 export async function readMemoryNote(permalink: string): Promise<MemoryNote> {

@@ -168,11 +168,19 @@ export function useMemory(opts: UseMemoryOptions = {}) {
   const [recent, setRecent] = useState<string[]>(() => loadList(RECENT_STORAGE_KEY));
 
   const dailyMountedRef = useRef<string | null>(null);
+  // Phase 39 follow-up: when the /empty probe says no notes exist, the
+  // auto-daily-note flow must NOT auto-create a placeholder (which would
+  // populate `activePermalink` and push the page into the Editor branch
+  // instead of the empty-state branch).
+  const probeReportedEmptyRef = useRef<boolean>(false);
 
   // Refresh notes list
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
+    // Reset the empty-probe guard on every refresh so a future refresh that
+    // sees real notes can re-engage the daily-autoload flow.
+    probeReportedEmptyRef.current = false;
     try {
       // Phase 39 fix T2.5: short-circuit to empty-state when the /empty probe says so.
       try {
@@ -180,6 +188,7 @@ export function useMemory(opts: UseMemoryOptions = {}) {
         if (probe?.empty === true) {
           setNotes([]);
           setGraph(null);
+          probeReportedEmptyRef.current = true;
           setLoading(false);
           return;
         }
@@ -262,6 +271,10 @@ export function useMemory(opts: UseMemoryOptions = {}) {
   useEffect(() => {
     if (!onAutoloadDaily) return;
     if (loading) return;
+    // Phase 39 follow-up: do not auto-create a daily when the /empty probe
+    // already established that no notes exist. Auto-creating a placeholder
+    // would mount the Editor branch and hide the empty-state CTA.
+    if (probeReportedEmptyRef.current) return;
     void ensureDailyNote();
   }, [onAutoloadDaily, loading, ensureDailyNote]);
 

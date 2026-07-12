@@ -178,8 +178,8 @@ export default function HoldingsTable({ holdings, rowsWithSparkData, density: de
                 </td>
               </tr>
             ))}
-            {!filtered.length && (
-              <tr>
+            {filtered.length === 0 && (
+              <tr key="empty-row">
                 <td colSpan={5} className="holdings-empty">No holdings match.</td>
               </tr>
             )}

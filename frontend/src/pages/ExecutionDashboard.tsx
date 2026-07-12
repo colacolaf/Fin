@@ -63,10 +63,21 @@ export default function ExecutionDashboard() {
     setLoading(true);
     setError(null);
     try {
+      // Phase 39 fix: short-circuit to empty-state when the /empty probe says so.
+      try {
+        const probe = await executionApi.empty();
+        if (probe?.empty === true) {
+          setPending([]);
+          setHistory([]);
+          setStats(null);
+          setLoading(false);
+          return;
+        }
+      } catch { /* probe missing — fall through */ }
       const [p, s, h] = await Promise.all([
         executionApi.pending(),
         executionApi.stats(),
-        executionApi.history().catch(() => []),
+        executionApi.history(),
       ]);
       setPending(p);
       setStats(s);

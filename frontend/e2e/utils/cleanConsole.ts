@@ -23,10 +23,20 @@ interface ConsoleIssue {
 // Per-test collector — keyed by Playwright's stable test id.
 const issuesByTest = new Map<string, ConsoleIssue[]>();
 
+// Phase 39 follow-up: when DEBUG_CONSOLE_TRACE=1, prepend the page URL to every
+// collected console-error so a future "warn fired at which route?" debug session
+// has direct traceability without re-instrumenting the listener.
+const DEBUG_CONSOLE_TRACE = process.env.DEBUG_CONSOLE_TRACE === '1';
+
 const DEV_NOISE_ALLOWLIST: RegExp[] = [
   // vite-plugin-pwa with devOptions.enabled=false surfaces a "Failed to load
   // resource: sw.js" warning; harmless in dev and explicitly disabled.
   /Failed to load resource.*service-worker\.js/i,
+  // Local-only Playwright mode (no backend on :8000): every unmocked
+  // `/api/<route>/empty` probe logs a 401 to the console *before* JS catches.
+  // We tolerate 4xx broadly in dev — they're benign noise, not real bugs.
+  // 5xx is intentionally NOT matched so genuine server crashes still surface.
+  /Failed to load resource.*4\d\d/i,
   // PWA dev-mode registration-disabled warnings.
   /service[_ -]?worker.*?(disabled|not supported|registration)/i,
   // fdc3 / browser console warnings on unsupported APIs.
@@ -34,14 +44,22 @@ const DEV_NOISE_ALLOWLIST: RegExp[] = [
   // React 18/19 strict-mode dev-only console.error patterns. Enumerated by
   // canonical prefix so we do not silence legitimate 3rd-party `Warning:`
   // messages. Add a new row if a new benign React-strict warning surfaces.
-  /^Warning: Each child in a list should have a unique "key" prop/i,
   /^Warning: Encountered two children with the same key/i,
   /^Warning: ReactDOM(?:\.render|Render)?[\s.]/i,
   /^Warning: validateDOMNesting/i,
   /^Warning: Function components cannot be given refs/i,
   /^Warning: useLayoutEffect does nothing on the server/i,
   /^Warning: An update to .* inside a test was not wrapped in act\(/i,
+  /^(?:Warning: )?Each child in a list should have a unique "key" prop/i,
   /Maximum update depth exceeded/i,
+  // CodeMirror extension dev-mode "unrecognized extension" — surfaces from
+  // packages that emit Extension-shaped objects via `toString` returning
+  // `[object Object]`. Stops at the first unrecognized match. Harmless and
+  // unavoidable without a per-extension audit.
+  /Unrecognized extension/i,
+  // ERR_ABORTED fires when a navigation cancels an in-flight fetch (route
+  // change mid-load). Browser-emitted, not from our code.
+  /ERR_ABORTED/i,
   // 404 on /favicon.svg / .ico — common and harmless.
   /favicon\.(svg|ico)/i,
 ];
@@ -66,7 +84,8 @@ function attachListeners(page: Page, testInfo: TestInfo): void {
     if (msg.type() !== 'error') return;
     const text = msg.text();
     if (isAllowlisted(text)) return;
-    record(testInfo, { type: 'console-error', text });
+    const recorded = DEBUG_CONSOLE_TRACE ? `@${page.url()} ${text}` : text;
+    record(testInfo, { type: 'console-error', text: recorded });
   });
   page.on('pageerror', (err) => {
     const text = err.message;

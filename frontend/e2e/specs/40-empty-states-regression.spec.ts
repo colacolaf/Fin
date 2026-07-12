@@ -41,7 +41,9 @@ test.describe('40 — empty-state regression', () => {
         // Legacy patterns kept as a fallback (debt, backtest use older routes).
         const isDebtSummary = /^\/api\/debt\/summary\b/.test(whenMock);
         const isRunsRoute = /^\/api\/backtest\/runs\b/.test(whenMock);
-        await page.route(whenMock, (r) =>
+        // Phase 39 fix: prefix pattern with ** so the absolute fetch URL
+        // (http://localhost:8000/api/...) is matched, not just a relative path.
+        await page.route(`**${whenMock}`, (r) =>
           r.fulfill({
             status: 200,
             contentType: 'application/json',
