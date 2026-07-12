@@ -71,7 +71,7 @@ These two items block adding more test routes. Without them, every route we add 
 - Document the change with a one-line comment: `// Phase 39 fix: unauthenticated requests return empty pending so empty-state path is reachable`.
 
 **Verify (Playwright-based — there is no real backend in local-only mode, so curl against `:5173` is misleading):**
-- After T1 lands, mock the response and visit the route. Note: per `frontend/src/api/execution.ts`, `pending()` is typed as `api<ExecutionAction[]>("/execution/pending")` — a top-level array, NOT a wrapped object. The mock body must be a JSON array.
+- After T1 lands, mock the response and visit the route. Note: per `frontend/src/api/execution.ts`, `pending()` is typed as `api<ExecutionAction[]>("/execution/pending")` — a top-level array, NOT a wrapped object. The mock body must be a JSON array. Either literal `'[]'` or `JSON.stringify([])` is acceptable — pick whichever your formatter prefers.
   ```ts
   await page.route('**/api/execution/pending', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await page.goto('/execution');
@@ -111,7 +111,7 @@ These two items block adding more test routes. Without them, every route we add 
 - `frontend/e2e/utils/routes.ts` — keep `whenMock: '/api/<route>/empty'` for each entry, removing the legacy `/api/<route>/<list.endpoint>` shape OR leaving both as a fallback.
 - `KNOWN_FRAGILE_ROUTES` shrinks to ∅ once all 5 compile. Each `test.skip(...)` for the corresponding route is removed.
 
-> **T2.1 cross-impact** — `/portfolio` is in BOTH `KNOWN_FRAGILE_ROUTES` AND `KNOWN_APP_BUG_ROUTES`. T2.1 clears the FRAGILE entry; T3 clears the APP_BUG entry. They are independent (T2.1 = data-shape so the page reaches its empty branch; T3 = CSS so the page no longer renders a `<div>` inside `<head>`). Either order is fine — pick whichever un-skips the spec you care about first.
+> **T2.1 cross-impact** — `/portfolio` is in BOTH `KNOWN_FRAGILE_ROUTES` AND `KNOWN_APP_BUG_ROUTES`. T2.1 clears the FRAGILE entry; T3 clears the APP_BUG entry. They are independent (T2.1 = data-shape, so the page reaches its empty branch; T3 = React tree shape — a `<div>` is being mounted inside `<head>` via a likely portal/Helmet misuse, so correct the JSX placement rather than touching `ocean.css`). Either order is fine — pick whichever un-skips the spec you care about first.
 
 ---
 
@@ -220,7 +220,18 @@ Four quality-of-life cleanups. None of these block new coverage.
 
 **T8.3 · `frontend/vite.config.ts`** — the SPA bundle is currently 2.52 MB; vite-plugin-pwa's default 2 MiB precache limit rejects it.
 
-> **Pre-step:** `rollup-plugin-visualizer` is NOT in `frontend/package.json` devDeps yet. Add it first: `cd frontend && npm i -D rollup-plugin-visualizer && wire it into vite.config.ts under `build.rollupOptions.plugins` with `if (process.env.BUILD_ANALYZE) visualizer({ filename: 'dist/stats.html', gzipSize: true })`. Otherwise `BUILD_ANALYZE=true npx vite build` is a silent no-op.
+> **Pre-step (3 small steps — do all three before running the analyzer):**
+> 1. Install: `cd frontend && npm i -D rollup-plugin-visualizer`. (Defaults to the package's named export `visualizer`; verify on `npm view rollup-plugin-visualizer exports` if unsure.)
+> 2. Add the import at the top of `vite.config.ts`: `import { visualizer } from 'rollup-plugin-visualizer';`
+> 3. Register conditionally inside the build config (place under `plugins:` rather than `build.rollupOptions.plugins:` — the visualizer is a rollup plugin and reads more cleanly there):
+> ```ts
+> plugins: [
+>   react(),
+>   VitePWA({ ... }),
+>   ...(process.env.BUILD_ANALYZE ? [visualizer({ filename: 'dist/stats.html', gzipSize: true })] : []),
+> ],
+> ```
+> Skip any of these and `BUILD_ANALYZE=true npx vite build` will be a silent no-op.
 
 Once configured, run `BUILD_ANALYZE=true npx vite build`, open `frontend/dist/stats.html`, and read the chart of top-3 contributors by gzipped size. Chunk those, not the four packages listed below (which are reasonable guesses but unverified).
 
