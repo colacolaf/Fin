@@ -16,8 +16,8 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 4. `frontend/src/components/ui/Skeleton.tsx`, `Toast.tsx`, `CommandPalette.tsx`, `KeyboardShortcuts.tsx` — verify aria-live / aria-busy / aria-modal patterns
 5. `frontend/src/App.tsx` — its `AppBody` mounts Sidebar + TopBar; this is the right place to mount `<a className="skip-to-content">`
 6. `frontend/src/hooks/useGlobalHotkeys.ts` — combo parsing must accept screen-reader-friendly labels
-7. `frontend/src/components/ui/forms/Toggle.tsx`, `Slider.tsx`, `SegmentedControl.tsx` — verify ARIA roles/values
-8. `package.json` — `@axe-core/playwright ^4.12.1` is already a devDep; use it
+7. `frontend/src/components/ui/forms/{Toggle,Slider,SegmentedControl}.tsx` — verify ARIA roles/values (read but **DO NOT EDIT** — form primitives are Phase 32's territory)
+8. `package.json` — `@axe-core/playwright ^4.12.1` is already a devDep (line 43); use it; do NOT add `react-axe` runtime
 9. `.codebuff/prompts/{fin-app-shell-keyboard-and-recovery,fin-keyboard-shortcuts-overlay}.md` — visual language + verification patterns
 10. `.codebuff/prompts/fin-accessibility-audit-pass.md` (this file)
 
@@ -28,7 +28,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 
 ## What "good" looks like (per spec)
 
-- **axe-core sweep: zero violations of WCAG 2.2 AA on every route** — `/`, `/portfolio`, `/debt`, `/retirement`, `/memory`, `/orchestrate`, `/recommendations`, `/execution`, `/community`, `/backtest`, `/settings`, `/offline`. The Playwright executor with `@axe-core/playwright` runs on each route and fails the build on any violation. Color contrast: text contrast ≥ 4.5:1, large text/ui ≥ 3:1. (Auto-corrected violations block CI.)
+- **axe-core sweep: zero violations of WCAG 2.2 AA on every route** — `/`, `/portfolio`, `/debt`, `/retirement`, `/memory`, `/orchestrate`, `/recommendations`, `/execution`, `/community`, `/backtest`, `/settings`, `/offline`. The Playwright executor with `@axe-core/playwright` (already in devDeps) runs on each route and fails the build on any violation. Color contrast: text contrast ≥ 4.5:1, large text/ui ≥ 3:1. (Auto-corrected violations block CI.)
 - **`aria-current="page"` on the active sidebar item** — sidebar items currently use only `.active` className; add `aria-current="page"` when `pathname` matches the item's route.
 - **Skip-to-content link** — `<a href="#main-content" className="skip-to-content">Skip to main content</a>` mounted first in `<AppBody>` (before TopBar / Sidebar). Hidden visually but focusable; visible on `:focus-visible` with OKLCH-tinted outline. `Tab` once = skip the entire chrome.
 - **Live-region for toasts** — separate `<div role="status" aria-live="polite">` (success/info) and `<div role="alert" aria-live="assertive">` (error/warn) containers that receive toasts. VoiceOver/SR announces insertion. The viewport itself stays `aria-live="off"`.
@@ -37,22 +37,33 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 - **Focus skipping mobile breakpoints** — `.sidebar` is `tabIndex={-1}` on desktop (Tab moves past sidebar), but on mobile when sidebar is overlay, focus must NOT skip into it when closed. Verify the existing focus-trap behavior.
 - **Reduced-motion final sweep** — every animation we ship must have a `@media (prefers-reduced-motion: reduce) { ... transition: none !important; animation: none !important; }` rule in `ocean.css`. Verify Toast, CommandPalette open/close, Popover enter/exit, BottomSheet slide (Phase 36), skeleton shimmer.
 - **Touch targets ≥ 44px** on mobile — sidebar items, TopBar pills, settings-row controls. Verify.
-- **Form-field labels always wired** — `<Field label="Theme">` renders `<label htmlFor=…>` if the child has `id`. Verify the auto-derive from id-aware primitives (Input/Select/Toggle/Slider/SegmentedControl).
+- **Form-field labels always wired** — `<Field label="Theme">` renders `<label htmlFor=…>` if the child has `id`. Verify the auto-derive from id-aware primitives (Input/Select/Toggle/Slider/SegmentedControl) — do NOT modify these primitives; they ship from Phase 32.
 - **No `prefers-color-scheme` mismatch** — currently no "system" theme actually responds to OS preference. Wire `window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', …)` and apply to `document.documentElement.dataset.theme` when theme preference is "system" (existing `fin.theme` localStorage key).
 
 **Scope of THIS pass (≤10 files — counted & verified):**
-- `frontend/src/components/a11y/SkipToContent.tsx` (NEW)
-- `frontend/src/utils/riskLabels.ts` (NEW — `RISK_LABELS` + `riskLabel(v)`; ~30 LOC)
-- `frontend/src/hooks/useTheme.ts` (NEW — `prefers-color-scheme` listener, lightweight)
-- `frontend/src/utils/audit.ts` (NEW — `runAxeCheck(page)` helper for tests)
-- `frontend/src/components/ui/Toast.tsx` (extend with separate live-regions per tone + aria-levels)
-- `frontend/src/components/layout/Sidebar.tsx` (add `aria-current="page"` on active)
-- `frontend/src/components/ui/forms/Slider.tsx` (verify valuetext wiring)
-- `frontend/src/App.tsx` (mount SkipToContent + listen to prefers-color-scheme changes)
-- `frontend/src/styles/ocean.css` (add reduced-motion overrides for any missing anim transitions)
-- `frontend/e2e/specs/37-accessibility.spec.ts` (NEW)
 
-**Total: 10 files.** Within budget.
+> **File-budget arithmetic:** `5 NEW + 5 EDIT = 10 files`. Exactly at budget. **No drive-by edits.**
+
+- `frontend/src/components/a11y/SkipToContent.tsx` (NEW)
+- `frontend/src/utils/riskLabels.ts` (NEW — `RISK_LABELS` + `riskLabel(v)` + `confidenceLabel(v)`; ~30 LOC)
+- `frontend/src/hooks/useTheme.ts` (NEW **unless a code-search for `useTheme` finds it already** — if it exists, this becomes EDIT; verify with `rg "useTheme" frontend/src` before declaring NEW)
+- `frontend/src/utils/audit.ts` (NEW — `runAxeCheck(page)` helper for tests)
+- `frontend/e2e/specs/37-accessibility.spec.ts` (NEW)
+- `frontend/src/components/ui/Toast.tsx` (EDIT — separate live-regions per tone + aria-levels)
+- `frontend/src/components/layout/Sidebar.tsx` (EDIT — add `aria-current="page"` on active)
+- `frontend/src/App.tsx` (EDIT — mount SkipToContent + listen to prefers-color-scheme changes)
+- `frontend/src/styles/ocean.css` (EDIT — add reduced-motion overrides for any missing anim transitions)
+- `frontend/src/components/ui/forms/Slider.tsx` (EDIT — verify valuetext wiring; minimum-diff changes only)
+
+> **HARD GUARD — Form-primitive freeze (NON-NEGOTIABLE):** Phase 32 owns `Field.tsx` / `Input.tsx` / `Select.tsx` / `Toggle.tsx` / `Slider.tsx` / `SegmentedControl.tsx` / `InlineError.tsx`. Phase 37 may **only edit `Slider.tsx`** and only to **wire `aria-valuetext`** (if it's missing on this build) — DO NOT:
+> - Add new props that didn't exist before (label logic is Phase 32's)
+> - Refactor the underlying `<input type="range">` (that's Phase 32)
+> - Touch `Field.tsx` / `Input.tsx` / `Select.tsx` / `Toggle.tsx` / `SegmentedControl.tsx` at all
+> - Touch `Settings.tsx` (Phase 21 owns it; Phase 37 only tests it via e2e)
+>
+> If a fix in Fix 4 needs to change a label format, do it via the new `riskLabels.ts` / `confidenceLabels.ts` helpers (consumed by Settings.tsx in a later phase), not by editing the primitives themselves.
+
+> **Visibility rule (NON-NEGOTIABLE):** OKLCH-only. `ocean.css` may only add OKLCH tokens. **No hex. No `rgb()`. No `hsl()`.** axe-core must continue to scan `ocean.css`-derived styles; if a hex slips in, axe-core 4.12 will catch it via color-contrast rules and CI fails.
 
 ## GitHub repos referenced
 
@@ -124,14 +135,25 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
     if (v <= 8) return 'Growth';
     return 'Aggressive';
   }
+  export const CONFIDENCE_LABELS = ['Low','Low-Mod','Moderate','Mod-High','High'];
+  export function confidenceLabel(v: number): string {
+    if (v <= 2) return `${v}%, Low confidence`;
+    if (v <= 4) return `${v}%, Low-Moderate confidence`;
+    if (v <= 6) return `${v}%, Moderate confidence`;
+    if (v <= 8) return `${v}%, Moderately-High confidence`;
+    return `${v}%, High confidence`;
+  }
   ```
-- Confidence slider gives `aria-valuetext={`${v}%, ${actionLevel(v)}`}` with a similar `confidenceLabels` map in the same file.
-- In `frontend/src/Settings.tsx` consumers, pass `ariaLabelFormatter` props to Slider; verify `<Slider testId={...} ariaLabel={...} labelFormatter={v => \`${riskLabel(v)}\`}>` reads out as `7/10, Aggressive`.
+- In `Slider.tsx` EDIT only (HARD GUARD applies — do NOT touch `Input`/`Select`/`Toggle`/`SegmentedControl`/`Field`/`InlineError`):
+  - Forward `aria-valuetext` from props (ensure the prop is wired through `<input type="range">`).
+  - Add `aria-orientation="horizontal"` default.
+- Settings.tsx is NOT edited here (Phase 21 owns it) — but a later phase (or e2e test) verifies Slider's `aria-valuetext` produces `"7/10, Aggressive"` for `v=7` once Settings wires in `riskLabel`.
 
 ### 5 · Wire `prefers-color-scheme: dark|light` + `prefers-reduced-motion` final pass
 **Bug:** "system" theme doesn't follow OS preference; reduced-motion overrides missing in 4 places.
 
 **Do:**
+- **Search-first:** before creating `frontend/src/hooks/useTheme.ts`, run `rg "useTheme" frontend/src` — if a hook is already exporting `{ theme, effectiveTheme, setTheme }`, EDIT that file instead of creating a parallel one. (Search confirmed no existing `useTheme` in the codebase, so this is NEW.)
 - Create `frontend/src/hooks/useTheme.ts`:
   - On mount + on `matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ...)`, if `localStorage['fin.theme'] === 'system'`, set `document.documentElement.dataset.theme = matches ? 'dark' : 'light'`.
   - On every other theme choice, write the literal to localStorage and stop listening (or set a noop addEventListener for system mode).
@@ -186,14 +208,16 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 
 ## Constraints — NON-NEGOTIABLE
 
-1. **OKLCH palette only** — extend `ocean.css` with `--skip-bg`/`--skip-fg` if needed. NO hex. Verify every text color passes `>=4.5:1` against its background with `LeaVerou/contrast-ratio` math (or visual check at 100/200/400/600/900 zoom).
-2. **Accessibility** — every fix listed above is non-negotiable. No "we'll do it later". The Playwright test runs on every CI commit; any violation fails the build.
-3. **No new backend routes.** No new deps except for `@axe-core/playwright` (already in devDeps).
-4. **No new heavy deps.** No `react-axe` runtime; `axe-core` is test-only.
-5. **Performance** — accessibility add-ons (`<a className="skip-to-content">`) add < 100 bytes of HTML. Live-region roles cost nothing render-wise.
-6. **Micro-interactions < 300ms** per Emil Kowalski. Skip-link reveal 150ms ease-out; reduced-motion → instant.
-7. **Ponytail principle** — drop any redundant `<div aria-hidden>` wrappers. **One** `data-testid` per a11y surface (`skip-to-content`, `aria-current`, etc.).
-8. **`@subagent-driven-development` mandatory** — sequence 1 → 2 → 3 → 4 → 5 → 6 (Playwright last because failures block 5's results). Ship exactly 10 files.
+1. **OKLCH palette only — VISIBLE RULE:** extend `ocean.css` with `--skip-bg`/`--skip-fg` if needed. **NO hex. NO `rgb()`. NO `hsl()`.** Every text color must pass `>=4.5:1` against its background with `LeaVerou/contrast-ratio` math (or visual check at 100/200/400/600/900 zoom).
+2. **Form-primitive freeze (HARD GUARD):** see Scope block. Phase 32 owns `Field/Input/Select/Toggle/Slider/SegmentedControl/InlineError`. Only `Slider.tsx` is editable, only for `aria-valuetext`. **No drive-by refactors.**
+3. **Phase 21 freeze (HARD GUARD):** Phase 21 owns `Settings.tsx`. Phase 37 does NOT edit it — e2e tests cover the Settings page's accessible behavior.
+4. **Accessibility** — every fix listed above is non-negotiable. No "we'll do it later". The Playwright test runs on every CI commit; any violation fails the build.
+5. **No new backend routes.** No new deps except `@axe-core/playwright` (already in devDeps at `frontend/package.json:43`); do **not** add `react-axe` runtime.
+6. **No new heavy deps.** No `react-axe`.
+7. **Performance** — accessibility add-ons (`<a className="skip-to-content">`) add < 100 bytes of HTML. Live-region roles cost nothing render-wise.
+8. **Micro-interactions < 300ms** per Emil Kowalski. Skip-link reveal 150ms ease-out; reduced-motion → instant.
+9. **Ponytail principle** — drop any redundant `<div aria-hidden>` wrappers. **One** `data-testid` per a11y surface (`skip-to-content`, `aria-current`, etc.).
+10. **`@subagent-driven-development` mandatory** — sequence 1 → 2 → 3 → 4 → 5 → 6 (Playwright last because failures block 5's results). Ship exactly 10 files.
 
 ---
 
@@ -214,23 +238,23 @@ cd frontend && npx playwright test e2e/specs/37-accessibility.spec.ts --reporter
 
 ---
 
-## Verification before declaring done
+## Verification before declaring done (concrete, not vague)
 
-1. `npm run e2e` (Playwright test 37-accessibility) — all routes report zero violations.
-2. VoiceOver on macOS: open `/portfolio` → first Tab focuses `.skip-to-content` → "Skip to main content, link" announced; Enter skips past sidebar/topbar.
-3. VoiceOver on macOS: open `/settings` → navigate to Risk slider → arrow-up moves + reads "8 of 10, Growth".
-4. macOS Settings → set OS to light mode, Fin's `theme: 'system'` follows automatically within 100ms.
-5. Chromium DevTools: `prefers-reduced-motion: reduce` → no animation calls in Performance trace, no slide-up transitions visible.
-6. Tab through CommandPalette: cycles within results, never escapes.
+1. `npm run e2e` (Playwright test 37-accessibility) — all routes report zero violations. **Assert: `runAxeCheck(page)` returns no thrown error for each of the 11 ROUTES.**
+2. VoiceOver on macOS: open `/portfolio` → first Tab focuses `.skip-to-content` → "Skip to main content, link" announced; Enter skips past sidebar/topbar. **Assert: `getByRole('link', { name: 'Skip to main content' }).first()` is the first focusable element on `/`.**
+3. VoiceOver on macOS: open `/settings` → Tab to any range input → arrow-up moves + reads "8 of 10, Growth" or similar semantic label. **Assert: the focused `<input type="range">` has `aria-valuetext` matching `/^\d+\/10, (Very Conservative|Conservative|Balanced|Growth|Aggressive)$/` (Phase 21's `Settings.tsx` rewires the consumer; Phase 37 only validates the primitive-surface behavior — do NOT pin to an unverified testId).**
+4. macOS Settings → set OS to light mode, Fin's `theme: 'system'` follows automatically within 100ms. **Assert: `localStorage['fin.theme'] === 'system'` AND `document.documentElement.dataset.theme === 'light'`.**
+5. Chromium DevTools: `prefers-reduced-motion: reduce` → no animation calls in Performance trace, no slide-up transitions visible. **Assert: trace records 0 entries with `name === 'Animation'`.**
+6. Tab through CommandPalette: cycles within results, never escapes. **Assert: focus moves through search input → first result → last result → search input (focus trap cycle).**
 7. Lighthouse a11y = 100 on all routes.
 8. Playwright e2e 37-accessibility passes.
-9. Self-review with `@code-review-and-quality`: tight diff ≤ 10 files (you counted 10; no extras).
+9. Self-review with `@code-review-and-quality`: tight diff ≤ 10 files (counted: 5 NEW + 5 EDIT = 10; no extras). Search the diff for forbidden strings: any edit to `Input.tsx` / `Select.tsx` / `Toggle.tsx` / `SegmentedControl.tsx` / `Field.tsx` / `InlineError.tsx` / `Settings.tsx` → revert. Any hex literal in `ocean.css` additions → revert.
 
 ---
 
 ## Deliverable format
 
-Reply with: bullet list of files changed (must be exactly 10), anything skipped (with reason), and any new tech debt. **Strict ≤10 files.** Stop and ask before ballooning scope.
+Reply with: bullet list of files changed (must be exactly 10), anything skipped (with reason — e.g. "Settings.tsx wiring deferred to a later phase because of the Phase 21 freeze"), and any new tech debt. **Strict ≤10 files.** Stop and ask before ballooning scope.
 
 **Visual continuity — non-negotiable:** the skip-to-content link in the same glassmorphic language. `aria-current` doesn't visually change anything — `.active` already conveys state. Reduced-motion audit: every new animation must include the override. Re-read `frontend/src/styles/ocean.css`.
 

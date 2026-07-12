@@ -39,21 +39,25 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
   - **Settings** — `t` jump to Theme row (focus SegmentedControl), `m` jump to Motion toggle
   - **Help** — `?` this panel (shown for discoverability)
 - **Click-to-invoke** — clicking a shortcut row runs its action. Navigating via a `g d` row navigates AND closes the overlay (the user is "asking" to do the thing). For page-specific shortcuts (Memory's `⌘K`, Execution's `e`), the row says "open on current page" and dispatches the action through the same `useGlobalHotkeys` registry.
-- **Single declaration of truth** — the LIST of shortcuts lives in one TypeScript file (`frontend/src/utils/shortcutCatalog.ts`), exported as `SHORTCUT_CATALOG: ShortcutEntry[]`. The overlay reads it. A thin `useShortcutActions()` dispatcher maps `id` → runtime handler. There must be ONE source of truth — drifting catalogs are tech debt.
+- **Single declaration of truth** — the LIST of shortcuts lives in one TypeScript file (`frontend/src/utils/shortcutCatalog.ts`), exported as `SHORTCUT_CATALOG: ShortcutEntry[]`. The overlay reads it. A flat `ACTION_MAP` lives inside `App.tsx`'s AppBody mapping `id → handler`. There must be ONE source of truth — drifting catalogs are tech debt.
 - **`prefers-reduced-motion` respected** — open animation: 180ms ease-out fade; reduced-motion → instant.
 - **No new dep**: `fuse.js` is already a dep; `framer-motion` is already a dep (used by Toast viewport for the same fade pattern).
 
 **Scope of THIS pass (≤10 files — counted & verified):**
+
+> **File-budget arithmetic:** `2 NEW + 4 EDIT = 6 source files` + `1 NEW spec file` = **7 total**. Within ≤10 budget.
+
 - `frontend/src/components/ui/KeyboardShortcutsOverlay.tsx` (NEW)
 - `frontend/src/utils/shortcutCatalog.ts` (NEW)
-- `frontend/src/hooks/useShortcutActions.ts` (NEW — small `useSyncExternalStore`-backed dispatcher)
-- `frontend/src/hooks/useGlobalHotkeys.ts` (extend registry)
-- `frontend/src/App.tsx` (mount overlay + register `?` + wire shortcut-actions dispatcher)
-- `frontend/src/components/layout/TopBar.tsx` (QuickSettings "Keyboard shortcuts" item opens overlay)
+- `frontend/src/hooks/useGlobalHotkeys.ts` (extend registry — no new file)
+- `frontend/src/App.tsx` (mount overlay + register `?` + inline `ACTION_MAP` at bottom of `AppBody`)
+- `frontend/src/components/layout/TopBar.tsx` (QuickSettings "Keyboard shortcuts" item opens overlay via prop callback)
 - `frontend/src/styles/ocean.css` (extend with `--kbd-*` tokens + `.kbd` styling + reduced-motion overrides)
 - `frontend/e2e/specs/35-shortcuts.spec.ts` (NEW — covered by Code checkers / E2E block)
 
-**Total: 7 source files + 1 spec file = 8 files.** Within budget.
+> **YAGNI applied:** `useShortcutActions.ts` (a `useSyncExternalStore`-backed dispatcher) considered and DROPPED — actions are bounded to ~25 entries and live as a flat inline `ACTION_MAP` in `App.tsx`. No second consumer justifies the indirection. **Ponytail wins.**
+
+> **Phase 34 exclusion (HARD GUARD — NON-NEGOTIABLE):** Phase 35 must NOT register `cmd+k` / `ctrl+k` / `⌘K` / `Ctrl+K` handlers anywhere. Phase 34 owns the global CommandPalette combo, and `App.tsx`'s `useLocation()`-scoped suppression on `/memory` owns the Memory-style palette override. Anything phase 35 writes that touches `cmd+k` / `mod+k` is a regression. The only combo Phase 35 adds is `?` (shift+/) + `cmd+/`/`ctrl+/` synonyms — all `allowInInputs: false`.
 
 ## GitHub repos referenced
 
@@ -68,7 +72,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 
 ---
 
-## The 6 fixes (execute in order)
+## The 5 fixes (execute in order — was 6, one inline below)
 
 ### 1 · `shortcutCatalog.ts` — the single source of truth
 **Bug:** Shortcuts are scattered between `useGlobalHotkeys` registry, `QuickSettings` menu labels, and individual components' `onKeyDown` handlers. There's no place to read the canonical list from.
@@ -84,16 +88,15 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
     hint?: string;
     keywords?: string[];
     allowInInputs?: boolean;            // default false — duplicates useGlobalHotkeys option
-    /** Default placeholder; the actual handler is wired in App.tsx via useShortcutActions. */
-    placeholder: true;
   }
   export const SHORTCUT_CATALOG: ShortcutEntry[] = [
     // Navigation
     { id: 'g-d', combo: 'g d', section: 'Navigation', label: 'Dashboard', hint: '/', keywords: ['home','overview'] },
     // ...etc (12 nav + 4 global + ~5 memory + 3 exec + 2 backtest + 2 settings + 1 help)
   ];
+  export function getShortcutById(id: string): ShortcutEntry | undefined;
   ```
-- Catalog has `placeholder: true` because the lambda `run` is wired at runtime in App.tsx. Provide `getShortcutById(id)`.
+- Catalog has NO `run` lambda — the `ACTION_MAP` in App.tsx (fix 4) maps `id → handler` at runtime; the catalog imports nothing from App.tsx and App.tsx imports the catalog.
 
 ### 2 · `KeyboardShortcutsOverlay.tsx` — searchable, clickable, focus-trapped
 **Bug:** No overlay exists. `?` does nothing.
@@ -102,7 +105,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 - Create `frontend/src/components/ui/KeyboardShortcutsOverlay.tsx`. Mirrors the visual structure of `CommandPalette.tsx` but smaller — 560px wide, two-column with section rail on left, rows on right.
 - Top: search input with `<input className="copalette-input">` + `<button className="copalette-close">` (`aria-label="Close shortcuts"`) on the right. Below: scrollable region of group-by-section rows.
 - Group rows via a `Map<Section, ShortcutEntry[]>` derived from a flat list. Section header row in `--copalette-section` color (already a token).
-- Each row is a `<button>` with role="button", fully focusable; rendered with `<kbd>` chips on the left. On click → `runShortcutAction(entry.id)` (the dispatcher from fix 5) and close.
+- Each row is a `<button>` with role="button", fully focusable; rendered with `<kbd>` chips on the left. On click → `props.dispatch(entry.id)` (the inline `ACTION_MAP` from fix 4) and `props.onClose()`.
 - Empty state: `<div className="copalette-empty">No shortcuts match "{query}"</div>`.
 - Footer: muted kbd hint line: `<kbd>?</kbd> open at any time · <kbd>esc</kbd> close`.
 - Use `useFocusTrap(overlayRef, { active: open, initialFocus: searchInputRef.current, onEscape: onClose, restoreFocus: true })`. Don't `stopPropagation` on Escape (MemoryExplorer subscribes to it too).
@@ -112,46 +115,35 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 **Bug:** `?` is not registered.
 
 **Do:**
-- In `frontend/src/App.tsx`'s `AppBody`, register a new combo: `{ combo: '?', allowInInputs: false, handler: () => setShortcutsOpen(o => !o) }`. Provide a `OpenKeyboardShortcuts` action method that the TopBar QuickSettings menu calls directly through props (avoids router state coupling).
+- In `frontend/src/App.tsx`'s `AppBody`, register a new combo: `{ combo: '?', allowInInputs: false, handler: () => setShortcutsOpen(o => !o) }`. Provide a `setShortcutsOpen` method that TopBar QuickSettings calls directly through props (avoids router state coupling).
 - Add `cmd+/` and `ctrl+/` as synonyms (mac/linux conventions) — both `allowInInputs: false`.
 - `Esc` already closes the palette; ensure it ALSO closes the shortcuts overlay if it's open (the overlay's `useFocusTrap` handles its own Escape, so no global change needed).
 - On open: focus search input via `useFocusTrap` initial-focus (verified by reviewer pass).
+- **Hard exclusion:** DO NOT register `cmd+k`, `ctrl+k`, `mod+k`, `⌘K` here — Phase 34 already owns those in App.tsx's existing `useGlobalHotkeys` invocation. Search the App.tsx diff for those strings; if any sneak in, the commit is wrong.
 
-### 4 · Make the TopBar "Keyboard shortcuts" menu item actually open the overlay
-**Bug:** The menu item currently calls a comment "shortcut overlay is wired via ⌘K/?. Visual only here" and immediately closes.
+### 4 · Make the TopBar "Keyboard shortcuts" menu item actually open the overlay + inline `ACTION_MAP` in App.tsx
+**Bug:** The menu item currently calls a no-op (`close()` only). The catalog has no place to declare a runtime handler — but we decided against `useShortcutActions.ts` (YAGNI), so actions live inline in App.tsx.
 
 **Do:**
-- In `frontend/src/components/layout/TopBar.tsx`'s `QuickSettings`, replace the no-op click with an API call. Two options:
-  - **Option A (preferred)**: have `QuickSettings` accept an `onOpenShortcuts: () => void` prop. `App.tsx`'s `AppBody` passes `() => setShortcutsOpen(true)`. Cleaner separation.
-  - **Option B**: dispatch a `window.dispatchEvent(new CustomEvent('fin:open-shortcuts'))` event. `App.tsx` listens once. Decouples TopBar from App.tsx.
-- Pick A. It composes better and the QuickSettings panel is a single consumer.
+- In `frontend/src/components/layout/TopBar.tsx`'s `QuickSettings`, replace the no-op click with a prop callback. QuickSettings accepts a new `onOpenShortcuts: () => void` prop. `App.tsx`'s `AppBody` passes `() => setShortcutsOpen(true)`. Cleaner separation; one prop, one consumer.
 - Add a test-id `qs-shortcuts` (already there — verify) and `aria-label="Open keyboard shortcuts"`.
-
-### 5 · `useShortcutActions.ts` — ID-keyed dispatcher (small `useSyncExternalStore` shim)
-**Bug:** The catalog can't reference a `run` lambda because the action registry must be set up BEFORE the catalog is imported (App.tsx imports the catalog, the catalog would import App.tsx — circular). We need a separate dispatcher file.
-
-**Do:**
-- Create `frontend/src/hooks/useShortcutActions.ts`:
-  - Tiny `useSyncExternalStore`-backed `ActionRegistry` (≤ 80 LOC). `register(id, handler)` + `dispatch(id)` + `runShortcutAction(id)` consumer hook.
-  - Singleton instance with internal Map. Mount in `App.tsx`'s `AppBody` useEffect: register `(id: 'g-d') => navigate('/')`, `(id: 'global-palette') => setPaletteOpen(o => !o)`, `(id: 'memory-palette') => openMemoryPalette()`, etc.
-  - The overlay calls `runShortcutAction(entry.id)` and closes itself.
-- Refactor `frontend/src/hooks/useGlobalHotkeys.ts`: keep it lean — accept `(combo, handler, options)` flat + a single helper `useShortcutRegistry()` that exposes `registerAction(id, handler)` and feeds into the same emitter. (Don't fork these — keep one emitter.)
-- Renderer code in App.tsx:
+- In `frontend/src/App.tsx`'s `AppBody`, after the existing state declarations + effects, declare an inline `ACTION_MAP: Record<string, () => void>`. Mount once in a `useEffect(() => { /* registerAction for each id */ }, [navigate, deps])`. Roughly:
   ```ts
-  // In AppBody:
-  useEffect(() => {
-    registerAction('g-d', () => navigate('/'));
-    registerAction('g-i', () => navigate('/portfolio'));
-    // ...etc
-    registerAction('global-palette', () => setPaletteOpen((o) => !o));
-    registerAction('memory-palette', () => setMemoryPaletteOpen((o) => !o));
-    registerAction('qs-shortcuts', () => setShortcutsOpen(true));
-    registerAction('sw-refresh', () => applySWUpdate());
-  }, [navigate]);
+  const ACTION_MAP = {
+    'g-d':            () => navigate('/'),
+    'g-i':            () => navigate('/portfolio'),
+    // ...one entry per shortcut id
+    'global-palette': () => setPaletteOpen((o) => !o),
+    'memory-palette': () => setMemoryPaletteOpen((o) => !o),
+    'qs-shortcuts':   () => setShortcutsOpen(true),
+    'sw-refresh':     () => applySWUpdate(),
+  };
+  const dispatch = (id: string) => { ACTION_MAP[id]?.(); };
   ```
-- This seamingly couples the global hotkey layer to the action registry without circular imports.
+- Pass `dispatch={dispatch}` to `<KeyboardShortcutsOverlay>` and `setShortcutsOpen={setShortcutsOpen}` as well.
+- Keep `ACTION_MAP` flat and inline — don't grow it into a hook. If we ever need 50 entries, that's Phase 36+ / `(useShortcutActions)`/revisit.
 
-### 6 · Visual polish (`.kbd`, CSS tokens, reduced-motion) + mount
+### 5 · Visual polish (`.kbd`, CSS tokens, reduced-motion) + mount
 **Bug:** No `<kbd>` styling exists in the codebase. Reduced-motion handling for the overlay open/close.
 
 **Do:**
@@ -168,7 +160,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
     padding: 2px 7px; min-width: 22px;
     background: var(--kbd-bg); border: 1px solid var(--kbd-border);
     border-radius: var(--kbd-radius);
-    font-family: 'Geist Mono', 'SF Mono', Menlo, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px; line-height: 1.4;
     color: var(--kbd-fg);
     box-shadow: 0 1px 0 oklch(0% 0 0 / 0.4) inset;
@@ -177,21 +169,22 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
   .kbd-row-label { color: var(--text-secondary); font-size: var(--text-sm); }
   ```
 - Extend reduced-motion block to also cover the overlay open animation.
-- The overlay mount point: in `App.tsx`'s `AppBody`, render `<KeyboardShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} dispatch={runShortcutAction} />` after `<CommandPalette />`. Pass `paletteItems` and `shortcutsOpen` to AppBody via local state.
+- The overlay mount point: in `App.tsx`'s `AppBody`, render `<KeyboardShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} dispatch={dispatch} />` after `<CommandPalette />`. Pass `paletteItems` and `shortcutsOpen` to AppBody via local state.
 - Add `data-testid` to the TopBar QuickSettings "Keyboard shortcuts" button → already `qs-shortcuts` (verify).
 
 ---
 
 ## Constraints — NON-NEGOTIABLE
 
-1. **OKLCH palette only** — extend `ocean.css` with `--kbd-bg`/`--kbd-border`/`--kbd-fg`/`--kbd-radius`. **NO hex.** Reuse existing `--copalette-*` tokens where possible.
-2. **Accessibility** — overlay has `role="dialog"` + `aria-modal="true"`; kbd chips have descriptive `aria-label` (e.g. `aria-label="Press Command and K simultaneously"`). Section headers `aria-hidden` (visual labels only). Clickable rows are buttons with full text in their accessible name. Reduced-motion honored (open fade 180ms; reduced-motion → instant).
-3. **No new backend routes.**
-4. **No new heavy deps** — `fuse.js` and `framer-motion` already in `package.json`. Reuse them.
-5. **Performance** — overlay renders lazily on `open` only; no per-keystroke re-renders outside the search input's bound subset; the catalog has at most ~30 entries so no virtualization.
-6. **Micro-interactions < 300ms** per Emil Kowalski. Open fade 180ms, row hover 120ms. `Esc` close is instant. Kbd chip tap is instant.
-7. **Ponytail principle** — delete before adding. Drop duplicated shortcut strings between TopBar menu label and `useGlobalHotkeys` registry. **One** declaration in `shortcutCatalog.ts`. **One** kbd CSS class (`.kbd`).
-8. **`@subagent-driven-development` mandatory** — spawn one subagent per fix where independent. Sequence 1 → 2 → 3 → 4 → 5 → 6. Ship ≤8 source files (≤10 with the spec file).
+1. **OKLCH palette only — VISIBLE RULE:** extend `ocean.css` with `--kbd-bg`/`--kbd-border`/`--kbd-fg`/`--kbd-radius`. **NO hex anywhere. NO `rgb()`. NO `hsl()`.** Reuse existing `--copalette-*` tokens where possible. (If a reviewer spots hex in the diff, it's wrong.)
+2. **Phase 34 exclusion (HARD GUARD):** Phase 35 must NOT touch `cmd+k` / `ctrl+k` / `mod+k` dispatches. Search the diff before commit; if any of those strings appear in new code, revert.
+3. **Accessibility** — overlay has `role="dialog"` + `aria-modal="true"`; kbd chips have descriptive `aria-label` (e.g. `aria-label="Press Command and K simultaneously"`). Section headers `aria-hidden` (visual labels only). Clickable rows are buttons with full text in their accessible name. Reduced-motion honored (open fade 180ms; reduced-motion → instant).
+4. **No new backend routes.**
+5. **No new heavy deps** — `fuse.js` and `framer-motion` already in `package.json`. Reuse them.
+6. **Performance** — overlay renders lazily on `open` only; no per-keystroke re-renders outside the search input's bound subset; the catalog has at most ~30 entries so no virtualization.
+7. **Micro-interactions < 300ms** per Emil Kowalski. Open fade 180ms, row hover 120ms. `Esc` close is instant. Kbd chip tap is instant.
+8. **Ponytail principle** — delete before adding. Drop duplicated shortcut strings between TopBar menu label and `useGlobalHotkeys` registry. **One** declaration in `shortcutCatalog.ts`. **One** kbd CSS class (`.kbd`). **No** `useShortcutActions.ts` (we proved it YAGNI).
+9. **`@subagent-driven-development` mandatory** — spawn one subagent per fix where independent. Sequence 1 → 2 → 3 → 4 → 5. Ship ≤7 total (≤6 source + ≤1 spec).
 
 ---
 
@@ -200,7 +193,7 @@ You are a senior frontend engineer finishing **Fin**. Execute the surgical pass 
 ```bash
 cd frontend && \
   npx tsc --noEmit && \
-  npx oxlint src/components/ui/KeyboardShortcutsOverlay.tsx src/utils/shortcutCatalog.ts src/hooks/useShortcutActions.ts src/hooks/useGlobalHotkeys.ts src/App.tsx src/components/layout/TopBar.tsx src/styles/ocean.css && \
+  npx oxlint src/components/ui/KeyboardShortcutsOverlay.tsx src/utils/shortcutCatalog.ts src/hooks/useGlobalHotkeys.ts src/App.tsx src/components/layout/TopBar.tsx src/styles/ocean.css && \
   npx vitest run --reporter=dot
 ```
 
@@ -213,6 +206,7 @@ E2E: create `frontend/e2e/specs/35-shortcuts.spec.ts`:
 - From inside a textarea input, press `?` → typing `?` (combo suppressed)
 - `Tab` from search input cycles through rows; `Shift+Tab` reverses; never escapes
 - DevTools reduced-motion: overlay opens instantly
+- **Hard guard:** Pressing `cmd+k` opens the existing CommandPalette, NOT the shortcuts overlay. Pressing `?` opens the overlay.
 
 ```bash
 cd frontend && npx playwright test e2e/specs/35-shortcuts.spec.ts --reporter=line
@@ -220,22 +214,22 @@ cd frontend && npx playwright test e2e/specs/35-shortcuts.spec.ts --reporter=lin
 
 ---
 
-## Verification before declaring done
+## Verification before declaring done (concrete, not vague)
 
-1. `npm run dev` and from any route press `?` → overlay opens with all sections visible.
-2. Search "nav" → only Navigation rows.
-3. Click a `g r` row → navigates to `/retirement`; overlay closes.
-4. From topbar QuickSettings gear → click "Keyboard shortcuts" → overlay opens.
-5. DevTools Console: zero errors. `console.error` not called from any new code path.
-6. Lighthouse a11y ≥ 100 on overlay route.
-7. Playwright e2e 35-shortcuts passes.
-8. Self-review with `@code-review-and-quality`: tight diff ≤ 10 files (you counted 7 source + 1 spec = 8; no extras).
+1. `npm run dev` and from any route press `?` → overlay opens with all sections visible. **Assert: data-testid `kbd-overlay-root` is in DOM, focus is on `kbd-search-input`, 12 navigation rows + 4 memory rows etc. visible.**
+2. Search "nav" → only Navigation rows visible. **Assert: count of visible rows == length of SHORTCUT_CATALOG filtered by section=='Navigation'.**
+3. Click a `g r` row → navigates to `/retirement`; overlay closes. **Assert: `window.location.pathname === '/retirement'` AND `data-testid kbd-overlay-root` no longer in DOM.**
+4. From topbar QuickSettings gear → click "Keyboard shortcuts" → overlay opens. **Assert: `qs-shortcuts` button has `aria-label="Open keyboard shortcuts"`, click triggers `setShortcutsOpen(true)`.**
+5. DevTools Console: zero errors. `console.error` not called from any new code path. **Assert: page.on('console', e => e.type() === 'error') never fires during e2e.**
+6. Lighthouse a11y ≥ 100 on overlay route. **Assert: `axe-core` run with `runAxeCheck(page)` returns 0 violations on `/?shortcuts=open` or similar.**
+7. Playwright e2e 35-shortcuts passes (all 7 assertions above).
+8. Self-review with `@code-review-and-quality`: tight diff ≤ 7 files (counted: 2 NEW + 4 EDIT + 1 spec = 7; no extras). Search the diff for `cmd+k`/`ctrl+k`/`mod+k`/`⌘K` strings; if any appear in NEW lines (not existing), revert.
 
 ---
 
 ## Deliverable format
 
-Reply with: bullet list of files changed (must be ≤8 source files), anything skipped (with reason), and any new tech debt. **Strict ≤10 source files.** Stop and ask before ballooning scope.
+Reply with: bullet list of files changed (must be ≤6 source files + ≤1 spec = ≤7), anything skipped (with reason — e.g. dropped `useShortcutActions.ts` due to YAGNI), and any new tech debt. **Strict ≤10 files.** Stop and ask before ballooning scope.
 
 **Visual continuity — non-negotiable:** overlay mirrors `CommandPalette`'s glassmorphic surface but smaller + 2-column. Kbd chips match the Settings page's `<kbd>⌘K</kbd>` rendering. Reduced-motion block extended. Re-read `frontend/src/styles/ocean.css` for tokens.
 
