@@ -144,7 +144,7 @@ export default function SetupWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="wizard-step-container"
+            className="wizard-step-container wizard-step-content"
           >
             {wizard.currentStep === 0 && (
               <StepBrokerConnect

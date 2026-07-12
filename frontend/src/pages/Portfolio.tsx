@@ -72,6 +72,22 @@ export default function Portfolio() {
 
   if (!data) return null;
 
+  if (!data.holdings.length && data.total_value === 0) {
+    return (
+      <div data-testid="portfolio-page" style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
+        <div data-testid="portfolio-empty" className="empty-state" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          minHeight: 400, color: 'var(--text-primary, #E8F4FD)', gap: 12,
+        }}>
+          <p style={{ fontSize: 18, margin: 0 }}>No portfolio data yet.</p>
+          <p style={{ color: 'var(--text-secondary, #94A3B8)', margin: 0 }}>
+            Connect an account or add holdings to get started.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div data-testid="portfolio-page" style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <h2 style={{ margin: '0 0 20px', fontSize: 24, fontWeight: 700, color: 'var(--text-primary, #E8F4FD)' }}>

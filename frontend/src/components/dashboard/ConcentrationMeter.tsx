@@ -27,7 +27,7 @@ export default function ConcentrationMeter({ holdings }: Props) {
         Portfolio Concentration
       </h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <div style={{
+        <div data-testid="concentration-warning" className={maxAllocation > 30 ? 'concentration-warning' : ''} style={{
           flex: 1,
           height: 8,
           borderRadius: 4,

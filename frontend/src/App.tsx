@@ -8,6 +8,7 @@ import MemoryExplorer from "./pages/MemoryExplorer";
 import MultiAgent from "./pages/MultiAgent";
 import ExecutionDashboard from "./pages/ExecutionDashboard";
 import CommunityDashboard from "./pages/CommunityDashboard";
+import RecommendationsDashboard from "./pages/RecommendationsDashboard";
 import BacktestDashboard from "./pages/BacktestDashboard";
 import OfflinePage from "./pages/OfflinePage";
 import NetworkTransition from "./components/NetworkTransition";
@@ -30,6 +31,7 @@ function App() {
           <Route path="/retirement" element={<RetirementPage />} />
           <Route path="/memory" element={<MemoryExplorer />} />
           <Route path="/orchestrate" element={<MultiAgent />} />
+          <Route path="/recommendations" element={<RecommendationsDashboard />} />
           <Route path="/execution" element={<ExecutionDashboard />} />
           <Route path="/community" element={<CommunityDashboard />} />
           <Route path="/backtest" element={<BacktestDashboard />} />

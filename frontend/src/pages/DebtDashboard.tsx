@@ -148,22 +148,22 @@ export default function DebtDashboard() {
 
   if (loading) {
     return (
-      <div className="debt-dashboard">
-        <div className="loading">Loading debt dashboard...</div>
+      <div className="debt-dashboard" data-testid="debt-dashboard">
+        <div className="loading" data-testid="debt-loading">Loading debt dashboard...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="debt-dashboard">
-        <div className="error">Error: {error}</div>
+      <div className="debt-dashboard" data-testid="debt-dashboard">
+        <div className="error" data-testid="debt-error">Error: {error}</div>
       </div>
     );
   }
 
   return (
-    <div className="debt-dashboard">
+    <div className="debt-dashboard" data-testid="debt-dashboard">
       {/* Header */}
       <header className="debt-header">
         <h1>Debt Dashboard</h1>
@@ -175,13 +175,15 @@ export default function DebtDashboard() {
       </header>
 
       {/* Summary Cards */}
-      <DebtSummary
-        total_debt={totalDebt}
-        monthly_payments={summary?.monthly_payments ?? 0}
-        avg_interest_rate={summary?.avg_interest_rate ?? 0}
-        debt_count={summary?.debt_count ?? 0}
-        dti_ratio={null}
-      />
+      <div data-testid="debt-summary" className="debt-total">
+        <DebtSummary
+          total_debt={totalDebt}
+          monthly_payments={summary?.monthly_payments ?? 0}
+          avg_interest_rate={summary?.avg_interest_rate ?? 0}
+          debt_count={summary?.debt_count ?? 0}
+          dti_ratio={null}
+        />
+      </div>
 
       {/* Strategy Toggle */}
       <PayoffStrategyToggle

@@ -48,7 +48,7 @@ export default function PortfolioSummary({ totalValue, dailyChange, dailyChangeP
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{
+        <div data-testid="daily-change" style={{
           flex: 1, minWidth: 120,
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.06)',
