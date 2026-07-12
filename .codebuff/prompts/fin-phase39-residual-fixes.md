@@ -71,9 +71,9 @@ These two items block adding more test routes. Without them, every route we add 
 - Document the change with a one-line comment: `// Phase 39 fix: unauthenticated requests return empty pending so empty-state path is reachable`.
 
 **Verify (Playwright-based — there is no real backend in local-only mode, so curl against `:5173` is misleading):**
-- After T1 lands, mock the response and visit the route:
+- After T1 lands, mock the response and visit the route. Note: per `frontend/src/api/execution.ts`, `pending()` is typed as `api<ExecutionAction[]>("/execution/pending")` — a top-level array, NOT a wrapped object. The mock body must be a JSON array.
   ```ts
-  await page.route('**/api/execution/pending', (r) => r.fulfill({ status: 200, body: '{"pending":[]}' }));
+  await page.route('**/api/execution/pending', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await page.goto('/execution');
   await expect(page.locator('[data-testid="empty-state-execution-empty"]')).toBeVisible({ timeout: 5000 });
   ```
@@ -111,7 +111,7 @@ These two items block adding more test routes. Without them, every route we add 
 - `frontend/e2e/utils/routes.ts` — keep `whenMock: '/api/<route>/empty'` for each entry, removing the legacy `/api/<route>/<list.endpoint>` shape OR leaving both as a fallback.
 - `KNOWN_FRAGILE_ROUTES` shrinks to ∅ once all 5 compile. Each `test.skip(...)` for the corresponding route is removed.
 
-> **T2.1 cross-impact** — `/portfolio` lives in BOTH `KNOWN_FRAGILE_ROUTES` AND `KNOWN_APP_BUG_ROUTES`. T2.1 removes the FRAGILE entry only; `/portfolio` remains in `KNOWN_APP_BUG_ROUTES` until T3 also completes. Some specs (44-hydration) will keep skipping `/portfolio` until then. Execute T2.1 ⇒ T3 in that order, then both skip-list entries go away.
+> **T2.1 cross-impact** — `/portfolio` is in BOTH `KNOWN_FRAGILE_ROUTES` AND `KNOWN_APP_BUG_ROUTES`. T2.1 clears the FRAGILE entry; T3 clears the APP_BUG entry. They are independent (T2.1 = data-shape so the page reaches its empty branch; T3 = CSS so the page no longer renders a `<div>` inside `<head>`). Either order is fine — pick whichever un-skips the spec you care about first.
 
 ---
 
@@ -220,7 +220,9 @@ Four quality-of-life cleanups. None of these block new coverage.
 
 **T8.3 · `frontend/vite.config.ts`** — the SPA bundle is currently 2.52 MB; vite-plugin-pwa's default 2 MiB precache limit rejects it.
 
-> **Pre-step:** before guessing chunk targets, run `BUILD_ANALYZE=true npx vite build` (with `rollup-plugin-visualizer` installed if not present) and read the chart of top-3 contributors by gzipped size. Chunk those, not the four packages listed below (which are reasonable guesses but unverified).
+> **Pre-step:** `rollup-plugin-visualizer` is NOT in `frontend/package.json` devDeps yet. Add it first: `cd frontend && npm i -D rollup-plugin-visualizer && wire it into vite.config.ts under `build.rollupOptions.plugins` with `if (process.env.BUILD_ANALYZE) visualizer({ filename: 'dist/stats.html', gzipSize: true })`. Otherwise `BUILD_ANALYZE=true npx vite build` is a silent no-op.
+
+Once configured, run `BUILD_ANALYZE=true npx vite build`, open `frontend/dist/stats.html`, and read the chart of top-3 contributors by gzipped size. Chunk those, not the four packages listed below (which are reasonable guesses but unverified).
 
 Implement `manualChunks` in `vite.config.ts` for the actual top contributors (likely candidates: `three`, `@uiw/react-codemirror`, `framer-motion`, `recharts` — verify with the analyzer first) via `build.rollupOptions.output.manualChunks`.
 
