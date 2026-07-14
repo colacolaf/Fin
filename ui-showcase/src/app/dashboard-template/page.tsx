@@ -101,12 +101,12 @@ export default function DashboardTemplatePage() {
           <div className="mx-auto max-w-6xl">
             {/* Paper sheet */}
             <div className="rounded-xl bg-white p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04)] ring-1 ring-slate-100">
-              <div className="grid h-full grid-cols-1 gap-6 lg:grid-cols-5">
+              <div className="grid h-full grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Left column — portfolio + debt */}
-                <div className="flex flex-col gap-6 lg:col-span-3">
+                <div className="flex flex-col gap-8 lg:col-span-2">
                   <SketchBox
                     title="Main Portfolio"
-                    className="min-h-[320px] flex-1"
+                    className="min-h-[260px] flex-1"
                   >
                     <span className="text-2xl font-bold text-slate-300">
                       Portfolio
@@ -118,7 +118,7 @@ export default function DashboardTemplatePage() {
 
                   <SketchBox
                     title="Debt Graphs"
-                    className="min-h-[220px]"
+                    className="min-h-[110px]"
                   >
                     <span className="text-xl font-bold text-slate-300">
                       Debt
@@ -130,10 +130,10 @@ export default function DashboardTemplatePage() {
                 </div>
 
                 {/* Right column — memory + agent buttons */}
-                <div className="flex flex-col gap-6 lg:col-span-2">
+                <div className="flex flex-col gap-8 lg:col-span-1">
                   <SketchBox
                     title="Chat Memory Preview"
-                    className="min-h-[160px]"
+                    className="min-h-[140px]"
                   >
                     <span className="text-lg font-bold text-slate-300">
                       Memory
