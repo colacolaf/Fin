@@ -13,7 +13,7 @@ No cloud. No tracking. No subscriptions required. Your data stays on your machin
 - **Local-first**: All data lives on your machine. No cloud hosting, no accounts, no telemetry.
 - **Privacy by default**: Financial data is encrypted at rest. API keys are stored securely.
 - **Agent-driven**: Three specialized agents handle portfolio, debt, and retirement.
-- **Unified memory**: One memory system, organized by agent, so every recommendation learns from the last.
+- **Unified memory**: One file-based chat archive, organized by agent, so every recommendation learns from the last.
 - **Apple-like minimalism**: Clean, professional, desktop-only UI. No dark mode. No gimmicks.
 - **Offline capable**: View your dashboard and chat with local models without internet.
 - **Optional paid APIs**: Local Ollama is the default, but you can plug in OpenAI/Anthropic/etc. for stronger reasoning.
@@ -51,11 +51,12 @@ Each agent has its own chat interface. You can ask natural-language questions, r
 
 ## Memory
 
-The system uses a single, unified, Obsidian-style memory graph. Every recommendation, vote, and executed action is recorded so agents can reference past decisions and adapt to your preferences.
+The system keeps a lightweight, file-based archive of every conversation between the user and the agents. This archive is primarily a backend resource: agents can search past chats to build context, and users can search it through a panel in Settings.
 
-- Memory is stored locally in markdown files.
-- Users can view and edit memory files directly.
-- All three agents share one memory graph, organized by agent.
+- Memory is stored locally as plain JSON chat files.
+- Agents can read relevant past conversations at the start of a new chat.
+- The dashboard shows a **Recent News** widget instead of a memory graph.
+- See `docs/Design/memory-system.md` for the full design.
 
 ## Security
 
