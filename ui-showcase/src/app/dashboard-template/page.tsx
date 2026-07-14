@@ -132,11 +132,11 @@ export default function DashboardTemplatePage() {
                 {/* Right column — memory + agent buttons */}
                 <div className="flex flex-col gap-8 lg:col-span-1">
                   <SketchBox
-                    title="Chat Memory Preview"
+                    title="Recent News"
                     className="min-h-[140px]"
                   >
                     <span className="text-lg font-bold text-slate-300">
-                      Memory
+                      News
                     </span>
                   </SketchBox>
 
