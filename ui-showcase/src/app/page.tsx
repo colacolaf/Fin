@@ -5,6 +5,7 @@ import ShaderLensBlurDemo from "@/components/shader-lens-blur-demo"
 import LoadingCarouselDemo from "@/components/loading-carousel-demo"
 import LoadingScreen from "@/components/loading-screen"
 import SetupWizard from "@/components/setup-wizard"
+import Link from "next/link"
 
 export default function Home() {
   return (
@@ -15,6 +16,12 @@ export default function Home() {
           <p className="text-muted-foreground">
             Exact component previews from the provided source code.
           </p>
+          <Link
+            href="/dashboard-template"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+          >
+            Open Dashboard Template
+          </Link>
         </header>
 
         <section className="space-y-4">
