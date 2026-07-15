@@ -42,7 +42,8 @@ function ShaderBlurConfig() {
   const heightId = `${id}-height`
 
   const handleVariationChange = useCallback(
-    (value: string) => {
+    (value: string | null) => {
+      if (value === null) return
       setConfig((prev) => ({ ...prev, variation: parseInt(value) }))
     },
     [setConfig]
@@ -208,9 +209,10 @@ function ShaderBlurConfig() {
                     max={1000}
                     step={10}
                     value={[parseInt(config.width.toString())]}
-                    onValueChange={([value]) =>
-                      handleDimensionChange("width", value)
-                    }
+                    onValueChange={(value) => {
+                      const v = Array.isArray(value) ? value[0] : value
+                      handleDimensionChange("width", v)
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -231,9 +233,10 @@ function ShaderBlurConfig() {
                     max={1000}
                     step={10}
                     value={[parseInt(config.height.toString())]}
-                    onValueChange={([value]) =>
-                      handleDimensionChange("height", value)
-                    }
+                    onValueChange={(value) => {
+                      const v = Array.isArray(value) ? value[0] : value
+                      handleDimensionChange("height", v)
+                    }}
                   />
                 </div>
               </div>

@@ -203,7 +203,9 @@ export default function SortableListDemo() {
                       max={1}
                       defaultValue={topP}
                       step={0.1}
-                      onValueChange={setTopP}
+                      onValueChange={(value) =>
+                        setTopP(Array.isArray(value) ? value : [value])
+                      }
                       className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-5 [&_[role=slider]]:rounded-md [&_[role=slider]]:border-neutral-100/10 [&_[role=slider]]:bg-neutral-900 [&_[role=slider]]:hover:border-[#13EEE3]/70 "
                       aria-label="Top P"
                     />
@@ -224,7 +226,9 @@ export default function SortableListDemo() {
                       max={1}
                       defaultValue={temp}
                       step={0.1}
-                      onValueChange={setTemp}
+                      onValueChange={(value) =>
+                        setTemp(Array.isArray(value) ? value : [value])
+                      }
                       className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-5 [&_[role=slider]]:rounded-md [&_[role=slider]]:border-neutral-100/10 [&_[role=slider]]:bg-neutral-900 [&_[role=slider]]:hover:border-[#13EEE3]/70"
                       aria-label="Temperature"
                     />
@@ -245,7 +249,9 @@ export default function SortableListDemo() {
                       max={1}
                       defaultValue={tokens}
                       step={0.1}
-                      onValueChange={setTokens}
+                      onValueChange={(value) =>
+                        setTokens(Array.isArray(value) ? value : [value])
+                      }
                       className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-5 [&_[role=slider]]:rounded-md [&_[role=slider]]:border-neutral-100/10 [&_[role=slider]]:bg-neutral-900 [&_[role=slider]]:hover:border-[#13EEE3]/70"
                       aria-label="Tokens"
                     />
