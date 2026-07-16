@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" fill="none">
+  <!-- Background -->
+  <rect width="1200" height="1000" fill="#0F1117"/>
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="56" height="1000" fill="#141720"/>
+  <rect x="55" y="0" width="1" height="1000" fill="#2A2D38"/>
+  
+  <!-- Sidebar logo -->
+  <rect x="12" y="16" width="32" height="32" rx="6" fill="#818CF8" fill-opacity="0.1" stroke="#818CF8" stroke-opacity="0.3" stroke-width="1"/>
+  <rect x="20" y="24" width="16" height="4" rx="1" fill="#818CF8"/>
+  <rect x="20" y="32" width="10" height="4" rx="1" fill="#818CF8" fill-opacity="0.6"/>
+  <rect x="20" y="36" width="16" height="4" rx="1" fill="#818CF8" fill-opacity="0.4"/>
+  
+  <rect x="16" y="60" width="24" height="1" fill="#2A2D38"/>
+  
+  <!-- Sidebar icons -->
+  <rect x="22" y="82" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  <rect x="12" y="112" width="32" height="32" rx="6" fill="#818CF8" fill-opacity="0.15"/>
+  <rect x="22" y="122" width="12" height="12" rx="2" fill="#818CF8"/>
+  <rect x="22" y="162" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  <rect x="22" y="202" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  <rect x="22" y="242" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  <rect x="22" y="282" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  
+  <!-- Header -->
+  <rect x="56" y="0" width="1144" height="72" fill="#141720"/>
+  <rect x="56" y="71" width="1144" height="1" fill="#2A2D38"/>
+  <text x="88" y="34" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="18" font-weight="600">Portfolio — Full View</text>
+  <text x="88" y="52" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12">Terminal grid — assets, trades, and strategy</text>
+  
+  <!-- Time range pills (header) -->
+  <rect x="840" y="20" width="240" height="32" rx="8" fill="#232630"/>
+  <rect x="846" y="26" width="35" height="20" rx="5" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="854" y="40" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">1D</text>
+  <rect x="687" y="26" width="35" height="20" rx="5" fill="#6B7085" fill-opacity="0.3"/>
+  <rect x="887" y="26" width="35" height="20" rx="5" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="895" y="40" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">1W</text>
+  <rect x="928" y="26" width="35" height="20" rx="5" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="936" y="40" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">1M</text>
+  <rect x="969" y="26" width="35" height="20" rx="5" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="977" y="40" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">3M</text>
+  <rect x="1010" y="26" width="35" height="20" rx="5" fill="#818CF8"/>
+  <text x="1018" y="40" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="11">1Y</text>
+  <rect x="1051" y="26" width="35" height="20" rx="5" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="1059" y="40" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">ALL</text>
+  
+  <!-- Collapse button -->
+  <rect x="1095" y="18" width="90" height="32" rx="8" fill="#232630" stroke="#2A2D38" stroke-width="1"/>
+  <text x="1112" y="38" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="11" font-weight="500">Collapse</text>
+  
+  <!-- Main card -->
+  <rect x="88" y="100" width="1024" height="820" rx="12" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  
+  <!-- Hero stats bar -->
+  <rect x="112" y="124" width="976" height="64" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  <text x="132" y="150" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="0.1em">PORTFOLIO VALUE</text>
+  <text x="132" y="172" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="24" font-weight="700">$124,580</text>
+  
+  <!-- Divider -->
+  <rect x="310" y="136" width="1" height="40" fill="#2A2D38"/>
+  
+  <!-- Stats -->
+  <text x="340" y="150" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="0.1em">DAY P&L</text>
+  <text x="340" y="172" fill="#34D399" font-family="system-ui, sans-serif" font-size="14" font-weight="600">+$1,247</text>
+  
+  <text x="480" y="150" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="0.1em">TOTAL RETURN</text>
+  <text x="480" y="172" fill="#34D399" font-family="system-ui, sans-serif" font-size="14" font-weight="600">+12.4%</text>
+  
+  <text x="640" y="150" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="0.1em">ANNUALIZED</text>
+  <text x="640" y="172" fill="#34D399" font-family="system-ui, sans-serif" font-size="14" font-weight="600">+18.2%</text>
+  
+  <text x="790" y="150" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10" font-weight="500" letter-spacing="0.1em">SHARPE RATIO</text>
+  <text x="790" y="172" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="14" font-weight="600">1.42</text>
+  
+  <!-- Large chart -->
+  <rect x="112" y="210" width="976" height="300" rx="8" fill="transparent"/>
+  
+  <!-- Grid lines -->
+  <line x1="152" y1="240" x2="1068" y2="240" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="152" y1="290" x2="1068" y2="290" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="152" y1="340" x2="1068" y2="340" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="152" y1="390" x2="1068" y2="390" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="152" y1="440" x2="1068" y2="440" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="152" y1="480" x2="1068" y2="480" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  
+  <!-- Y axis labels -->
+  <text x="137" y="244" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$130k</text>
+  <text x="137" y="294" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$120k</text>
+  <text x="137" y="344" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$110k</text>
+  <text x="137" y="394" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$100k</text>
+  <text x="137" y="444" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$90k</text>
+  
+  <!-- X axis labels -->
+  <text x="170" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Jan</text>
+  <text x="260" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Feb</text>
+  <text x="350" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Mar</text>
+  <text x="440" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Apr</text>
+  <text x="530" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">May</text>
+  <text x="620" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Jun</text>
+  <text x="710" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Jul</text>
+  <text x="800" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Aug</text>
+  <text x="890" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Sep</text>
+  <text x="980" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Oct</text>
+  <text x="1040" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Nov</text>
+  <text x="1070" y="500" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Dec</text>
+  
+  <!-- Chart gradient -->
+  <defs>
+    <linearGradient id="chartGradFull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#818CF8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Chart area fill -->
+  <path d="M170,430 L260,415 L350,440 L440,400 L530,380 L620,390 L710,355 L800,365 L890,335 L980,320 L1040,310 L1068,305 L1068,480 L170,480 Z" fill="url(#chartGradFull)"/>
+  
+  <!-- Chart line -->
+  <path d="M170,430 L260,415 L350,440 L440,400 L530,380 L620,390 L710,355 L800,365 L890,335 L980,320 L1040,310 L1068,305" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Active dot -->
+  <circle cx="1068" cy="305" r="5" fill="#818CF8" stroke="#1A1D26" stroke-width="2"/>
+  
+  <!-- Assets table -->
+  <rect x="112" y="530" width="476" height="220" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  <text x="132" y="558" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">ASSETS HELD</text>
+  
+  <!-- Table header -->
+  <rect x="132" y="570" width="436" height="1" fill="#2A2D38"/>
+  <text x="132" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">ASSET</text>
+  <text x="300" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">SHARES</text>
+  <text x="380" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">VALUE</text>
+  <text x="460" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">%</text>
+  <text x="520" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">DAY</text>
+  
+  <!-- Asset rows -->
+  <text x="132" y="612" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="13" font-weight="500">VOO</text>
+  <text x="132" y="626" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9">Vanguard S&amp;P 500</text>
+  <text x="310" y="616" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">170</text>
+  <text x="370" y="616" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$77,231</text>
+  <text x="455" y="616" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">62%</text>
+  <text x="510" y="616" fill="#34D399" font-family="system-ui, sans-serif" font-size="12">+3.2%</text>
+  
+  <rect x="132" y="635" width="436" height="1" fill="#2A2D38" fill-opacity="0.5"/>
+  <text x="132" y="655" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="13" font-weight="500">AAPL</text>
+  <text x="132" y="669" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9">Apple Inc.</text>
+  <text x="310" y="659" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">120</text>
+  <text x="370" y="659" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$22,428</text>
+  <text x="455" y="659" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">18%</text>
+  <text x="510" y="659" fill="#34D399" font-family="system-ui, sans-serif" font-size="12">+1.8%</text>
+  
+  <rect x="132" y="678" width="436" height="1" fill="#2A2D38" fill-opacity="0.5"/>
+  <text x="132" y="698" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="13" font-weight="500">MSFT</text>
+  <text x="132" y="712" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9">Microsoft Corp.</text>
+  <text x="310" y="702" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">36</text>
+  <text x="370" y="702" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$14,947</text>
+  <text x="455" y="702" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">12%</text>
+  <text x="510" y="702" fill="#34D399" font-family="system-ui, sans-serif" font-size="12">+2.1%</text>
+  
+  <rect x="132" y="721" width="436" height="1" fill="#2A2D38" fill-opacity="0.5"/>
+  <text x="132" y="741" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="13" font-weight="500">BND</text>
+  <text x="132" y="755" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9">Vanguard Total Bond</text>
+  <text x="310" y="745" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">138</text>
+  <text x="370" y="745" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$9,964</text>
+  <text x="455" y="745" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">8%</text>
+  <text x="510" y="745" fill="#34D399" font-family="system-ui, sans-serif" font-size="12">+0.3%</text>
+  
+  <!-- Trades table -->
+  <rect x="612" y="530" width="476" height="220" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  <text x="632" y="558" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">RECENT TRADES</text>
+  
+  <!-- Table header -->
+  <rect x="632" y="570" width="436" height="1" fill="#2A2D38"/>
+  <text x="632" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">TYPE</text>
+  <text x="710" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">ASSET</text>
+  <text x="800" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">SHARES</text>
+  <text x="880" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">PRICE</text>
+  <text x="980" y="588" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9" font-weight="500" letter-spacing="0.05em">TOTAL</text>
+  
+  <!-- Trade rows -->
+  <rect x="638" y="598" width="32" height="16" rx="3" fill="#34D399" fill-opacity="0.1"/>
+  <text x="644" y="610" fill="#34D399" font-family="system-ui, sans-serif" font-size="9" font-weight="600">BUY</text>
+  <text x="710" y="610" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12" font-weight="500">VOO</text>
+  <text x="810" y="610" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">5</text>
+  <text x="870" y="610" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12">$452.30</text>
+  <text x="970" y="610" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$2,261.50</text>
+  
+  <rect x="632" y="625" width="436" height="1" fill="#2A2D38" fill-opacity="0.5"/>
+  <rect x="638" y="635" width="36" height="16" rx="3" fill="#F87171" fill-opacity="0.1"/>
+  <text x="644" y="647" fill="#F87171" font-family="system-ui, sans-serif" font-size="9" font-weight="600">SELL</text>
+  <text x="710" y="647" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12" font-weight="500">AAPL</text>
+  <text x="810" y="647" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">10</text>
+  <text x="870" y="647" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12">$198.50</text>
+  <text x="970" y="647" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$1,985.00</text>
+  
+  <rect x="632" y="662" width="436" height="1" fill="#2A2D38" fill-opacity="0.5"/>
+  <rect x="638" y="672" width="32" height="16" rx="3" fill="#34D399" fill-opacity="0.1"/>
+  <text x="644" y="684" fill="#34D399" font-family="system-ui, sans-serif" font-size="9" font-weight="600">BUY</text>
+  <text x="710" y="684" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12" font-weight="500">MSFT</text>
+  <text x="810" y="684" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">3</text>
+  <text x="870" y="684" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12">$415.00</text>
+  <text x="970" y="684" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$1,245.00</text>
+  
+  <rect x="632" y="699" width="436" height="1" fill="#2A2D38" fill-opacity="0.5"/>
+  <rect x="638" y="709" width="32" height="16" rx="3" fill="#34D399" fill-opacity="0.1"/>
+  <text x="644" y="721" fill="#34D399" font-family="system-ui, sans-serif" font-size="9" font-weight="600">BUY</text>
+  <text x="710" y="721" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12" font-weight="500">BND</text>
+  <text x="810" y="721" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">20</text>
+  <text x="870" y="721" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12">$72.10</text>
+  <text x="970" y="721" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$1,442.00</text>
+  
+  <rect x="632" y="736" width="436" height="1" fill="#2A2D38" fill-opacity="0.5"/>
+  <rect x="638" y="743" width="36" height="16" rx="3" fill="#F87171" fill-opacity="0.1"/>
+  <text x="644" y="755" fill="#F87171" font-family="system-ui, sans-serif" font-size="9" font-weight="600">SELL</text>
+  <text x="710" y="755" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12" font-weight="500">TSLA</text>
+  <text x="810" y="755" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">2</text>
+  <text x="870" y="755" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12">$245.00</text>
+  <text x="970" y="755" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12">$490.00</text>
+  
+  <!-- Strategy section -->
+  <rect x="112" y="770" width="976" height="120" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  <text x="132" y="798" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">INVESTMENT STRATEGY</text>
+  <text x="132" y="824" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="14" font-weight="500">Growth-focused</text>
+  <text x="132" y="844" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">80% equities tilted toward US large-cap via VOO. Individual stock positions in AAPL and</text>
+  <text x="132" y="860" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">MSFT for sector concentration. 8% bond allocation for stability. Rebalance quarterly.</text>
+  
+  <!-- Strategy bars -->
+  <text x="750" y="808" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9">Risk Level</text>
+  <text x="880" y="808" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="10" font-weight="500">Moderate</text>
+  <rect x="750" y="814" width="200" height="6" rx="3" fill="#232630"/>
+  <rect x="750" y="814" width="150" height="6" rx="3" fill="#818CF8" fill-opacity="0.5"/>
+  
+  <text x="750" y="838" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9">Rebalance</text>
+  <text x="880" y="838" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="10" font-weight="500">Quarterly</text>
+  <rect x="750" y="844" width="200" height="6" rx="3" fill="#232630"/>
+  <rect x="750" y="844" width="100" height="6" rx="3" fill="#818CF8" fill-opacity="0.5"/>
+  
+  <text x="750" y="868" fill="#6B7085" font-family="system-ui, sans-serif" font-size="9">Dividend</text>
+  <text x="880" y="868" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="10" font-weight="500">Reinvest</text>
+  <rect x="750" y="874" width="200" height="6" rx="3" fill="#232630"/>
+  <rect x="750" y="874" width="133" height="6" rx="3" fill="#818CF8" fill-opacity="0.5"/>
+</svg>

@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" fill="none">
+  <!-- Background -->
+  <rect width="1200" height="800" fill="#0F1117"/>
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="56" height="800" fill="#141720"/>
+  <rect x="55" y="0" width="1" height="800" fill="#2A2D38"/>
+  
+  <!-- Sidebar logo -->
+  <rect x="12" y="16" width="32" height="32" rx="6" fill="#818CF8" fill-opacity="0.1" stroke="#818CF8" stroke-opacity="0.3" stroke-width="1"/>
+  <rect x="20" y="24" width="16" height="4" rx="1" fill="#818CF8"/>
+  <rect x="20" y="32" width="10" height="4" rx="1" fill="#818CF8" fill-opacity="0.6"/>
+  <rect x="20" y="36" width="16" height="4" rx="1" fill="#818CF8" fill-opacity="0.4"/>
+  
+  <!-- Sidebar divider -->
+  <rect x="16" y="60" width="24" height="1" fill="#2A2D38"/>
+  
+  <!-- Sidebar icons -->
+  <rect x="12" y="72" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="22" y="82" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  
+  <rect x="12" y="112" width="32" height="32" rx="6" fill="#818CF8" fill-opacity="0.15"/>
+  <rect x="22" y="122" width="12" height="12" rx="2" fill="#818CF8"/>
+  
+  <rect x="12" y="152" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="22" y="162" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  
+  <rect x="12" y="192" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="22" y="202" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  
+  <rect x="12" y="232" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="22" y="242" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  
+  <rect x="12" y="272" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="22" y="282" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
+  
+  <!-- Header -->
+  <rect x="56" y="0" width="1144" height="72" fill="#141720"/>
+  <rect x="56" y="71" width="1144" height="1" fill="#2A2D38"/>
+  <text x="88" y="34" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="18" font-weight="600">Portfolio</text>
+  <text x="88" y="52" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12">Analyst split view — chart + allocation side by side</text>
+  
+  <!-- Main card -->
+  <rect x="88" y="100" width="1024" height="620" rx="12" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  
+  <!-- Left column: Portfolio value header -->
+  <text x="120" y="140" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">PORTFOLIO VALUE</text>
+  <text x="120" y="172" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="32" font-weight="700">$124,580</text>
+  <text x="310" y="172" fill="#34D399" font-family="system-ui, sans-serif" font-size="14" font-weight="500">↑ +2.4%</text>
+  
+  <!-- Time range pills -->
+  <rect x="560" y="140" width="280" height="36" rx="8" fill="#232630"/>
+  <rect x="566" y="146" width="40" height="24" rx="6" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="576" y="162" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12" font-weight="500">1D</text>
+  <rect x="612" y="146" width="40" height="24" rx="6" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="622" y="162" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12" font-weight="500">1W</text>
+  <rect x="658" y="146" width="40" height="24" rx="6" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="668" y="162" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12" font-weight="500">1M</text>
+  <rect x="704" y="146" width="40" height="24" rx="6" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="714" y="162" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12" font-weight="500">3M</text>
+  <rect x="750" y="146" width="40" height="24" rx="6" fill="#818CF8"/>
+  <text x="760" y="162" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="12" font-weight="500">1Y</text>
+  <rect x="796" y="146" width="40" height="24" rx="6" fill="#6B7085" fill-opacity="0.3"/>
+  <text x="806" y="162" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12" font-weight="500">ALL</text>
+  
+  <!-- Chart area -->
+  <rect x="120" y="195" width="580" height="280" rx="8" fill="transparent"/>
+  
+  <!-- Grid lines -->
+  <line x1="160" y1="220" x2="680" y2="220" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="160" y1="270" x2="680" y2="270" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="160" y1="320" x2="680" y2="320" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="160" y1="370" x2="680" y2="370" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  <line x1="160" y1="420" x2="680" y2="420" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
+  
+  <!-- Y axis labels -->
+  <text x="145" y="224" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$130k</text>
+  <text x="145" y="274" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$120k</text>
+  <text x="145" y="324" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$110k</text>
+  <text x="145" y="374" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$100k</text>
+  <text x="145" y="424" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">$90k</text>
+  
+  <!-- X axis labels -->
+  <text x="170" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Jan</text>
+  <text x="260" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Feb</text>
+  <text x="350" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Mar</text>
+  <text x="440" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Apr</text>
+  <text x="530" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">May</text>
+  <text x="620" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Jun</text>
+  <text x="680" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Jul</text>
+  <text x="720" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Aug</text>
+  <text x="760" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Sep</text>
+  <text x="800" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Oct</text>
+  <text x="840" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Nov</text>
+  <text x="880" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Dec</text>
+  
+  <!-- Chart area gradient fill -->
+  <defs>
+    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#818CF8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Chart area fill -->
+  <path d="M170,410 L260,395 L350,415 L440,375 L530,355 L620,365 L710,330 L800,340 L890,310 L680,310 L170,410 Z" fill="url(#chartGrad)"/>
+  
+  <!-- Chart line -->
+  <path d="M170,410 L260,395 L350,415 L440,375 L530,355 L620,365 L710,330 L800,340 L890,310" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Active dot -->
+  <circle cx="890" cy="310" r="5" fill="#818CF8" stroke="#1A1D26" stroke-width="2"/>
+  
+  <!-- Right column: Allocation card -->
+  <rect x="720" y="120" width="260" height="240" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  <text x="740" y="148" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">ALLOCATION</text>
+  
+  <!-- Pie chart -->
+  <circle cx="850" cy="230" r="55" fill="none" stroke="#818CF8" stroke-width="22" stroke-dasharray="215 345" stroke-dashoffset="0" transform="rotate(-90 850 230)"/>
+  <circle cx="850" cy="230" r="55" fill="none" stroke="#34D399" stroke-width="22" stroke-dasharray="62 283" stroke-dashoffset="-215" transform="rotate(-90 850 230)"/>
+  <circle cx="850" cy="230" r="55" fill="none" stroke="#FBBF24" stroke-width="22" stroke-dasharray="42 263" stroke-dashoffset="-277" transform="rotate(-90 850 230)"/>
+  <circle cx="850" cy="230" r="55" fill="none" stroke="#6B7085" stroke-width="22" stroke-dasharray="28 249" stroke-dashoffset="-319" transform="rotate(-90 850 230)"/>
+  
+  <!-- Allocation legend -->
+  <circle cx="745" cy="305" r="4" fill="#818CF8"/>
+  <text x="755" y="309" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">VOO</text>
+  <text x="830" y="309" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="11" font-weight="500">62%</text>
+  
+  <circle cx="870" cy="305" r="4" fill="#34D399"/>
+  <text x="880" y="309" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">AAPL</text>
+  <text x="940" y="309" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="11" font-weight="500">18%</text>
+  
+  <circle cx="745" cy="325" r="4" fill="#FBBF24"/>
+  <text x="755" y="329" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">MSFT</text>
+  <text x="830" y="329" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="11" font-weight="500">12%</text>
+  
+  <circle cx="870" cy="325" r="4" fill="#6B7085"/>
+  <text x="880" y="329" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">BND</text>
+  <text x="940" y="329" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="11" font-weight="500">8%</text>
+  
+  <!-- Day P&L card -->
+  <rect x="720" y="380" width="260" height="90" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  <text x="740" y="408" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">DAY P&L</text>
+  <text x="740" y="438" fill="#34D399" font-family="system-ui, sans-serif" font-size="20" font-weight="700">+$1,247.50</text>
+  <text x="740" y="456" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">+1.01% today</text>
+  <!-- Arrow up icon -->
+  <path d="M730,430 L736,420 L742,430" stroke="#34D399" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Total Return card -->
+  <rect x="720" y="490" width="260" height="80" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
+  <text x="740" y="518" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">TOTAL RETURN</text>
+  <text x="740" y="548" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="20" font-weight="700">+12.4%</text>
+  <text x="740" y="562" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">Since Jan 2025</text>
+  
+  <!-- Expand button -->
+  <rect x="480" y="680" width="180" height="36" rx="8" fill="transparent" stroke="#2A2D38" stroke-width="1"/>
+  <rect x="480" y="680" width="180" height="36" rx="8" fill="#232630" fill-opacity="0.5"/>
+  <text x="510" y="702" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12" font-weight="500">Expand Portfolio</text>
+  <!-- Maximize icon -->
+  <rect x="494" y="693" width="10" height="10" rx="1.5" stroke="#E8E9ED" stroke-width="1.2" fill="none"/>
+  <path d="M496,699 L494,701 M502,699 L504,701 M496,697 L494,695 M502,697 L504,695" stroke="#E8E9ED" stroke-width="1" stroke-linecap="round"/>
+</svg>
