@@ -172,6 +172,7 @@ export default function PortfolioFullPage() {
               <Link href="/portfolio">
                 <MetalButton
                   preset="chromatic"
+                  theme="dark"
                   variant="outline"
                   size="sm"
                   className="gap-2 text-xs"
