@@ -1,4 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" fill="none">
+  <defs>
+    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#818CF8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
   <!-- Background -->
   <rect width="1200" height="800" fill="#0F1117"/>
   
@@ -16,22 +22,22 @@
   <rect x="16" y="60" width="24" height="1" fill="#2A2D38"/>
   
   <!-- Sidebar icons -->
-  <rect x="12" y="72" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="12" y="72" width="32" height="32" rx="6" fill="none"/>
   <rect x="22" y="82" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
   
   <rect x="12" y="112" width="32" height="32" rx="6" fill="#818CF8" fill-opacity="0.15"/>
   <rect x="22" y="122" width="12" height="12" rx="2" fill="#818CF8"/>
   
-  <rect x="12" y="152" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="12" y="152" width="32" height="32" rx="6" fill="none"/>
   <rect x="22" y="162" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
   
-  <rect x="12" y="192" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="12" y="192" width="32" height="32" rx="6" fill="none"/>
   <rect x="22" y="202" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
   
-  <rect x="12" y="232" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="12" y="232" width="32" height="32" rx="6" fill="none"/>
   <rect x="22" y="242" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
   
-  <rect x="12" y="272" width="32" height="32" rx="6" fill="transparent"/>
+  <rect x="12" y="272" width="32" height="32" rx="6" fill="none"/>
   <rect x="22" y="282" width="12" height="12" rx="2" fill="#6B7085" fill-opacity="0.5"/>
   
   <!-- Header -->
@@ -64,7 +70,7 @@
   <text x="806" y="162" fill="#6B7085" font-family="system-ui, sans-serif" font-size="12" font-weight="500">ALL</text>
   
   <!-- Chart area -->
-  <rect x="120" y="195" width="580" height="280" rx="8" fill="transparent"/>
+  <rect x="120" y="195" width="580" height="280" rx="8" fill="none"/>
   
   <!-- Grid lines -->
   <line x1="160" y1="220" x2="680" y2="220" stroke="#2A2D38" stroke-width="0.5" stroke-dasharray="4 4"/>
@@ -94,13 +100,7 @@
   <text x="840" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Nov</text>
   <text x="880" y="460" fill="#6B7085" font-family="system-ui, sans-serif" font-size="10">Dec</text>
   
-  <!-- Chart area gradient fill -->
-  <defs>
-    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#818CF8" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
+
   
   <!-- Chart area fill -->
   <path d="M170,410 L260,395 L350,415 L440,375 L530,355 L620,365 L710,330 L800,340 L890,310 L680,310 L170,410 Z" fill="url(#chartGrad)"/>
@@ -138,9 +138,9 @@
   <text x="880" y="329" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">BND</text>
   <text x="940" y="329" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="11" font-weight="500">8%</text>
   
-  <!-- Day P&L card -->
+  <!-- Day P&amp;L card -->
   <rect x="720" y="380" width="260" height="90" rx="8" fill="#1A1D26" stroke="#2A2D38" stroke-width="1"/>
-  <text x="740" y="408" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">DAY P&L</text>
+  <text x="740" y="408" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11" font-weight="500" letter-spacing="0.1em">DAY P&amp;L</text>
   <text x="740" y="438" fill="#34D399" font-family="system-ui, sans-serif" font-size="20" font-weight="700">+$1,247.50</text>
   <text x="740" y="456" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">+1.01% today</text>
   <!-- Arrow up icon -->
@@ -153,7 +153,7 @@
   <text x="740" y="562" fill="#6B7085" font-family="system-ui, sans-serif" font-size="11">Since Jan 2025</text>
   
   <!-- Expand button -->
-  <rect x="480" y="680" width="180" height="36" rx="8" fill="transparent" stroke="#2A2D38" stroke-width="1"/>
+  <rect x="480" y="680" width="180" height="36" rx="8" fill="none" stroke="#2A2D38" stroke-width="1"/>
   <rect x="480" y="680" width="180" height="36" rx="8" fill="#232630" fill-opacity="0.5"/>
   <text x="510" y="702" fill="#E8E9ED" font-family="system-ui, sans-serif" font-size="12" font-weight="500">Expand Portfolio</text>
   <!-- Maximize icon -->
