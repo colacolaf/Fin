@@ -50,9 +50,14 @@
   --color-finance-gain: #34D399;
   --color-finance-loss: #F87171;
   --color-finance-accent: #818CF8;
-  --color-finance-surface: #1A1D26;
-  --color-finance-base: #0F1117;
-  --color-finance-border: #2A2D38;
+  --color-finance-cyan: #67E8F9;
+  --color-finance-surface: rgba(255,255,255,0.03);
+  --color-finance-base: #08090C;
+  --color-finance-border: rgba(255,255,255,0.06);
+  --color-finance-text: #F7F8FA;
+  --color-finance-text-secondary: rgba(255,255,255,0.55);
+  --color-finance-text-muted: rgba(255,255,255,0.38);
+  --color-finance-glow: rgba(129,140,248,0.35);
 }
 
 :root {
@@ -91,7 +96,7 @@
 }
 
 .dark {
-  --background: #0F1117;
+  --background: #08090C;
   --foreground: #E8E9ED;
   --card: #1A1D26;
   --card-foreground: #E8E9ED;
