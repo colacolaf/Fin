@@ -21,6 +21,7 @@ import {
   getDebtsWithTheme,
 } from "@/lib/debt/data"
 import { useCountUp } from "@/lib/debt/hooks"
+import { LiquidGlassBg } from "@/components/debt/liquid-glass-bg"
 
 /* ================================================================== */
 /*  Theme switcher                                                    */
@@ -225,7 +226,8 @@ export default function DebtPage() {
   const animatedValue = useCountUp(debtSummary.totalDebt)
 
   return (
-    <div className="dark flex h-screen w-full bg-[#08090C]">
+    <div className="dark flex h-screen w-full">
+      <LiquidGlassBg primary={theme.primary} secondary={theme.chartColors[1]} />
       <Sidebar />
       <main className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
