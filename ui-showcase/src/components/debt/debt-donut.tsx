@@ -96,11 +96,13 @@ export function DebtDonut({
   totalDebt,
   theme,
   size = "default",
+  showLegend = true,
 }: {
   debts: Debt[]
   totalDebt: number
   theme: DebtTheme
   size?: "default" | "large"
+  showLegend?: boolean
 }) {
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(undefined)
   const innerRadius = size === "large" ? 70 : 60
@@ -155,6 +157,7 @@ export function DebtDonut({
       </div>
 
       {/* Legend grid — synced to pie hover */}
+      {showLegend && (
       <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mt-2 pt-4 border-t border-white/[0.06]">
         {debts.map((debt) => (
           <div
@@ -188,6 +191,7 @@ export function DebtDonut({
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }

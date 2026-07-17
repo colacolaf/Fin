@@ -15,7 +15,6 @@ import { Sidebar } from "@/components/portfolio/sidebar"
 import { GlassCard } from "@/components/portfolio/glass-card"
 import { DebtDonut } from "@/components/debt/debt-donut"
 import {
-  debts,
   debtSummary,
   allThemes,
   getDebtsWithTheme,
@@ -86,18 +85,25 @@ function CompactDebtCard({
   theme: (typeof allThemes)[number]["theme"]
 }) {
   return (
-    <GlassCard className="p-5">
-      <div className="flex items-center justify-between mb-4">
+    <GlassCard className="p-4">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div
-            className="flex h-6 w-6 items-center justify-center rounded-md"
+            className="flex h-5 w-5 items-center justify-center rounded"
             style={{ backgroundColor: theme.primaryDim }}
           >
             <TrendingDown className="h-3 w-3" style={{ color: theme.primary }} />
           </div>
           <h3 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38]">
-            Debt Overview
+            Debt
           </h3>
+          <span className="text-[13px] font-semibold text-white tabular-nums ml-1">
+            ${Math.round(animatedValue).toLocaleString()}
+          </span>
+          <span className="flex items-center gap-0.5 text-[10px] font-medium text-[#34D399]">
+            <ArrowDownRight className="h-2.5 w-2.5" />
+            ${Math.abs(debtSummary.monthOverMonthChange).toLocaleString()}
+          </span>
         </div>
         <Link href="/debt/full">
           <MetalButton
@@ -114,102 +120,13 @@ function CompactDebtCard({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto] items-center">
-        {/* Left: Hero number + stats */}
-        <div className="space-y-4">
-          {/* Total debt */}
-          <div>
-            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38] mb-1 block">
-              Total Debt
-            </span>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-[32px] leading-none font-semibold tracking-tight text-white tabular-nums">
-                ${Math.round(animatedValue).toLocaleString()}
-              </span>
-              <span className="flex items-center gap-1 text-[12px] font-medium text-[#34D399]">
-                <ArrowDownRight className="h-3 w-3" />
-                -${Math.abs(debtSummary.monthOverMonthChange).toLocaleString()}
-              </span>
-            </div>
-          </div>
-
-          {/* Stat pills row */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {[
-              { label: "Monthly", value: `$${debtSummary.monthlyPayment.toLocaleString()}` },
-              { label: "APR", value: `${debtSummary.weightedApr}%` },
-              { label: "Paid", value: `${debtSummary.percentPaid}%` },
-              { label: "Debts", value: debtSummary.debtCount.toString() },
-            ].map((s) => (
-              <div key={s.label} className="flex flex-col">
-                <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-white/[0.25]">
-                  {s.label}
-                </span>
-                <span className="text-[13px] font-semibold tabular-nums text-white">
-                  {s.value}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] text-white/[0.25]">Payoff progress</span>
-              <span className="text-[10px] tabular-nums text-white/[0.38]">
-                Est. {debtSummary.estimatedDebtFree}
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-white/[0.04]">
-              <div
-                className="h-full rounded-full transition-all duration-1000"
-                style={{
-                  width: `${debtSummary.percentPaid}%`,
-                  backgroundColor: theme.primary,
-                  opacity: 0.6,
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Debt list — compact */}
-          <div className="space-y-1.5 pt-2 border-t border-white/[0.04]">
-            {themedDebts.map((d) => {
-              return (
-                <div key={d.id} className="flex items-center gap-2">
-                  <div
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ backgroundColor: d.color }}
-                  />
-                  <span className="text-[11px] text-white flex-1 min-w-0 truncate">
-                    {d.name}
-                  </span>
-                  <span className="text-[11px] tabular-nums text-white/[0.5]">
-                    ${d.balance.toLocaleString()}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[10px] tabular-nums min-w-[36px] text-right",
-                      d.apr >= 15 ? "text-[#FB7171]" : "text-white/[0.25]"
-                    )}
-                  >
-                    {d.apr}%
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Right: Donut */}
-        <div className="w-[260px] shrink-0">
-          <DebtDonut
-            debts={themedDebts}
-            totalDebt={debtSummary.totalDebt}
-            theme={theme}
-          />
-        </div>
-      </div>
+      {/* Just the interactive donut — hover each slice for details */}
+      <DebtDonut
+        debts={themedDebts}
+        totalDebt={debtSummary.totalDebt}
+        theme={theme}
+        showLegend={false}
+      />
     </GlassCard>
   )
 }
