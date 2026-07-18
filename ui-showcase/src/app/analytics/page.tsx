@@ -1,7 +1,7 @@
-import { AnalyticsPlaceholder } from "@/components/placeholders/route-placeholder"
+import { AnalyticsPage } from "@/components/analytics/analytics-page"
 
 export const metadata = { title: "Analytics — Finance OS" }
 
-export default function AnalyticsPage() {
-  return <AnalyticsPlaceholder />
+export default function AnalyticsRoute() {
+  return <AnalyticsPage />
 }

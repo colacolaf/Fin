@@ -1,7 +1,7 @@
-import { SettingsPlaceholder } from "@/components/placeholders/route-placeholder"
+import { SettingsPage } from "@/components/settings/settings-page"
 
 export const metadata = { title: "Settings — Finance OS" }
 
-export default function SettingsPage() {
-  return <SettingsPlaceholder />
+export default function SettingsRoute() {
+  return <SettingsPage />
 }
