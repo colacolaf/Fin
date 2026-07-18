@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Maximize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlassCard } from "@/components/portfolio/glass-card"
+import { PiggyBankIcon } from "@/components/retirement/piggy-bank-icon"
 import { retirementSummary } from "@/lib/retirement/data"
 
 /* ================================================================== */
@@ -23,20 +24,7 @@ export function RetirementWidget() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-5 w-5 items-center justify-center rounded bg-[#67E8F9]/15">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-3 w-3 text-[#67E8F9]"
-            >
-              <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2z" />
-              <path d="M2 9v1c0 1.1.9 2 2 2h1" />
-              <path d="M16.5 13.5c.8-.8 2.5-1 3-1" />
-            </svg>
+            <PiggyBankIcon className="h-3 w-3 text-[#67E8F9]" />
           </div>
           <h3 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38]">
             Retirement
