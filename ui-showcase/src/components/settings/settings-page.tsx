@@ -22,6 +22,7 @@ import { PageShell, SectionCard, SettingRow } from "@/components/page-shell/page
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { availableModels, type ModelOption } from "@/lib/agents"
+import { useLocalStorage } from "@/lib/use-local-storage"
 import {
   securityState,
   setupChecklist,
@@ -40,7 +41,7 @@ import {
 function SecurityTab() {
   const [showAuth, setShowAuth] = React.useState(false)
   const [showEncrypt, setShowEncrypt] = React.useState(false)
-  const [hint, setHint] = React.useState(securityState.keyStorageHint)
+  const [hint, setHint] = useLocalStorage("fo-key-hint", securityState.keyStorageHint)
 
   return (
     <div className="space-y-4">
@@ -233,10 +234,8 @@ function ConnectionsTab() {
 /* ================================================================== */
 
 function NotificationsTab() {
-  const [master, setMaster] = React.useState(notificationsMasterEnabled)
-  const [events, setEvents] = React.useState(
-    notificationEvents.map((e) => ({ ...e }))
-  )
+  const [master, setMaster] = useLocalStorage("fo-notif-master", notificationsMasterEnabled)
+  const [events, setEvents] = useLocalStorage("fo-notif-events", notificationEvents.map((e) => ({ ...e })))
 
   const toggleEvent = (id: string) => {
     setEvents((prev) =>
@@ -325,10 +324,10 @@ function ModelRow({
 }
 
 function ModelTab() {
-  const [model, setModel] = React.useState<ModelOption>(availableModels[0])
-  const [fallback, setFallback] = React.useState<ModelOption>(availableModels[1])
-  const [voice, setVoice] = React.useState(false)
-  const [temp, setTemp] = React.useState(0.4)
+  const [model, setModel] = useLocalStorage<ModelOption>("fo-primary-model", availableModels[0])
+  const [fallback, setFallback] = useLocalStorage<ModelOption>("fo-fallback-model", availableModels[1])
+  const [voice, setVoice] = useLocalStorage("fo-voice", false)
+  const [temp, setTemp] = useLocalStorage("fo-temperature", 0.4)
 
   return (
     <div className="space-y-4">
