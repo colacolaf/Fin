@@ -80,7 +80,7 @@ function Dock({ children, className }: DockProps) {
       <motion.div
         ref={dockRef}
         className={cn(
-          "fixed bottom-3 left-1/2 flex h-14 items-end gap-3 rounded-xl bg-black/90 p-2",
+          "flex h-14 items-end gap-3 rounded-xl bg-black/90 p-2",
           className
         )}
         onMouseMove={(e) => {
@@ -94,7 +94,6 @@ function Dock({ children, className }: DockProps) {
           setHovered(false)
         }}
         style={{
-          x: "-50%",
           scale: zoomLevel,
         }}
       >
@@ -112,9 +111,10 @@ interface DockCardProps {
   children?: React.ReactNode
   className?: string
   index?: number
+  onClick?: () => void
 }
 
-function DockCard({ id, children, className, index = 0 }: DockCardProps) {
+function DockCard({ id, children, className, index = 0, onClick }: DockCardProps) {
   const { mouseX, setIsZooming, animatingIndexes, setAnimatingIndexes } = useDock()
   const ref = React.useRef<HTMLDivElement>(null)
 
@@ -135,7 +135,8 @@ function DockCard({ id, children, className, index = 0 }: DockCardProps) {
       setAnimatingIndexes((prev) => prev.filter((i) => i !== index))
       setIsZooming(false)
     }, 600)
-  }, [index, setIsZooming, setAnimatingIndexes])
+    onClick?.()
+  }, [index, setIsZooming, setAnimatingIndexes, onClick])
 
   return (
     <motion.div
@@ -161,13 +162,14 @@ function DockCard({ id, children, className, index = 0 }: DockCardProps) {
 // DockCardInner
 // ------------------------------------------------------------------
 interface DockCardInnerProps {
-  src: string
+  src?: string
   id?: string
   children?: React.ReactNode
   className?: string
+  style?: React.CSSProperties
 }
 
-function DockCardInner({ src, children, className }: DockCardInnerProps) {
+function DockCardInner({ src, children, className, style }: DockCardInnerProps) {
   return (
     <div
       className={cn(
@@ -175,9 +177,12 @@ function DockCardInner({ src, children, className }: DockCardInnerProps) {
         className
       )}
       style={{
-        backgroundImage: `url(${src})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        ...(src ? {
+          backgroundImage: `url(${src})`,
+          backgroundSize: "cover" as const,
+          backgroundPosition: "center" as const,
+        } : {}),
+        ...style,
       }}
     >
       {children}

@@ -11,6 +11,7 @@ import {
   Settings,
 } from "lucide-react"
 import { NewsCard } from "@/components/news/news-card"
+import { AgentOrbs } from "@/components/agent-orbs"
 
 const sidebarItems = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -20,8 +21,6 @@ const sidebarItems = [
   { label: "Memory", icon: Brain },
   { label: "Settings", icon: Settings },
 ]
-
-const agents = ["Portfolio Agent", "Debt Agent", "Retirement Agent"]
 
 function SketchBox({
   title,
@@ -69,20 +68,7 @@ function Sidebar() {
   )
 }
 
-function AgentButtons() {
-  return (
-    <div className="flex flex-col gap-3">
-      {agents.map((agent) => (
-        <button
-          key={agent}
-          className="rounded-md border border-dashed border-slate-300 bg-white px-4 py-3 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-        >
-          {agent}
-        </button>
-      ))}
-    </div>
-  )
-}
+
 
 export default function DashboardTemplatePage() {
   return (
@@ -137,11 +123,9 @@ export default function DashboardTemplatePage() {
                     <NewsCard />
                   </div>
 
-                  <div>
-                    <h4 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
-                      Agent Chat
-                    </h4>
-                    <AgentButtons />
+                  {/* Agent orbs — dark liquid glass container */}
+                  <div className="dark rounded-xl bg-[#0C0D12] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.2)] ring-1 ring-white/[0.06]">
+                    <AgentOrbs />
                   </div>
                 </div>
               </div>
