@@ -22,6 +22,7 @@ import {
 } from "recharts"
 import { cn } from "@/lib/utils"
 import { MetalButton } from "@/components/ui/metal-button"
+import { DebtVsInvestModal } from "@/components/debt/debt-vs-invest-modal"
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
 import { GlassCard } from "@/components/portfolio/glass-card"
 import { StatPill } from "@/components/portfolio/stat-pill"
@@ -148,6 +149,7 @@ function ProgressRing({ percent, color, size = 120 }: { percent: number; color: 
 export default function DebtFullPage() {
   const [themeKey, setThemeKey] = useState("amber")
   const [timeRange, setTimeRange] = useState("1Y")
+  const [showCompare, setShowCompare] = useState(false)
   const themeData = allThemes.find((t) => t.key === themeKey) ?? allThemes[0]
   const theme = themeData.theme
   const themedDebts = getDebtsWithTheme(theme)
@@ -179,6 +181,14 @@ export default function DebtFullPage() {
               <span className="text-[10px]">Updated 5m ago</span>
             </div>
             <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+            <button
+              type="button"
+              onClick={() => setShowCompare(true)}
+              className="flex h-8 items-center gap-1.5 rounded-md border px-3 text-[11px] font-medium transition-all duration-150 active:scale-95 border-[#67E8F9]/30 bg-[#67E8F9]/10 text-[#67E8F9] hover:bg-[#67E8F9]/15"
+            >
+              <TrendingDown className="h-3 w-3" />
+              Compare
+            </button>
             <Link href="/">
               <MetalButton preset="chromatic" theme="dark" variant="outline" size="sm" className="gap-2 text-xs" strength={0.7}>
                 <Minimize2 className="h-3.5 w-3.5" />
@@ -508,6 +518,17 @@ export default function DebtFullPage() {
 
       {/* Theme switcher */}
       <ThemeSwitcher activeKey={themeKey} onSelect={setThemeKey} />
+
+      {/* Debt vs Invest modal */}
+      <DebtVsInvestModal
+        open={showCompare}
+        onClose={() => setShowCompare(false)}
+        debts={themedDebts}
+        extraCash={500}
+        expectedReturn={0.07}
+        employerMatch={4200}
+        employerMatchCaptured={3600}
+      />
     </div>
   )
 }
