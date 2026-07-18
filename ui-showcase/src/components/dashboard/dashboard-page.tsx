@@ -9,11 +9,11 @@ import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
 import { LiquidGlassBg } from "@/components/debt/liquid-glass-bg"
 import { GlassCard } from "@/components/portfolio/glass-card"
 import { MetricsRow } from "@/components/portfolio/metrics-row"
-import { AllocationCard } from "@/components/portfolio/allocation-card"
+import { RetirementWidget } from "@/components/retirement/retirement-widget"
 import { DebtDonut } from "@/components/debt/debt-donut"
 import { NewsCard } from "@/components/news/news-card"
 import { AgentOrbs } from "@/components/agent-orbs"
-import { portfolioSummary, allocationData, chartData } from "@/lib/portfolio/data"
+import { portfolioSummary, chartData } from "@/lib/portfolio/data"
 import { debtSummary, amberTheme, getDebtsWithTheme } from "@/lib/debt/data"
 
 /* ================================================================== */
@@ -298,13 +298,10 @@ export function DashboardPage() {
             </GlassCard>
 
             {/* ═══════════════════════════════════════════ */}
-            {/*  Allocation — bottom center, 2 cols, compact */}
+            {/*  Retirement — bottom center, 2 cols           */}
             {/* ═══════════════════════════════════════════ */}
             <div className="lg:col-span-2">
-              <AllocationCard
-                data={allocationData}
-                totalValue={portfolioSummary.totalValue}
-              />
+              <RetirementWidget />
             </div>
 
             {/* ═══════════════════════════════════════════ */}
