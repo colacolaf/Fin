@@ -221,105 +221,105 @@ export function DashboardPage() {
           transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
           className="mx-auto max-w-[1200px] px-6 py-6"
         >
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-6 lg:grid-rows-[1fr_auto]">
             {/* ═══════════════════════════════════════════ */}
-            {/*  ROW 1 — Portfolio + Debt side-by-side       */}
+            {/*  Portfolio — top left, spans 4 cols          */}
             {/* ═══════════════════════════════════════════ */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-              {/* Portfolio — 3 cols */}
-              <GlassCard className="p-5 lg:col-span-3">
-                <SectionHeader
-                  icon={<PieChart className="h-3.5 w-3.5 text-[#818CF8]" />}
-                  label="Portfolio"
-                  fullscreenHref="/portfolio/full"
-                  fullscreenLabel="Full View"
-                  accentColor="#818CF8"
-                />
-                <MetricsRow
-                  summary={portfolioSummary}
-                  animatedValue={animatedValue}
-                />
-                <div className="mt-3 h-16 w-full">
-                  <MiniChart data={chartData} />
-                </div>
-              </GlassCard>
-
-              {/* Debt — 2 cols */}
-              <GlassCard className="p-5 lg:col-span-2">
-                <SectionHeader
-                  icon={<TrendingDown className="h-3.5 w-3.5 text-[#FBBF24]" />}
-                  label="Debt"
-                  fullscreenHref="/debt/full"
-                  fullscreenLabel="Full View"
-                  accentColor="#FBBF24"
-                />
-                <div className="mb-3 flex flex-wrap gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">Total</span>
-                    <span className="text-[14px] font-semibold tabular-nums text-[#FBBF24]">
-                      ${debtSummary.totalDebt.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">Monthly</span>
-                    <span className="text-[14px] font-semibold tabular-nums text-white">
-                      ${debtSummary.monthlyPayment.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">APR</span>
-                    <span className="text-[14px] font-semibold tabular-nums text-[#FB7185]">
-                      {debtSummary.weightedApr}%
-                    </span>
-                  </div>
-                </div>
-                <DebtDonut
-                  debts={debtsWithColor}
-                  totalDebt={debtSummary.totalDebt}
-                  theme={amberTheme}
-                  showLegend={false}
-                />
-                <div className="mt-3 flex items-center justify-between rounded-lg border border-[#FBBF24]/15 bg-[#FBBF24]/5 px-3 py-2">
-                  <span className="text-[11px] text-white/[0.50]">Estimated debt-free</span>
-                  <span className="text-[12px] font-semibold text-[#FBBF24]">{debtSummary.estimatedDebtFree}</span>
-                </div>
-              </GlassCard>
-            </div>
-
-            {/* ═══════════════════════════════════════════ */}
-            {/*  ROW 2 — Agents + Allocation + News          */}
-            {/* ═══════════════════════════════════════════ */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {/* Agent Orbs */}
-              <GlassCard className="p-4">
-                <AgentOrbs />
-              </GlassCard>
-
-              {/* Allocation */}
-              <div>
-                <SectionHeader
-                  icon={<PieChart className="h-3.5 w-3.5 text-[#67E8F9]" />}
-                  label="Allocation"
-                  fullscreenHref="/portfolio/full"
-                  fullscreenLabel="Details"
-                  accentColor="#67E8F9"
-                />
-                <AllocationCard
-                  data={allocationData}
-                  totalValue={portfolioSummary.totalValue}
-                />
+            <GlassCard className="p-5 lg:col-span-4">
+              <SectionHeader
+                icon={<PieChart className="h-3.5 w-3.5 text-[#818CF8]" />}
+                label="Portfolio"
+                fullscreenHref="/portfolio/full"
+                fullscreenLabel="Full View"
+                accentColor="#818CF8"
+              />
+              <MetricsRow
+                summary={portfolioSummary}
+                animatedValue={animatedValue}
+              />
+              <div className="mt-3 h-14 w-full">
+                <MiniChart data={chartData} />
               </div>
+            </GlassCard>
 
-              {/* News */}
-              <GlassCard className="p-4">
-                <SectionHeader
-                  icon={<Newspaper className="h-3.5 w-3.5 text-white/[0.40]" />}
-                  label="Market News"
-                  accentColor="#818CF8"
-                />
-                <NewsCard />
-              </GlassCard>
+            {/* ═══════════════════════════════════════════ */}
+            {/*  News — top right, spans 2 cols              */}
+            {/* ═══════════════════════════════════════════ */}
+            <GlassCard className="p-4 lg:col-span-2">
+              <SectionHeader
+                icon={<Newspaper className="h-3.5 w-3.5 text-white/[0.40]" />}
+                label="Market News"
+                accentColor="#818CF8"
+              />
+              <NewsCard />
+            </GlassCard>
+
+            {/* ═══════════════════════════════════════════ */}
+            {/*  Debt — bottom left, 2 cols, compact        */}
+            {/* ═══════════════════════════════════════════ */}
+            <GlassCard className="p-4 lg:col-span-2">
+              <SectionHeader
+                icon={<TrendingDown className="h-3.5 w-3.5 text-[#FBBF24]" />}
+                label="Debt"
+                fullscreenHref="/debt/full"
+                fullscreenLabel="Full View"
+                accentColor="#FBBF24"
+              />
+              <div className="mb-2 flex flex-wrap gap-3">
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">Total</span>
+                  <span className="text-[13px] font-semibold tabular-nums text-[#FBBF24]">
+                    ${debtSummary.totalDebt.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">Monthly</span>
+                  <span className="text-[13px] font-semibold tabular-nums text-white">
+                    ${debtSummary.monthlyPayment.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">APR</span>
+                  <span className="text-[13px] font-semibold tabular-nums text-[#FB7185]">
+                    {debtSummary.weightedApr}%
+                  </span>
+                </div>
+              </div>
+              <DebtDonut
+                debts={debtsWithColor}
+                totalDebt={debtSummary.totalDebt}
+                theme={amberTheme}
+                showLegend={false}
+              />
+              <div className="mt-2 flex items-center justify-between rounded-lg border border-[#FBBF24]/15 bg-[#FBBF24]/5 px-3 py-1.5">
+                <span className="text-[10px] text-white/[0.50]">Estimated debt-free</span>
+                <span className="text-[11px] font-semibold text-[#FBBF24]">{debtSummary.estimatedDebtFree}</span>
+              </div>
+            </GlassCard>
+
+            {/* ═══════════════════════════════════════════ */}
+            {/*  Allocation — bottom center, 2 cols, compact */}
+            {/* ═══════════════════════════════════════════ */}
+            <div className="lg:col-span-2">
+              <SectionHeader
+                icon={<PieChart className="h-3.5 w-3.5 text-[#67E8F9]" />}
+                label="Allocation"
+                fullscreenHref="/portfolio/full"
+                fullscreenLabel="Details"
+                accentColor="#67E8F9"
+              />
+              <AllocationCard
+                data={allocationData}
+                totalValue={portfolioSummary.totalValue}
+              />
             </div>
+
+            {/* ═══════════════════════════════════════════ */}
+            {/*  Agent Orbs — bottom right, 2 cols           */}
+            {/* ═══════════════════════════════════════════ */}
+            <GlassCard className="p-4 lg:col-span-2">
+              <AgentOrbs />
+            </GlassCard>
           </div>
         </motion.div>
       </div>
