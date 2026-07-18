@@ -301,13 +301,6 @@ export function DashboardPage() {
             {/*  Allocation — bottom center, 2 cols, compact */}
             {/* ═══════════════════════════════════════════ */}
             <div className="lg:col-span-2">
-              <SectionHeader
-                icon={<PieChart className="h-3.5 w-3.5 text-[#67E8F9]" />}
-                label="Allocation"
-                fullscreenHref="/portfolio/full"
-                fullscreenLabel="Details"
-                accentColor="#67E8F9"
-              />
               <AllocationCard
                 data={allocationData}
                 totalValue={portfolioSummary.totalValue}
