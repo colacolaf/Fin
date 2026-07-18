@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 import { getAgent, type AgentDef } from "@/lib/agents"
 import { useAgentThinking, type AgentMessage } from "@/lib/agents/use-agent-thinking"
 import { Timer } from "@/components/ui/timer"
-import { Sidebar } from "@/components/portfolio/sidebar"
+import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
 import {
   ModelSettings,
   defaultModelSettingsState,
@@ -45,7 +45,7 @@ function AgentChatHeader({
     <header
       className={cn(
         "relative z-20 flex shrink-0 items-center justify-between gap-4",
-        "border-b border-white/[0.06] bg-black/20 px-6 py-3 backdrop-blur-xl"
+        "border-b border-white/[0.06] bg-black/20 py-3 pl-20 pr-6 backdrop-blur-xl"
       )}
     >
       {/* Left: back + identity */}
@@ -286,7 +286,7 @@ function AgentChatFullInner({
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(8,9,12,0.5)_100%)]" />
       </div>
 
-      <Sidebar />
+      <AppSidebar triggerPosition="top-left" />
 
       <main className="flex flex-1 flex-col overflow-hidden">
         <AgentChatHeader
