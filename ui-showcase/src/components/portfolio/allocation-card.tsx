@@ -92,11 +92,7 @@ export function AllocationCard({
 
   return (
     <GlassCard className="p-5">
-      <h3 className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/[0.38] mb-4">
-        Allocation
-      </h3>
-
-      <div style={{ height: chartHeight, minWidth: 200 }}>
+      <div style={{ height: chartHeight, minWidth: 250 }}>
         <ResponsiveContainer width="100%" height="100%" debounce={50}>
           <PieChart>
             <InteractivePie
