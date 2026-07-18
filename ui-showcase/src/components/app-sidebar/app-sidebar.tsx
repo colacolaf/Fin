@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { cn } from "@/lib/utils"
 import { useSidebar } from "@/lib/use-sidebar"
 import { SidebarTrigger } from "./sidebar-trigger"
 import { SlideOverPanel } from "./slide-over-panel"
@@ -29,13 +30,15 @@ export function AppSidebar({
 
   return (
     <>
-      {/* Trigger — fixed position so it's always accessible */}
+      {/* Trigger — fixed position so it's always accessible. Hidden when open to avoid overlapping the panel. */}
       <div
-        className={
+        className={cn(
+          "transition-opacity duration-200",
+          isOpen ? "pointer-events-none opacity-0" : "opacity-100",
           triggerPosition === "top-left"
             ? "fixed left-4 top-4 z-[60]"
             : "fixed right-4 top-4 z-[60]"
-        }
+        )}
       >
         <SidebarTrigger isOpen={isOpen} onToggle={toggle} className={className} />
       </div>
