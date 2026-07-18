@@ -30,6 +30,7 @@ import { ChartTooltip } from "@/components/portfolio/chart-tooltip"
 import { AllocationCard } from "@/components/portfolio/allocation-card"
 import { TradeRow } from "@/components/portfolio/trade-row"
 import { MetricsRow } from "@/components/portfolio/metrics-row"
+import { TradeQueue } from "@/components/portfolio/trade-queue"
 
 import {
   portfolioSummary,
@@ -38,6 +39,7 @@ import {
   holdings,
   trades,
 } from "@/lib/portfolio/data"
+import { pendingTrades } from "@/lib/portfolio/trade-queue-data"
 import { useCountUp } from "@/lib/portfolio/hooks"
 
 /* ================================================================== */
@@ -191,6 +193,11 @@ export default function PortfolioFullPage() {
                 </div>
               </GlassCard>
             </div>
+
+            {/* Trade Queue — pending recommendations */}
+            <GlassCard className="p-5">
+              <TradeQueue trades={pendingTrades} />
+            </GlassCard>
 
             {/* Strategy */}
             <GlassCard className="p-5">
