@@ -1,12 +1,19 @@
-import BlurredWallpaperBackground from "@/components/blurred-wallpaper-background"
+"use client"
+
+import * as React from "react"
+import LoadingScreen from "@/components/loading-screen"
+import { DashboardPage } from "@/components/dashboard/dashboard-page"
 
 export default function Home() {
-  return (
-    <BlurredWallpaperBackground
-      // Place your own wallpaper at ui-showcase/public/wallpaper.jpg
-      // or set NEXT_PUBLIC_WALLPAPER_PATH to another local path.
-      // Remote URLs can be blocked by CORB and are not recommended.
-      imageSrc={process.env.NEXT_PUBLIC_WALLPAPER_PATH || "/wallpaper.jpg"}
-    />
-  )
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full">
+        <LoadingScreen onComplete={() => setIsLoading(false)} />
+      </div>
+    )
+  }
+
+  return <DashboardPage />
 }
