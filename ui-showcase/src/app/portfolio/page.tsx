@@ -21,7 +21,7 @@ import {
 } from "recharts"
 import { MetalButton } from "@/components/ui/metal-button"
 
-import { Sidebar } from "@/components/portfolio/sidebar"
+import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
 import { GlassCard } from "@/components/portfolio/glass-card"
 import { StatPill } from "@/components/portfolio/stat-pill"
 import { TimeRangeSelector } from "@/components/portfolio/time-range-selector"
@@ -44,7 +44,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="dark flex h-screen w-full bg-[#08090C]">
-      <Sidebar />
+      <AppSidebar triggerPosition="top-left" />
       <main className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between border-b border-white/[0.06] bg-black/20 backdrop-blur-xl px-8 py-3.5">
