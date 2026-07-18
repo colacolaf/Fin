@@ -10,6 +10,7 @@ import {
   BarChart3,
   Settings,
 } from "lucide-react"
+import { NewsCard } from "@/components/news/news-card"
 
 const sidebarItems = [
   { label: "Dashboard", icon: LayoutDashboard },
@@ -129,16 +130,12 @@ export default function DashboardTemplatePage() {
                   </SketchBox>
                 </div>
 
-                {/* Right column — memory + agent buttons */}
+                {/* Right column — news + agent buttons */}
                 <div className="flex flex-col gap-8 lg:col-span-1">
-                  <SketchBox
-                    title="Recent News"
-                    className="min-h-[140px]"
-                  >
-                    <span className="text-lg font-bold text-slate-300">
-                      News
-                    </span>
-                  </SketchBox>
+                  {/* News card — dark liquid glass container */}
+                  <div className="dark rounded-xl bg-[#0C0D12] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.2)] ring-1 ring-white/[0.06]">
+                    <NewsCard />
+                  </div>
 
                   <div>
                     <h4 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
