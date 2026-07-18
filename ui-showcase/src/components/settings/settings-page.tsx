@@ -439,6 +439,12 @@ const tabIcons: Record<string, LucideIcon> = {
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState("security")
+  const [saved, setSaved] = React.useState(false)
+
+  const handleSave = () => {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   return (
     <PageShell
@@ -447,10 +453,25 @@ export function SettingsPage() {
       actions={
         <button
           type="button"
-          className="flex h-8 items-center gap-1.5 rounded-md border border-[#818CF8]/30 bg-[#818CF8]/10 px-3 text-[12px] font-medium text-[#818CF8] transition-all duration-150 hover:bg-[#818CF8]/15 active:scale-95"
+          onClick={handleSave}
+          className={cn(
+            "flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-all duration-200 active:scale-95",
+            saved
+              ? "border-[#34D399]/30 bg-[#34D399]/10 text-[#34D399]"
+              : "border-[#818CF8]/30 bg-[#818CF8]/10 text-[#818CF8] hover:bg-[#818CF8]/15"
+          )}
         >
-          <Check className="h-3.5 w-3.5" />
-          Save changes
+          {saved ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Saved
+            </>
+          ) : (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Save changes
+            </>
+          )}
         </button>
       }
     >
