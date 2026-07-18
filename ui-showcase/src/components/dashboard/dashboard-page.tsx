@@ -221,13 +221,13 @@ export function DashboardPage() {
           transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
           className="mx-auto max-w-[1200px] px-6 py-6"
         >
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="flex flex-col gap-4">
             {/* ═══════════════════════════════════════════ */}
-            {/*  LEFT COLUMN — 2 cols                       */}
+            {/*  ROW 1 — Portfolio + Debt side-by-side       */}
             {/* ═══════════════════════════════════════════ */}
-            <div className="flex flex-col gap-4 lg:col-span-2">
-              {/* Portfolio — uses exact MetricsRow component */}
-              <GlassCard className="p-5">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+              {/* Portfolio — 3 cols */}
+              <GlassCard className="p-5 lg:col-span-3">
                 <SectionHeader
                   icon={<PieChart className="h-3.5 w-3.5 text-[#818CF8]" />}
                   label="Portfolio"
@@ -239,34 +239,13 @@ export function DashboardPage() {
                   summary={portfolioSummary}
                   animatedValue={animatedValue}
                 />
-                {/* Compact portfolio chart */}
-                <div className="mt-4 h-20 w-full">
+                <div className="mt-3 h-16 w-full">
                   <MiniChart data={chartData} />
                 </div>
               </GlassCard>
 
-              {/* Allocation — uses exact AllocationCard component */}
-              <div>
-                <SectionHeader
-                  icon={<PieChart className="h-3.5 w-3.5 text-[#67E8F9]" />}
-                  label="Allocation"
-                  fullscreenHref="/portfolio/full"
-                  fullscreenLabel="Details"
-                  accentColor="#67E8F9"
-                />
-                <AllocationCard
-                  data={allocationData}
-                  totalValue={portfolioSummary.totalValue}
-                />
-              </div>
-            </div>
-
-            {/* ═══════════════════════════════════════════ */}
-            {/*  RIGHT COLUMN — 1 col                       */}
-            {/* ═══════════════════════════════════════════ */}
-            <div className="flex flex-col gap-4">
-              {/* Debt — uses exact DebtDonut component */}
-              <GlassCard className="p-5">
+              {/* Debt — 2 cols */}
+              <GlassCard className="p-5 lg:col-span-2">
                 <SectionHeader
                   icon={<TrendingDown className="h-3.5 w-3.5 text-[#FBBF24]" />}
                   label="Debt"
@@ -274,8 +253,7 @@ export function DashboardPage() {
                   fullscreenLabel="Full View"
                   accentColor="#FBBF24"
                 />
-                {/* Summary pills */}
-                <div className="mb-4 flex flex-wrap gap-4">
+                <div className="mb-3 flex flex-wrap gap-4">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">Total</span>
                     <span className="text-[14px] font-semibold tabular-nums text-[#FBBF24]">
@@ -306,8 +284,33 @@ export function DashboardPage() {
                   <span className="text-[12px] font-semibold text-[#FBBF24]">{debtSummary.estimatedDebtFree}</span>
                 </div>
               </GlassCard>
+            </div>
 
-              {/* News — uses exact NewsCard component */}
+            {/* ═══════════════════════════════════════════ */}
+            {/*  ROW 2 — Agents + Allocation + News          */}
+            {/* ═══════════════════════════════════════════ */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {/* Agent Orbs */}
+              <GlassCard className="p-4">
+                <AgentOrbs />
+              </GlassCard>
+
+              {/* Allocation */}
+              <div>
+                <SectionHeader
+                  icon={<PieChart className="h-3.5 w-3.5 text-[#67E8F9]" />}
+                  label="Allocation"
+                  fullscreenHref="/portfolio/full"
+                  fullscreenLabel="Details"
+                  accentColor="#67E8F9"
+                />
+                <AllocationCard
+                  data={allocationData}
+                  totalValue={portfolioSummary.totalValue}
+                />
+              </div>
+
+              {/* News */}
               <GlassCard className="p-4">
                 <SectionHeader
                   icon={<Newspaper className="h-3.5 w-3.5 text-white/[0.40]" />}
@@ -315,11 +318,6 @@ export function DashboardPage() {
                   accentColor="#818CF8"
                 />
                 <NewsCard />
-              </GlassCard>
-
-              {/* Agent Orbs — uses exact AgentOrbs component */}
-              <GlassCard className="p-4">
-                <AgentOrbs />
               </GlassCard>
             </div>
           </div>
