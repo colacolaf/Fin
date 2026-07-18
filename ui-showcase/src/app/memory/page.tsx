@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation"
+import { MemoryPage } from "@/components/memory/memory-page"
 
 export const metadata = { title: "Memory — Finance OS" }
 
-export default function MemoryPage() {
-  redirect("/memory-graph")
+export default function MemoryRoute() {
+  return <MemoryPage />
 }
