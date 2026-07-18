@@ -126,6 +126,7 @@ function InlineChat({
             </span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="flex h-5 w-5 items-center justify-center rounded transition-colors hover:bg-white/[0.08] active:scale-95"
             aria-label="Close chat"

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Newspaper, ExternalLink, ChevronDown } from "lucide-react"
 import { newsArticles, sourceColors } from "@/lib/news/data"
@@ -212,6 +213,18 @@ function VariantB({ articles }: { articles: NewsArticle[] }) {
   )
 }
 
+/** Client-only clock to avoid SSR hydration mismatch */
+function CurrentTime() {
+  const [time, setTime] = useState("")
+  useEffect(() => {
+    const update = () => setTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
+    update()
+    const id = setInterval(update, 60_000)
+    return () => clearInterval(id)
+  }, [])
+  return <span className="text-[9px] font-mono text-white/[0.15]">{time}</span>
+}
+
 /* ================================================================== */
 /* VARIANT C — Source Column + Divider Rows                           */
 /* Source initial in a narrow column, thin rule between each row.     */
@@ -237,9 +250,7 @@ function VariantC({ articles }: { articles: NewsArticle[] }) {
           </div>
           <div className="flex items-center gap-3">
             <LiveDot />
-            <span className="text-[9px] font-mono text-white/[0.15]">
-              {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
+            <CurrentTime />
           </div>
         </div>
 
