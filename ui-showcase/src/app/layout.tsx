@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Blurred Wallpaper Background",
-  description: "A full-screen blurred wallpaper background for the Finance OS app.",
+  title: "Finance OS",
+  description: "A locally hosted personal finance operating system.",
 };
 
 export default function RootLayout({
@@ -28,13 +28,6 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <Script
-          src="//unpkg.com/react-scan/dist/auto.global.js"
-          crossOrigin="anonymous"
-          strategy="beforeInteractive"
-        />
-      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
