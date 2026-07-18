@@ -96,8 +96,9 @@ export function AllocationCard({
         Allocation
       </h3>
 
-      <div style={{ height: chartHeight }}>
-        <ResponsiveContainer width="100%" height="100%">            <PieChart>
+      <div style={{ height: chartHeight, minWidth: 200 }}>
+        <ResponsiveContainer width="100%" height="100%" debounce={50}>
+          <PieChart>
             <InteractivePie
               data={data}
               cx="50%" cy="50%"

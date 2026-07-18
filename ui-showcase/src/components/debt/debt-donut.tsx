@@ -117,8 +117,8 @@ export function DebtDonut({
 
   return (
     <div>
-      <div style={{ height: chartHeight }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div style={{ height: chartHeight, minWidth: 200 }}>
+        <ResponsiveContainer width="100%" height="100%" debounce={50}>
           <PieChart>
             <InteractivePie
               data={pieData}
