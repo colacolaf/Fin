@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { AnimatePresence, motion } from "motion/react"
 import { cn } from "@/lib/utils"
 import {
   PieChart,
@@ -83,26 +82,22 @@ export function AllocationCard({
 }: {
   data: AllocationSlice[]
   totalValue: number
-  size?: "default" | "large" | "compact"
+  size?: "default" | "large"
 }) {
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(undefined)
-  const isCompact = size === "compact"
-  const innerRadius = size === "large" ? 70 : isCompact ? 45 : 60
-  const outerRadius = size === "large" ? 100 : isCompact ? 70 : 85
-  const chartHeight = size === "large" ? 260 : isCompact ? 160 : 220
-  const centerFontSize = size === "large" ? 18 : isCompact ? 14 : 16
+  const innerRadius = size === "large" ? 70 : 60
+  const outerRadius = size === "large" ? 100 : 85
+  const chartHeight = size === "large" ? 260 : 220
+  const centerFontSize = size === "large" ? 18 : 16
 
   return (
-    <GlassCard className={cn(isCompact ? "p-3" : "p-5")}>
-      {!isCompact && (
-        <h3 className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/[0.38] mb-4">
-          Allocation
-        </h3>
-      )}
+    <GlassCard className="p-5">
+      <h3 className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/[0.38] mb-4">
+        Allocation
+      </h3>
 
       <div style={{ height: chartHeight }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+        <ResponsiveContainer width="100%" height="100%">            <PieChart>
             <InteractivePie
               data={data}
               cx="50%" cy="50%"
@@ -120,6 +115,7 @@ export function AllocationCard({
               ))}
             </InteractivePie>
             <Tooltip content={<AllocationTooltip />} />
+            {/* Center label — renders after pie so it's on top */}
             <text
               x="50%" y="46%"
               textAnchor="middle" dominantBaseline="middle"
@@ -138,81 +134,40 @@ export function AllocationCard({
         </ResponsiveContainer>
       </div>
 
-      {/* Legend grid — only visible on hover (compact) or always visible (default/large) */}
-      {isCompact ? (
-        <AnimatePresence>
-          {activeIndex !== undefined && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-              className="overflow-hidden"
-            >
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 pt-2 border-t border-white/[0.06]">
-                {data.map((asset) => (
-                  <div
-                    key={asset.name}
-                    className={cn(
-                      "flex items-center justify-between rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors duration-150 cursor-default",
-                      activeIndex !== undefined && data[activeIndex]?.name === asset.name
-                        ? "bg-white/[0.05]"
-                        : ""
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className="h-1.5 w-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: asset.color }}
-                      />
-                      <span className="text-[10px] font-medium text-white">
-                        {asset.name}
-                      </span>
-                    </div>
-                    <span className="text-[10px] tabular-nums text-white/[0.5]">
-                      {asset.value}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mt-2 pt-4 border-t border-white/[0.06]">
-          {data.map((asset) => (
-            <div
-              key={asset.name}
-              className={cn(
-                "flex items-center justify-between rounded-md px-2 py-1 -mx-2 transition-colors duration-150 cursor-default",
-                activeIndex !== undefined && data[activeIndex]?.name === asset.name
-                  ? "bg-white/[0.05]"
-                  : "hover:bg-white/[0.03]"
-              )}
-              onMouseEnter={() => setActiveIndex(data.indexOf(asset))}
-              onMouseLeave={() => setActiveIndex(undefined)}
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className="h-2 w-2 rounded-full shrink-0"
-                  style={{ backgroundColor: asset.color }}
-                />
-                <span className="text-[11px] font-medium text-white">
-                  {asset.name}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-[11px] tabular-nums text-white/[0.7]">
-                  ${asset.dollarValue.toLocaleString()}
-                </span>
-                <span className="text-[10px] tabular-nums text-white/[0.35] ml-1.5">
-                  {asset.value}%
-                </span>
-              </div>
+      {/* Legend grid — synced to pie hover */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mt-2 pt-4 border-t border-white/[0.06]">
+        {data.map((asset) => (
+          <div
+            key={asset.name}
+            className={cn(
+              "flex items-center justify-between rounded-md px-2 py-1 -mx-2 transition-colors duration-150 cursor-default",
+              activeIndex !== undefined && data[activeIndex]?.name === asset.name
+                ? "bg-white/[0.05]"
+                : "hover:bg-white/[0.03]"
+            )}
+            onMouseEnter={() => setActiveIndex(data.indexOf(asset))}
+            onMouseLeave={() => setActiveIndex(undefined)}
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className="h-2 w-2 rounded-full shrink-0"
+                style={{ backgroundColor: asset.color }}
+              />
+              <span className="text-[11px] font-medium text-white">
+                {asset.name}
+              </span>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="text-right">
+              <span className="text-[11px] tabular-nums text-white/[0.7]">
+                ${asset.dollarValue.toLocaleString()}
+              </span>
+              <span className="text-[10px] tabular-nums text-white/[0.35] ml-1.5">
+                {asset.value}%
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </GlassCard>
   )
 }
