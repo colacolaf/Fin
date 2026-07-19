@@ -12,9 +12,19 @@ import {
   Cpu,
   ExternalLink,
   AlertCircle,
+  Brain,
+  FileDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { availableModels, type AgentDef, type ModelOption } from "@/lib/agents"
+import {
+  availableModels,
+  thinkingModes,
+  tokenModes,
+  type AgentDef,
+  type ModelOption,
+  type ThinkingMode,
+  type TokenMode,
+} from "@/lib/agents"
 import {
   getAgentModel,
   getAgentConfig,
@@ -207,6 +217,8 @@ interface SettingsState {
   streamThinking: boolean
   autoExecute: boolean
   citations: boolean
+  thinkingMode: ThinkingMode
+  tokenMode: TokenMode
 }
 
 /* Hoisted to module scope — defining Toggle inside SettingsGear would
@@ -326,6 +338,86 @@ function SettingsGear({
 
         <div className="h-px bg-white/[0.06] my-1.5" />
 
+        {/* ── Thinking Mode ── */}
+        <div className="mb-3 px-1 py-1">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Brain className="h-3 w-3 text-white/[0.45]" />
+            <span className="text-[10px] font-medium uppercase tracking-[0.10em] text-white/[0.40]">Think Mode</span>
+          </div>
+          <div className="space-y-1">
+            {thinkingModes.map((mode) => {
+              const isActive = state.thinkingMode === mode.id
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => onChange({ ...state, thinkingMode: mode.id })}
+                  className={cn(
+                    "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors",
+                    isActive ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border flex items-center justify-center",
+                      isActive ? "border-transparent" : "border-white/[0.15]"
+                    )}
+                    style={isActive ? { backgroundColor: agent.color } : undefined}
+                  >
+                    {isActive && <Check className="h-2 w-2 text-[#0F1117]" />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-medium text-white">{mode.label}</div>
+                    <div className="text-[10px] text-white/[0.35]">{mode.description}</div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="h-px bg-white/[0.06] my-1.5" />
+
+        {/* ── Token Compression Mode ── */}
+        <div className="mb-3 px-1 py-1">
+          <div className="flex items-center gap-1.5 mb-2">
+            <FileDown className="h-3 w-3 text-white/[0.45]" />
+            <span className="text-[10px] font-medium uppercase tracking-[0.10em] text-white/[0.40]">Token Mode</span>
+          </div>
+          <div className="space-y-1">
+            {tokenModes.map((mode) => {
+              const isActive = state.tokenMode === mode.id
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => onChange({ ...state, tokenMode: mode.id })}
+                  className={cn(
+                    "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors",
+                    isActive ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border flex items-center justify-center",
+                      isActive ? "border-transparent" : "border-white/[0.15]"
+                    )}
+                    style={isActive ? { backgroundColor: agent.color } : undefined}
+                  >
+                    {isActive && <Check className="h-2 w-2 text-[#0F1117]" />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-medium text-white">{mode.label}</div>
+                    <div className="text-[10px] text-white/[0.35]">{mode.description}</div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="h-px bg-white/[0.06] my-1.5" />
+
         <SettingsToggle
           label="Stream thinking"
           description="Show F.I.R.M. steps live"
@@ -393,6 +485,8 @@ export function ModelSettings({
         citations: s.citations,
         autoExecute: s.autoExecute,
         voiceInput: state.voice,
+        thinkingMode: s.thinkingMode,
+        tokenMode: s.tokenMode,
       })
       onChange({ ...state, settings: s })
     },
@@ -407,6 +501,8 @@ export function ModelSettings({
         citations: state.settings.citations,
         autoExecute: state.settings.autoExecute,
         voiceInput: v,
+        thinkingMode: state.settings.thinkingMode,
+        tokenMode: state.settings.tokenMode,
       })
       onChange({ ...state, voice: v })
     },
@@ -452,6 +548,8 @@ export function buildDefaultModelSettingsState(
       streamThinking: storedConfig.streamThinking,
       autoExecute: storedConfig.autoExecute,
       citations: storedConfig.citations,
+      thinkingMode: storedConfig.thinkingMode,
+      tokenMode: storedConfig.tokenMode,
     },
   }
 }
@@ -466,5 +564,7 @@ export const defaultModelSettingsState: ModelSettingsState = {
     streamThinking: true,
     autoExecute: false,
     citations: true,
+    thinkingMode: "full",
+    tokenMode: "normal",
   },
 }

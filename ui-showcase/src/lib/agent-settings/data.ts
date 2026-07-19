@@ -1,4 +1,4 @@
-import type { AgentId } from "@/lib/agents"
+import type { AgentId, ThinkingMode, TokenMode } from "@/lib/agents"
 
 /* ================================================================== */
 /*  Agent settings data — types + localStorage helpers + recommended    */
@@ -15,6 +15,8 @@ export interface AgentConfigState {
   citations: boolean
   autoExecute: boolean
   voiceInput: boolean
+  thinkingMode: ThinkingMode
+  tokenMode: TokenMode
 }
 
 export interface AgentConstraint {
@@ -91,9 +93,9 @@ export const RECOMMENDED_LEARNING: Record<AgentId, string[]> = {
 /* ------------------------------------------------------------------ */
 
 export const DEFAULT_CONFIG: Record<AgentId, AgentConfigState> = {
-  portfolio: { temperature: 0.4, streamThinking: true, citations: true, autoExecute: false, voiceInput: false },
-  debt: { temperature: 0.3, streamThinking: true, citations: true, autoExecute: false, voiceInput: false },
-  retirement: { temperature: 0.3, streamThinking: true, citations: true, autoExecute: false, voiceInput: false },
+  portfolio: { temperature: 0.4, streamThinking: true, citations: true, autoExecute: false, voiceInput: false, thinkingMode: "full", tokenMode: "normal" },
+  debt: { temperature: 0.3, streamThinking: true, citations: true, autoExecute: false, voiceInput: false, thinkingMode: "full", tokenMode: "normal" },
+  retirement: { temperature: 0.3, streamThinking: true, citations: true, autoExecute: false, voiceInput: false, thinkingMode: "full", tokenMode: "normal" },
 }
 
 /* ================================================================== */

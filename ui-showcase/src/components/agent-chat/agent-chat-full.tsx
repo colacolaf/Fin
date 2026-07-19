@@ -176,6 +176,8 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
       setMessages((prev) => [...prev, reply])
     },
     activeSkillIds,
+    thinkingMode: modelState.settings.thinkingMode,
+    tokenMode: modelState.settings.tokenMode,
   })
 
   // Persist chat history to localStorage when messages change

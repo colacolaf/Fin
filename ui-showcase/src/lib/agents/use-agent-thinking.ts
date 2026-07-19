@@ -5,7 +5,7 @@ import {
   fetchSkillContents,
   type SkillContent,
 } from "@/lib/skills/resolver"
-import { firmSteps, type FirmStepKey } from "./index"
+import { firmSteps, type FirmStepKey, type ThinkingMode, type TokenMode } from "./index"
 
 /* ================================================================== */
 /*  Types                                                              */
@@ -128,31 +128,41 @@ function buildScripts(
   activeSkills: SkillContent[],
   failedSkills: string[],
   autoLoadedSkills: SkillMatch[],
+  thinkingMode: ThinkingMode,
 ): Record<FirmStepKey, string[]> {
   const skillNames = activeSkills.map((s) => s.skillId.replace(/_/g, " "))
   const skillCount = activeSkills.length
+  const isFast = thinkingMode === "fast"
 
   const base: Record<FirmStepKey, string[]> = {
-    frame: [
-      "Your tech weight is 41% against a 25% target.",
-      "Drift is +16 percentage points over your threshold.",
-      "The gap is well outside your 5% rebalance band.",
-    ],
-    inspect: [
-      "Last rebalance: March 12, 2025.",
-      "You skipped the June review per your memory notes.",
-      `Risk tolerance logged as moderate, 5-year horizon.`,
-    ],
-    research: [
-      "Confidence on current QQQ drift below 80%.",
-      "Searching SPY vs QQQ YTD performance...",
-      "QQQ up 18.2% YTD, SPY up 11.4% — concentration confirmed.",
-    ],
-    call: [
-      "Trim NVDA by 6% and AAPL by 4%.",
-      "Redirect into VOO to restore broad-market weight.",
-      "Estimated tax hit: $1,240. Net volatility reduction: 1.3x.",
-    ],
+    frame: isFast
+      ? ["Concentration detected — tech at 41% vs 25% target."]
+      : [
+          "Your tech weight is 41% against a 25% target.",
+          "Drift is +16 percentage points over your threshold.",
+          "The gap is well outside your 5% rebalance band.",
+        ],
+    inspect: isFast
+      ? ["Context loaded. Last rebalance: Mar 2025. Moderate risk, 5yr horizon."]
+      : [
+          "Last rebalance: March 12, 2025.",
+          "You skipped the June review per your memory notes.",
+          `Risk tolerance logged as moderate, 5-year horizon.`,
+        ],
+    research: isFast
+      ? ["QQQ +18.2% YTD vs SPY +11.4% — concentration confirmed."]
+      : [
+          "Confidence on current QQQ drift below 80%.",
+          "Searching SPY vs QQQ YTD performance...",
+          "QQQ up 18.2% YTD, SPY up 11.4% — concentration confirmed.",
+        ],
+    call: isFast
+      ? ["Trim NVDA 6% + AAPL 4% → VOO. Tax ~$1.2k."]
+      : [
+          "Trim NVDA by 6% and AAPL by 4%.",
+          "Redirect into VOO to restore broad-market weight.",
+          "Estimated tax hit: $1,240. Net volatility reduction: 1.3x.",
+        ],
   }
 
   // If skills were auto-loaded by the router, surface them in the trace
@@ -183,13 +193,32 @@ function buildScripts(
   return base
 }
 
-function buildResponse(activeSkills: SkillContent[]): string {
+function buildResponse(activeSkills: SkillContent[], tokenMode: TokenMode): string {
   if (activeSkills.length === 0) {
-    return "Your tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO. Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute."
+    const base = "Your tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO."
+    const detail = "Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute."
+
+    switch (tokenMode) {
+      case "normal": return `${base} ${detail}`
+      case "compressed": return `${base} Tax: ~$1.2k. Back in band. Next: authorize trade.`
+      case "ultra": return `Tech conc 1.8x vs S&P. Trim NVDA 6% AAPL 4% → VOO. Tax ~$1.2k. Back in 5% band. Confirm trade + auth key.`
+      case "bare": return `Sell NVDA -6% AAPL -4%, buy VOO. Tax $1.2k. Auth needed.`
+    }
   }
 
   const skillName = activeSkills[0].skillId.replace(/_/g, " ")
-  return `[Using ${activeSkills.length} active skill${activeSkills.length > 1 ? "s" : ""}: ${activeSkills.map((s) => s.skillId).join(", ")}]\n\nI've loaded the institutional knowledge for ${skillName} (~${activeSkills[0].tokenEstimate.toLocaleString()} tokens of methodology, formulas, and validation rules).\n\nYour tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO. Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute.`
+  const tokens = activeSkills[0].tokenEstimate.toLocaleString()
+
+  switch (tokenMode) {
+    case "normal":
+      return `[Using ${activeSkills.length} active skill${activeSkills.length > 1 ? "s" : ""}: ${activeSkills.map((s) => s.skillId).join(", ")}]\n\nI've loaded the institutional knowledge for ${skillName} (~${tokens} tokens of methodology, formulas, and validation rules).\n\nYour tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO. Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute.`
+    case "compressed":
+      return `[Skills: ${activeSkills.map((s) => s.skillId).join(", ")}] Tech conc 1.8x vs S&P. Trim NVDA 6% AAPL 4% → VOO. Tax ~$1.2k. Back in 5% band. Next: authorize trade.`
+    case "ultra":
+      return `[${skillName}] Tech conc 1.8x. NVDA -6% AAPL -4% → VOO. Tax $1.2k. Confirm + auth.`
+    case "bare":
+      return `Sell NVDA -6% AAPL -4%, buy VOO. Tax $1.2k. Auth.`
+  }
 }
 
 /* ================================================================== */
@@ -201,6 +230,10 @@ interface UseAgentThinkingOptions {
   onReply?: (message: AgentMessage) => void
   /** Active skill IDs — their content is loaded and context injected */
   activeSkillIds?: string[]
+  /** Thinking mode — controls reasoning depth */
+  thinkingMode?: ThinkingMode
+  /** Token mode — controls output compression level */
+  tokenMode?: TokenMode
 }
 
 interface UseAgentThinkingReturn {
@@ -222,6 +255,8 @@ const STREAM_INTERVAL_MS = 120
 export function useAgentThinking({
   onReply,
   activeSkillIds = [],
+  thinkingMode = "full",
+  tokenMode = "normal",
 }: UseAgentThinkingOptions = {}): UseAgentThinkingReturn {
   const [isThinking, setIsThinking] = React.useState(false)
   const [steps, setSteps] = React.useState<StepStatus[]>(() =>
@@ -317,8 +352,8 @@ export function useAgentThinking({
       }
 
       // Build scripts and response with loaded skill context
-      const scripts = buildScripts(loadedSkills, failedSkills, autoMatches)
-      const responseText = buildResponse(loadedSkills)
+      const scripts = buildScripts(loadedSkills, failedSkills, autoMatches, thinkingMode)
+      const responseText = buildResponse(loadedSkills, tokenMode)
 
       // For each step: set running, stream text, then mark done
       STEP_DURATIONS_MS.forEach((durationMs, idx) => {
@@ -423,7 +458,7 @@ export function useAgentThinking({
 
       timersRef.current.push(replyTimer)
     },
-    [clearTimers, resetSteps, activeSkillIds]
+    [clearTimers, resetSteps, activeSkillIds, thinkingMode, tokenMode]
   )
 
   // Compute total elapsed live from the steps (handles in-flight step)

@@ -83,6 +83,64 @@ export function getAgent(id: string): AgentDef | undefined {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Thinking Modes — controls reasoning depth                         */
+/* ------------------------------------------------------------------ */
+
+export type ThinkingMode = "full" | "fast"
+
+export interface ThinkingModeOption {
+  id: ThinkingMode
+  label: string
+  description: string
+}
+
+export const thinkingModes: ThinkingModeOption[] = [
+  { id: "full", label: "Full reasoning", description: "Runs complete F.I.R.M. framework with all mental models, validation, and teaching layers." },
+  { id: "fast", label: "Fast inference", description: "Skips teaching layer and redundant validation. Faster, fewer tokens." },
+]
+
+/* ------------------------------------------------------------------ */
+/*  Token Modes — controls output compression level                    */
+/* ------------------------------------------------------------------ */
+
+export type TokenMode = "normal" | "compressed" | "ultra" | "bare"
+
+export interface TokenModeOption {
+  id: TokenMode
+  label: string
+  description: string
+  /** What compression techniques are applied */
+  techniques: string
+}
+
+export const tokenModes: TokenModeOption[] = [
+  {
+    id: "normal",
+    label: "Normal",
+    description: "Full institutional prose — no compression.",
+    techniques: "Standard output with complete explanations, teaching layers, and structured formatting.",
+  },
+  {
+    id: "compressed",
+    label: "Compressed",
+    description: "Caveman lite + Ponytail lite — moderate token reduction.",
+    techniques: "Trim filler words, collapse redundant explanations, prefer concise structures. ~40% token reduction.",
+  },
+  {
+    id: "ultra",
+    label: "Ultra",
+    description: "Caveman full + Ponytail full — aggressive compression.",
+    techniques: "Caveman prose, single-sentence explanations, eliminate teaching layer, minimal formatting. ~65% token reduction.",
+  },
+  {
+    id: "bare",
+    label: "Bare",
+    description: "Caveman ultra + Ponytail ultra + RTK filtering — maximum density.",
+    techniques: "Keyword-dense output, no prose, output filtering applied, only raw essential facts. ~80% token reduction.",
+  },
+]
+
+/* ------------------------------------------------------------------ */
 /*  F.I.R.M. framework steps — shared with the thinking visualisation  */
 /* ------------------------------------------------------------------ */
 
