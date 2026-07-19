@@ -165,10 +165,17 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
   const [sessionId] = React.useState(`agent-${agentId}-${Date.now()}`)
   const sessionCategoryRef = React.useRef(getDefaultCategoryForAgent(agentId))
 
+  // Derive active skill IDs array from the Set (stable reference for the hook)
+  const activeSkillIds = React.useMemo(
+    () => Array.from(activeSkills),
+    [activeSkills]
+  )
+
   const { isThinking, steps, totalElapsed, send, cancel } = useAgentThinking({
     onReply: (reply) => {
       setMessages((prev) => [...prev, reply])
     },
+    activeSkillIds,
   })
 
   // Persist chat history to localStorage when messages change

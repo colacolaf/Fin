@@ -1,6 +1,10 @@
 "use client"
 
 import * as React from "react"
+import {
+  fetchSkillContents,
+  type SkillContent,
+} from "@/lib/skills/resolver"
 import { firmSteps, type FirmStepKey } from "./index"
 
 /* ================================================================== */
@@ -32,38 +36,64 @@ export interface AgentMessage {
 }
 
 /* ================================================================== */
-/*  Mock thinking scripts                                              */
-/*  In production these come from the streaming LLM API.               */
+/*  Mock thinking scripts — enriched with skill context                */
 /* ================================================================== */
 
-const sampleScripts: Record<FirmStepKey, string[]> = {
-  frame: [
-    "Your tech weight is 41% against a 25% target.",
-    "Drift is +16 percentage points over your threshold.",
-    "The gap is well outside your 5% rebalance band.",
-  ],
-  inspect: [
-    "Last rebalance: March 12, 2025.",
-    "You skipped the June review per your memory notes.",
-    "Risk tolerance logged as moderate, 5-year horizon.",
-  ],
-  research: [
-    "Confidence on current QQQ drift below 80%.",
-    "Searching SPY vs QQQ YTD performance...",
-    "QQQ up 18.2% YTD, SPY up 11.4% — concentration confirmed.",
-  ],
-  call: [
-    "Trim NVDA by 6% and AAPL by 4%.",
-    "Redirect into VOO to restore broad-market weight.",
-    "Estimated tax hit: $1,240. Net volatility reduction: 1.3x.",
-  ],
+function buildScripts(activeSkills: SkillContent[], failedSkills: string[]): Record<FirmStepKey, string[]> {
+  const skillNames = activeSkills.map((s) => s.skillId.replace(/_/g, " "))
+  const skillCount = activeSkills.length
+
+  const base: Record<FirmStepKey, string[]> = {
+    frame: [
+      "Your tech weight is 41% against a 25% target.",
+      "Drift is +16 percentage points over your threshold.",
+      "The gap is well outside your 5% rebalance band.",
+    ],
+    inspect: [
+      "Last rebalance: March 12, 2025.",
+      "You skipped the June review per your memory notes.",
+      `Risk tolerance logged as moderate, 5-year horizon.`,
+    ],
+    research: [
+      "Confidence on current QQQ drift below 80%.",
+      "Searching SPY vs QQQ YTD performance...",
+      "QQQ up 18.2% YTD, SPY up 11.4% — concentration confirmed.",
+    ],
+    call: [
+      "Trim NVDA by 6% and AAPL by 4%.",
+      "Redirect into VOO to restore broad-market weight.",
+      "Estimated tax hit: $1,240. Net volatility reduction: 1.3x.",
+    ],
+  }
+
+  // If skills are active, enrich the thinking trace
+  if (skillCount > 0) {
+    base.inspect = [
+      ...base.inspect,
+      `${skillCount} skill${skillCount > 1 ? "s" : ""} loaded: ${skillNames.join(", ")}.`,
+      `Skill context: ~${activeSkills.reduce((sum, s) => sum + s.tokenEstimate, 0).toLocaleString()} tokens of institutional knowledge available.`,
+    ]
+  }
+
+  // Surface skill load failures in the thinking trace
+  if (failedSkills.length > 0) {
+    base.inspect = [
+      ...base.inspect,
+      `⚠️ Could not load ${failedSkills.length} skill${failedSkills.length > 1 ? "s" : ""}: ${failedSkills.join(", ")}.`,
+    ]
+  }
+
+  return base
 }
 
-const sampleResponses = [
-  "Your tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO. Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute.",
-  "On track. Your debt avalanche saves $520 in interest vs. snowball over the next 24 months. The Credit Card at 19.9% APR should be your next target — redirect the $200/month surplus there.\n\nNext step: confirm the reallocation and I will update your payoff timeline.",
-  "Your retirement contribution rate is 8% against a 12% target for your stated retirement age. Closing that gap moves your debt-free date forward by 4 years.\n\nNext step: increase your 401(k) contribution by 4% in your next paycheck.",
-]
+function buildResponse(activeSkills: SkillContent[]): string {
+  if (activeSkills.length === 0) {
+    return "Your tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO. Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute."
+  }
+
+  const skillName = activeSkills[0].skillId.replace(/_/g, " ")
+  return `[Using ${activeSkills.length} active skill${activeSkills.length > 1 ? "s" : ""}: ${activeSkills.map((s) => s.skillId).join(", ")}]\n\nI've loaded the institutional knowledge for ${skillName} (~${activeSkills[0].tokenEstimate.toLocaleString()} tokens of methodology, formulas, and validation rules).\n\nYour tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO. Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute.`
+}
 
 /* ================================================================== */
 /*  useAgentThinking                                                   */
@@ -72,6 +102,8 @@ const sampleResponses = [
 interface UseAgentThinkingOptions {
   /** Called when the agent's final reply is ready to be appended */
   onReply?: (message: AgentMessage) => void
+  /** Active skill IDs — their content is loaded and context injected */
+  activeSkillIds?: string[]
 }
 
 interface UseAgentThinkingReturn {
@@ -92,6 +124,7 @@ const STREAM_INTERVAL_MS = 120
 
 export function useAgentThinking({
   onReply,
+  activeSkillIds = [],
 }: UseAgentThinkingOptions = {}): UseAgentThinkingReturn {
   const [isThinking, setIsThinking] = React.useState(false)
   const [steps, setSteps] = React.useState<StepStatus[]>(() =>
@@ -150,7 +183,7 @@ export function useAgentThinking({
   React.useEffect(() => clearTimers, [clearTimers])
 
   const send = React.useCallback(
-    (userText: string) => {
+    async (userText: string) => {
       if (!userText.trim()) return
       clearTimers()
       resetSteps()
@@ -158,10 +191,32 @@ export function useAgentThinking({
       accumulatedElapsedRef.current = 0
       currentStepIdxRef.current = -1
 
+      // ── Load active skill contents before starting the thinking flow ──
+      let loadedSkills: SkillContent[] = []
+      const failedSkills: string[] = []
+      if (activeSkillIds.length > 0) {
+        try {
+          const skillMap = await fetchSkillContents(activeSkillIds)
+          loadedSkills = Array.from(skillMap.values())
+          // Track which skills failed to load
+          for (const id of activeSkillIds) {
+            if (!skillMap.has(id)) failedSkills.push(id)
+          }
+        } catch {
+          // If the entire fetch operation fails, proceed without skills
+          console.warn("[useAgentThinking] Failed to load skill contents — proceeding without skills")
+          failedSkills.push(...activeSkillIds)
+        }
+      }
+
+      // Build scripts and response with loaded skill context
+      const scripts = buildScripts(loadedSkills, failedSkills)
+      const responseText = buildResponse(loadedSkills)
+
       // For each step: set running, stream text, then mark done
       STEP_DURATIONS_MS.forEach((durationMs, idx) => {
         // Hoist script so both the start and finish timers can read it
-        const script = sampleScripts[firmSteps[idx].key]
+        const script = scripts[firmSteps[idx].key]
 
         // Start this step
         const startTimer = setTimeout(() => {
@@ -245,12 +300,12 @@ export function useAgentThinking({
           hint: s.hint,
           state: "done" as const,
           elapsed: STEP_DURATIONS_MS[i] / 1000,
-          text: sampleScripts[s.key][sampleScripts[s.key].length - 1],
+          text: scripts[s.key][scripts[s.key].length - 1],
         }))
         const reply: AgentMessage = {
           id: `agent-${Date.now()}`,
           role: "agent",
-          text: sampleResponses[Math.floor(Math.random() * sampleResponses.length)],
+          text: responseText,
           thinking: finalSteps,
           thinkingElapsed: totalElapsed,
           createdAt: Date.now(),
@@ -261,7 +316,7 @@ export function useAgentThinking({
 
       timersRef.current.push(replyTimer)
     },
-    [clearTimers, resetSteps]
+    [clearTimers, resetSteps, activeSkillIds]
   )
 
   // Compute total elapsed live from the steps (handles in-flight step)
