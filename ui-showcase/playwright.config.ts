@@ -15,5 +15,9 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: true,
     timeout: 30000,
+    // Pass secrets through to test files
+    env: {
+      E2E_OPENAI_API_KEY: process.env.E2E_OPENAI_API_KEY ?? "",
+    },
   },
 })

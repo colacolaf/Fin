@@ -387,3 +387,56 @@ test("Enabled model toggles persist after card collapse", async ({ page }) => {
   // Verify summary banner shows 1 model enabled
   await expect(page.locator("text=1").first()).toBeVisible({ timeout: 3000 })
 })
+
+/* ================================================================== */
+/*  17. Real API key verification (requires E2E_OPENAI_API_KEY env var)  */
+/*  Run with: E2E_OPENAI_API_KEY=sk-yourkey npx playwright test        */
+/*  In CI: set E2E_OPENAI_API_KEY as a GitHub Actions secret           */
+/* ================================================================== */
+
+test("Real API key: enter key → Test Connection → green Verified badge", async ({ page }) => {
+  const realKey: string | undefined = process.env.E2E_OPENAI_API_KEY
+  if (!realKey || realKey.length < 10) {
+    test.skip(true, "E2E_OPENAI_API_KEY not set — skipping live API verification test")
+    return
+  }
+
+  await page.goto("/settings")
+  await page.click("button:has-text('AI Model')")
+  await page.waitForTimeout(500)
+
+  // Expand OpenAI provider card
+  await page.locator("text=OpenAI").first().click()
+  await page.waitForTimeout(400)
+
+  // Enter the real API key
+  const keyInput = page.locator("input[type='password']").first()
+  await expect(keyInput).toBeVisible({ timeout: 3000 })
+  await keyInput.fill(realKey)
+  await page.waitForTimeout(500)
+
+  // "Stored" indicator should appear
+  await expect(page.locator("text=Stored").first()).toBeVisible({ timeout: 3000 })
+
+  // Click "Test Connection"
+  const testBtn = page.locator("button:has-text('Test Connection')").first()
+  await expect(testBtn).toBeVisible({ timeout: 3000 })
+  await testBtn.click()
+
+  // Wait for the real API call to complete (OpenAI should respond within 5s)
+  // The button will show "Verified" with a timestamp when successful
+  await expect(page.locator("button:has-text('Verified')").first()).toBeVisible({ timeout: 15000 })
+
+  // The status badge in the card header should also show green "Verified"
+  const statusBadge = page.locator("text=Verified").first()
+  await expect(statusBadge).toBeVisible({ timeout: 3000 })
+
+  // The summary banner should now show 1 verified provider
+  // (the Verified count in the banner should have updated)
+  // Collapse the card to see the banner
+  await page.locator("text=OpenAI").first().click()
+  await page.waitForTimeout(300)
+
+  // Verify the summary banner is visible and shows updated counts
+  await expect(page.locator("text=Verified").first()).toBeVisible({ timeout: 3000 })
+})
