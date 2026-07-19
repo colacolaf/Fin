@@ -1,6 +1,30 @@
 import type { Debt, DebtSummary, DebtChartPoint, DebtTheme } from "./types"
 
 /* ================================================================== */
+/*  EMPTY DEFAULTS — zeroed / empty, ready for real data               */
+/*  When a bank connector is linked, swap these for API fetches.       */
+/* ================================================================== */
+
+const emptyDebts: Debt[] = []
+
+const emptySummary: DebtSummary = {
+  totalDebt: 0,
+  monthlyPayment: 0,
+  weightedApr: 0,
+  debtCount: 0,
+  estimatedDebtFree: "--",
+  totalInterestRemaining: 0,
+  monthOverMonthChange: 0,
+  totalPaidThisMonth: 0,
+  totalPaidThisWeek: 0,
+  totalPaidThisYear: 0,
+  percentPaid: 0,
+  totalOriginalDebt: 0,
+}
+
+const emptyChartData: DebtChartPoint[] = []
+
+/* ================================================================== */
 /*  MOCK DATA                                                         */
 /*  Replace each constant with an API fetch call when ready.          */
 /*  All data follows the interfaces in types.ts.                      */
@@ -187,4 +211,19 @@ export function getDebtsWithTheme(theme: DebtTheme): Debt[] {
     ...d,
     color: theme.chartColors[i % theme.chartColors.length],
   }))
+}
+
+/* ================================================================== */
+/*  useDebtData — returns empty defaults until real data flows          */
+/*  When a bank connector is linked and an API is wired, replace       */
+/*  the body with a fetch / SWR / React Query call.                   */
+/* ================================================================== */
+
+export function useDebtData() {
+  // TODO: swap for real API fetch when bank connector is linked
+  return {
+    debts: emptyDebts,
+    summary: emptySummary,
+    chartData: emptyChartData,
+  }
 }

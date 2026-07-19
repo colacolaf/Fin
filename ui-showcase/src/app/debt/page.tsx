@@ -18,7 +18,10 @@ import {
   debtSummary,
   allThemes,
   getDebtsWithTheme,
+  useDebtData,
 } from "@/lib/debt/data"
+import { useDebtConnection } from "@/lib/debt/use-debt-connection"
+import { DebtLocked } from "@/components/debt/debt-locked"
 import { useCountUp } from "@/lib/debt/hooks"
 import { LiquidGlassBg } from "@/components/debt/liquid-glass-bg"
 
@@ -79,10 +82,12 @@ function CompactDebtCard({
   themedDebts,
   animatedValue,
   theme,
+  summary,
 }: {
   themedDebts: ReturnType<typeof getDebtsWithTheme>
   animatedValue: number
   theme: (typeof allThemes)[number]["theme"]
+  summary: typeof debtSummary
 }) {
   return (
     <GlassCard className="p-4">
@@ -102,7 +107,7 @@ function CompactDebtCard({
           </span>
           <span className="flex items-center gap-0.5 text-[10px] font-medium text-[#34D399]">
             <ArrowDownRight className="h-2.5 w-2.5" />
-            ${Math.abs(debtSummary.monthOverMonthChange).toLocaleString()}
+            ${Math.abs(summary.monthOverMonthChange).toLocaleString()}
           </span>
         </div>
         <Link href="/debt/full">
@@ -139,8 +144,10 @@ export default function DebtPage() {
   const [themeKey, setThemeKey] = useState("amber")
   const themeData = allThemes.find((t) => t.key === themeKey) ?? allThemes[0]
   const theme = themeData.theme
-  const themedDebts = getDebtsWithTheme(theme)
-  const animatedValue = useCountUp(debtSummary.totalDebt)
+  const { isConnected } = useDebtConnection()
+  const { debts, summary } = useDebtData()
+  const themedDebts = debts.map((d, i) => ({ ...d, color: theme.chartColors[i % theme.chartColors.length] }))
+  const animatedValue = useCountUp(summary.totalDebt)
 
   return (
     <div className="dark flex h-screen w-full">
@@ -175,15 +182,18 @@ export default function DebtPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-[1400px] px-8 py-5">
-            {/* Compact debt card */}
-            <CompactDebtCard
-              themedDebts={themedDebts}
-              animatedValue={animatedValue}
-              theme={theme}
-            />
-          </div>
+        <div className="flex-1 overflow-auto">            <div className="mx-auto max-w-[1400px] px-8 py-5">
+              {!isConnected ? (
+                <DebtLocked variant="full" />
+              ) : (
+                <CompactDebtCard
+                  themedDebts={themedDebts}
+                  animatedValue={animatedValue}
+                  theme={theme}
+                  summary={summary}
+                />
+              )}
+            </div>
         </div>
       </main>
 

@@ -29,7 +29,10 @@ import {
   retirementAccounts,
   retirementSummary,
   chartData,
+  useRetirementData,
 } from "@/lib/retirement/data"
+import { useRetirementConnection } from "@/lib/retirement/use-retirement-connection"
+import { RetirementLocked } from "@/components/retirement/retirement-locked"
 
 /* ================================================================== */
 /*  Chart Tooltip                                                     */
@@ -94,7 +97,11 @@ const milestones = [
 /* ================================================================== */
 
 export default function RetirementFullPage() {
-  const s = retirementSummary
+  const { isConnected } = useRetirementConnection()
+  const { accounts: hookAccounts, summary: hookSummary, chartData: hookChartData } = useRetirementData()
+  const s = hookSummary
+  const displayAccounts = hookAccounts
+  const displayChartData = hookChartData
 
   return (
     <div className="dark flex h-screen w-full bg-[#08090C]">
@@ -143,6 +150,11 @@ export default function RetirementFullPage() {
 
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-[1400px] px-8 py-5 space-y-4">
+
+            {!isConnected ? (
+              <RetirementLocked variant="full" />
+            ) : (
+              <>
 
             {/* Hero stats */}
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
@@ -260,11 +272,11 @@ export default function RetirementFullPage() {
                     Retirement Accounts
                   </h3>
                   <span className="text-[10px] text-white/[0.25]">
-                    {retirementAccounts.length} accounts
+                    {displayAccounts.length} accounts
                   </span>
                 </div>
                 <div className="space-y-1">
-                  {retirementAccounts.map((acct) => {
+                  {displayAccounts.map((acct) => {
                     const matchPct = acct.employerMatchMax > 0
                       ? Math.round((acct.employerMatch / acct.employerMatchMax) * 100)
                       : 100
@@ -414,7 +426,7 @@ export default function RetirementFullPage() {
               </div>
               <div className="h-[320px] w-full" style={{ minWidth: 250 }}>
                 <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                  <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
+                  <AreaChart data={displayChartData} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
                     <defs>
                       <linearGradient id="retProjectedGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#67E8F9" stopOpacity={0.15} />
@@ -527,6 +539,8 @@ export default function RetirementFullPage() {
                 ))}
               </div>
             </GlassCard>
+            </>
+            )}
 
           </div>
         </div>

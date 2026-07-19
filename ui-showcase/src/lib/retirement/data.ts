@@ -1,6 +1,31 @@
 import type { RetirementAccount, RetirementSummary, RetirementChartPoint } from "./types"
 
 /* ================================================================== */
+/*  EMPTY DEFAULTS — zeroed / empty, ready for real data               */
+/*  When a retirement connector is linked, swap these for API fetches. */
+/* ================================================================== */
+
+const emptyAccounts: RetirementAccount[] = []
+
+const emptySummary: RetirementSummary = {
+  totalSaved: 0,
+  fundedPercentage: 0,
+  projectedAnnualIncome: 0,
+  targetRetirementAge: 65,
+  currentAge: 0,
+  yearsToRetirement: 0,
+  monthlyGap: 0,
+  neededAtRetirement: 0,
+  employerMatchCaptured: 0,
+  employerMatchAvailable: 0,
+  socialSecurityEstimate: 0,
+  monthlyContribution: 0,
+  annualIncome: 0,
+}
+
+const emptyChartData: RetirementChartPoint[] = []
+
+/* ================================================================== */
 /*  MOCK DATA                                                         */
 /* ================================================================== */
 
@@ -85,3 +110,17 @@ export const chartData: RetirementChartPoint[] = [
   { age: 63, projected: 836_000, target: 540_000, optimistic: 1_305_000, conservative: 658_000 },
   { age: 65, projected: 950_000, target: 610_000, optimistic: 1_540_000, conservative: 742_000 },
 ]
+
+/* ================================================================== */
+/*  useRetirementData — returns empty defaults until real data flows    */
+/*  When a retirement connector is linked, replace the body with API.  */
+/* ================================================================== */
+
+export function useRetirementData() {
+  // TODO: swap for real API fetch when retirement connector is linked
+  return {
+    accounts: emptyAccounts,
+    summary: emptySummary,
+    chartData: emptyChartData,
+  }
+}

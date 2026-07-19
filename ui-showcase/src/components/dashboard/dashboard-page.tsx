@@ -16,7 +16,9 @@ import { AgentOrbs } from "@/components/agent-orbs"
 import { usePortfolioConnection } from "@/lib/portfolio/use-portfolio-connection"
 import { usePortfolioData } from "@/lib/portfolio/data"
 import { PortfolioLocked } from "@/components/portfolio/portfolio-locked"
-import { debtSummary, amberTheme, getDebtsWithTheme } from "@/lib/debt/data"
+import { debtSummary, amberTheme, getDebtsWithTheme, useDebtData } from "@/lib/debt/data"
+import { useDebtConnection } from "@/lib/debt/use-debt-connection"
+import { DebtLocked } from "@/components/debt/debt-locked"
 import { useDesktopNotifications } from "@/lib/notifications/use-desktop-notifications"
 
 /* ================================================================== */
@@ -174,10 +176,13 @@ function MiniChart({ data }: { data: { date: string; value: number }[] }) {
 /* ================================================================== */
 
 export function DashboardPage() {
-  const { isConnected } = usePortfolioConnection()
+  const { isConnected: isPortfolioConnected } = usePortfolioConnection()
   const { summary: portfolioSummary, chartData } = usePortfolioData()
+  const { isConnected: isDebtConnected } = useDebtConnection()
+  const { summary: debtHookSummary } = useDebtData()
   const animatedValue = useAnimatedValue(portfolioSummary.totalValue)
   const debtsWithColor = getDebtsWithTheme(amberTheme)
+  const displayDebtSummary = isDebtConnected ? debtHookSummary : debtSummary
   const { notify, permissionGranted, requestPermission } = useDesktopNotifications()
   const [testMenuOpen, setTestMenuOpen] = React.useState(false)
 
@@ -287,7 +292,7 @@ export function DashboardPage() {
                 fullscreenLabel="Full View"
                 accentColor="#818CF8"
               />
-              {!isConnected ? (
+              {!isPortfolioConnected ? (
                 <PortfolioLocked variant="card" />
               ) : (
                 <>
@@ -325,36 +330,42 @@ export function DashboardPage() {
                 fullscreenLabel="Full View"
                 accentColor="#FBBF24"
               />
+            {!isDebtConnected ? (
+                <DebtLocked variant="card" />
+              ) : (
+                <>
               <div className="mb-2 flex flex-wrap gap-3">
                 <div className="flex flex-col">
                   <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">Total</span>
                   <span className="text-[13px] font-semibold tabular-nums text-[#FBBF24]">
-                    ${debtSummary.totalDebt.toLocaleString()}
+                    ${displayDebtSummary.totalDebt.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">Monthly</span>
                   <span className="text-[13px] font-semibold tabular-nums text-white">
-                    ${debtSummary.monthlyPayment.toLocaleString()}
+                    ${displayDebtSummary.monthlyPayment.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[8px] font-medium uppercase tracking-[0.1em] text-white/[0.30]">APR</span>
                   <span className="text-[13px] font-semibold tabular-nums text-[#FB7185]">
-                    {debtSummary.weightedApr}%
+                    {displayDebtSummary.weightedApr}%
                   </span>
                 </div>
               </div>
               <DebtDonut
                 debts={debtsWithColor}
-                totalDebt={debtSummary.totalDebt}
+                totalDebt={displayDebtSummary.totalDebt}
                 theme={amberTheme}
                 showLegend={false}
               />
               <div className="mt-2 flex items-center justify-between rounded-lg border border-[#FBBF24]/15 bg-[#FBBF24]/5 px-3 py-1.5">
                 <span className="text-[10px] text-white/[0.50]">Estimated debt-free</span>
-                <span className="text-[11px] font-semibold text-[#FBBF24]">{debtSummary.estimatedDebtFree}</span>
+                <span className="text-[11px] font-semibold text-[#FBBF24]">{displayDebtSummary.estimatedDebtFree}</span>
               </div>
+                </>
+              )}
             </GlassCard>
 
             {/* ═══════════════════════════════════════════ */}

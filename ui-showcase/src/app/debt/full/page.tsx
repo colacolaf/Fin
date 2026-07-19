@@ -34,7 +34,10 @@ import {
   chartData,
   allThemes,
   getDebtsWithTheme,
+  useDebtData,
 } from "@/lib/debt/data"
+import { useDebtConnection } from "@/lib/debt/use-debt-connection"
+import { DebtLocked } from "@/components/debt/debt-locked"
 import { useCountUp } from "@/lib/debt/hooks"
 import { LiquidGlassBg } from "@/components/debt/liquid-glass-bg"
 
@@ -152,8 +155,12 @@ export default function DebtFullPage() {
   const [showCompare, setShowCompare] = useState(false)
   const themeData = allThemes.find((t) => t.key === themeKey) ?? allThemes[0]
   const theme = themeData.theme
-  const themedDebts = getDebtsWithTheme(theme)
-  const animatedValue = useCountUp(debtSummary.totalDebt)
+  const { isConnected } = useDebtConnection()
+  const { debts: hookDebts, summary: hookSummary, chartData: hookChartData } = useDebtData()
+  const displayDebts = hookDebts.map((d, i) => ({ ...d, color: theme.chartColors[i % theme.chartColors.length] }))
+  const displaySummary = hookSummary
+  const displayChartData = hookChartData
+  const animatedValue = useCountUp(displaySummary.totalDebt)
 
   return (
     <div className="dark flex h-screen w-full">
@@ -201,6 +208,10 @@ export default function DebtFullPage() {
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-[1400px] px-8 py-5 space-y-4">
 
+            {!isConnected ? (
+              <DebtLocked variant="full" />
+            ) : (
+              <>
             {/* Hero stats row */}
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
               <div className="flex flex-col">
@@ -210,22 +221,22 @@ export default function DebtFullPage() {
                     ${Math.round(animatedValue).toLocaleString()}
                   </span>
                   <span className="flex items-center gap-1 text-[13px] font-medium text-[#34D399]">
-                    <ArrowDownRight className="h-3.5 w-3.5" />-${Math.abs(debtSummary.monthOverMonthChange).toLocaleString()}
+                    <ArrowDownRight className="h-3.5 w-3.5" />-${Math.abs(displaySummary.monthOverMonthChange).toLocaleString()}
                   </span>
                 </div>
               </div>
               <div className="h-8 w-px bg-white/[0.06] shrink-0 self-center" />
-              <StatPill label="Monthly" value={`$${debtSummary.monthlyPayment.toLocaleString()}`} />
+              <StatPill label="Monthly" value={`$${displaySummary.monthlyPayment.toLocaleString()}`} />
               <div className="h-8 w-px bg-white/[0.06] shrink-0 self-center" />
-              <StatPill label="Avg APR" value={`${debtSummary.weightedApr}%`} />
+              <StatPill label="Avg APR" value={`${displaySummary.weightedApr}%`} />
               <div className="h-8 w-px bg-white/[0.06] shrink-0 self-center" />
-              <StatPill label="Debts" value={debtSummary.debtCount.toString()} />
+              <StatPill label="Debts" value={displaySummary.debtCount.toString()} />
               <div className="h-8 w-px bg-white/[0.06] shrink-0 self-center" />
-              <StatPill label="Paid" value={`${debtSummary.percentPaid}%`} color="green" />
+              <StatPill label="Paid" value={`${displaySummary.percentPaid}%`} color="green" />
               <div className="h-8 w-px bg-white/[0.06] shrink-0 self-center" />
-              <StatPill label="Interest Left" value={`$${debtSummary.totalInterestRemaining.toLocaleString()}`} color="red" />
+              <StatPill label="Interest Left" value={`$${displaySummary.totalInterestRemaining.toLocaleString()}`} color="red" />
               <div className="h-8 w-px bg-white/[0.06] shrink-0 self-center" />
-              <StatPill label="Debt-Free" value={debtSummary.estimatedDebtFree} />
+              <StatPill label="Debt-Free" value={displaySummary.estimatedDebtFree} />
             </div>
 
             {/* Large chart */}
@@ -235,16 +246,16 @@ export default function DebtFullPage() {
                   <div className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-1">
                     <ArrowDownRight className="h-3 w-3 text-[#34D399]" />
                     <span className="text-[10px] text-white/[0.5]">Best</span>
-                    <span className="text-[10px] font-semibold text-[#34D399]">-$2,100</span>
+                    <span className="text-[10px] font-semibold text-[#34D399]">--</span>
                   </div>
                   <div className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-1">
                     <TrendingDown className="h-3 w-3" style={{ color: theme.primary }} />
                     <span className="text-[10px] text-white/[0.5]">Worst</span>
-                    <span className="text-[10px] font-semibold" style={{ color: theme.primary }}>-$420</span>
+                    <span className="text-[10px] font-semibold" style={{ color: theme.primary }}>--</span>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 36, right: 12, left: 4, bottom: 4 }}>
+                  <AreaChart data={displayChartData} margin={{ top: 36, right: 12, left: 4, bottom: 4 }}>
                     <defs>
                       <linearGradient id="debtFullChartGlow" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={theme.primary} stopOpacity={0.2} />
@@ -273,7 +284,7 @@ export default function DebtFullPage() {
                 <h3 className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/[0.38] mb-2">
                   Debt Composition
                 </h3>
-                <DebtDonut debts={themedDebts} totalDebt={debtSummary.totalDebt} theme={theme} size="large" />
+                <DebtDonut debts={displayDebts} totalDebt={displaySummary.totalDebt} theme={theme} size="large" />
               </GlassCard>
 
               {/* Breakdown table */}
@@ -283,7 +294,7 @@ export default function DebtFullPage() {
                   <span className="text-[10px] text-white/[0.25]">Sorted by balance</span>
                 </div>
                 <div className="space-y-1">
-                  {themedDebts.map((d) => {
+                  {displayDebts.map((d) => {
                     const pctPaid = ((d.originalBalance - d.balance) / d.originalBalance) * 100
                     const isUrgent = d.apr >= 15
                     return (
@@ -322,13 +333,13 @@ export default function DebtFullPage() {
                   Progress
                 </h3>
                 <div className="flex flex-col items-center gap-4">
-                  <ProgressRing percent={debtSummary.percentPaid} color={theme.primary} size={140} />
+                  <ProgressRing percent={displaySummary.percentPaid} color={theme.primary} size={140} />
                   <div className="w-full space-y-2.5 pt-2 border-t border-white/[0.06]">
                     {[
-                      { label: "Paid", value: `$${(debtSummary.totalOriginalDebt - debtSummary.totalDebt).toLocaleString()}` },
-                      { label: "Remaining", value: `$${debtSummary.totalDebt.toLocaleString()}` },
-                      { label: "Debt-free", value: debtSummary.estimatedDebtFree },
-                      { label: "Months left", value: "24" },
+                      { label: "Paid", value: `$${(displaySummary.totalOriginalDebt - displaySummary.totalDebt).toLocaleString()}` },
+                      { label: "Remaining", value: `$${displaySummary.totalDebt.toLocaleString()}` },
+                      { label: "Debt-free", value: displaySummary.estimatedDebtFree },
+                      { label: "Months left", value: displaySummary.debtCount > 0 ? "--" : "--" },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center justify-between">
                         <span className="text-[10px] text-white/[0.38]">{item.label}</span>
@@ -346,7 +357,7 @@ export default function DebtFullPage() {
                 Payoff Timeline
               </h3>
               <div className="space-y-3">
-                {themedDebts.map((d) => {
+                {displayDebts.map((d) => {
                   const pctPaid = ((d.originalBalance - d.balance) / d.originalBalance) * 100
                   // Estimate months remaining from sparkdata trend
                   const pctRemaining = 100 - pctPaid
@@ -406,7 +417,7 @@ export default function DebtFullPage() {
                     </div>
                     <p className="text-[10px] text-white/[0.38] mb-3">Pay highest APR first</p>
                     <div className="space-y-1.5">
-                      {[...themedDebts].sort((a, b) => b.apr - a.apr).map((d, i) => (
+                      {[...displayDebts].sort((a, b) => b.apr - a.apr).map((d, i) => (
                         <div key={d.id} className="flex items-center gap-2">
                           <span className="text-[10px] text-white/[0.25] w-3">{i + 1}.</span>
                           <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: d.color }} />
@@ -417,11 +428,11 @@ export default function DebtFullPage() {
                     </div>
                     <div className="mt-3 pt-2 border-t border-white/[0.06] flex justify-between text-[10px]">
                       <span className="text-white/[0.38]">Interest saved</span>
-                      <span className="text-[#34D399] font-medium">$2,340</span>
+                      <span className="text-[#34D399] font-medium">--</span>
                     </div>
                     <div className="flex justify-between text-[10px] mt-1">
                       <span className="text-white/[0.38]">Debt-free</span>
-                      <span className="text-white font-medium">Jul 2028</span>
+                      <span className="text-white font-medium">--</span>
                     </div>
                   </div>
 
@@ -432,7 +443,7 @@ export default function DebtFullPage() {
                     </div>
                     <p className="text-[10px] text-white/[0.38] mb-3">Pay smallest balance first</p>
                     <div className="space-y-1.5">
-                      {[...themedDebts].sort((a, b) => a.balance - b.balance).map((d, i) => (
+                      {[...displayDebts].sort((a, b) => a.balance - b.balance).map((d, i) => (
                         <div key={d.id} className="flex items-center gap-2">
                           <span className="text-[10px] text-white/[0.25] w-3">{i + 1}.</span>
                           <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: d.color }} />
@@ -443,11 +454,11 @@ export default function DebtFullPage() {
                     </div>
                     <div className="mt-3 pt-2 border-t border-white/[0.06] flex justify-between text-[10px]">
                       <span className="text-white/[0.38]">Interest saved</span>
-                      <span className="text-[#34D399] font-medium">$1,820</span>
+                      <span className="text-[#34D399] font-medium">--</span>
                     </div>
                     <div className="flex justify-between text-[10px] mt-1">
                       <span className="text-white/[0.38]">Debt-free</span>
-                      <span className="text-white font-medium">Sep 2028</span>
+                      <span className="text-white font-medium">--</span>
                     </div>
                   </div>
                 </div>
@@ -462,9 +473,9 @@ export default function DebtFullPage() {
                   {/* Cumulative stats */}
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: "This week", value: "-$420", pct: "-0.9%" },
-                      { label: "This month", value: "-$1,240", pct: "-2.6%" },
-                      { label: "This year", value: "-$8,400", pct: "-15.1%" },
+                      { label: "This week", value: displaySummary.totalPaidThisWeek > 0 ? `-$${displaySummary.totalPaidThisWeek.toLocaleString()}` : "--", pct: "--" },
+                      { label: "This month", value: displaySummary.totalPaidThisMonth > 0 ? `-$${displaySummary.totalPaidThisMonth.toLocaleString()}` : "--", pct: "--" },
+                      { label: "This year", value: displaySummary.totalPaidThisYear > 0 ? `-$${displaySummary.totalPaidThisYear.toLocaleString()}` : "--", pct: "--" },
                     ].map((s) => (
                       <div key={s.label} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3">
                         <span className="text-[9px] text-white/[0.38] block">{s.label}</span>
@@ -476,11 +487,16 @@ export default function DebtFullPage() {
 
                   {/* Week bars */}
                   <div className="space-y-2.5">
-                    {[
-                      { label: "W1", value: 280, max: 500 },
-                      { label: "W2", value: 340, max: 500 },
-                      { label: "W3", value: 220, max: 500 },
-                      { label: "W4", value: 420, max: 500 },
+                    {displaySummary.totalPaidThisMonth > 0 ? [
+                      { label: "W1", value: displaySummary.totalPaidThisMonth * 0.22, max: displaySummary.totalPaidThisMonth },
+                      { label: "W2", value: displaySummary.totalPaidThisMonth * 0.27, max: displaySummary.totalPaidThisMonth },
+                      { label: "W3", value: displaySummary.totalPaidThisMonth * 0.18, max: displaySummary.totalPaidThisMonth },
+                      { label: "W4", value: displaySummary.totalPaidThisMonth * 0.33, max: displaySummary.totalPaidThisMonth },
+                    ] : [
+                      { label: "W1", value: 0, max: 1 },
+                      { label: "W2", value: 0, max: 1 },
+                      { label: "W3", value: 0, max: 1 },
+                      { label: "W4", value: 0, max: 1 },
                     ].map((w) => (
                       <div key={w.label} className="flex items-center gap-3">
                         <span className="text-[10px] text-white/[0.25] w-5">{w.label}</span>
@@ -498,20 +514,24 @@ export default function DebtFullPage() {
                   {/* Average */}
                   <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
                     <span className="text-[10px] text-white/[0.38]">Avg/week this month</span>
-                    <span className="text-[11px] font-medium text-white">$315</span>
+                    <span className="text-[11px] font-medium text-white">--</span>
                   </div>
 
                   {/* Next payment */}
+                  {displayDebts.length > 0 ? (
                   <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 flex items-center gap-3">
                     <Calendar className="h-4 w-4 text-white/[0.25]" />
                     <div>
-                      <span className="text-[11px] font-medium text-white block">Credit Card — $250</span>
-                      <span className="text-[10px] text-white/[0.38]">Due Dec 15 · 3 days</span>
+                      <span className="text-[11px] font-medium text-white block">Next payment data pending</span>
+                      <span className="text-[10px] text-white/[0.38]">Sync your accounts to see upcoming payments</span>
                     </div>
                   </div>
+                  ) : null}
                 </div>
               </GlassCard>
             </div>
+            </>
+            )}
           </div>
         </div>
       </main>
@@ -523,7 +543,7 @@ export default function DebtFullPage() {
       <DebtVsInvestModal
         open={showCompare}
         onClose={() => setShowCompare(false)}
-        debts={themedDebts}
+        debts={displayDebts}
         extraCash={500}
         expectedReturn={0.07}
         employerMatch={4200}

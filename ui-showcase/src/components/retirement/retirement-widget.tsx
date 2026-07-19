@@ -6,7 +6,10 @@ import { Maximize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GlassCard } from "@/components/portfolio/glass-card"
 import { PiggyBankIcon } from "@/components/retirement/piggy-bank-icon"
+import { RetirementLocked } from "@/components/retirement/retirement-locked"
 import { retirementSummary } from "@/lib/retirement/data"
+import { useRetirementConnection } from "@/lib/retirement/use-retirement-connection"
+import { useRetirementData } from "@/lib/retirement/data"
 
 /* ================================================================== */
 /*  RetirementWidget — Status Bar style                                */
@@ -14,7 +17,9 @@ import { retirementSummary } from "@/lib/retirement/data"
 /* ================================================================== */
 
 export function RetirementWidget() {
-  const s = retirementSummary
+  const { isConnected } = useRetirementConnection()
+  const { summary: hookSummary } = useRetirementData()
+  const s = isConnected ? hookSummary : retirementSummary
   const matchPercent = Math.round((s.employerMatchCaptured / s.employerMatchAvailable) * 100)
   const matchLeaving = s.employerMatchAvailable - s.employerMatchCaptured
 
@@ -45,6 +50,10 @@ export function RetirementWidget() {
         </Link>
       </div>
 
+      {!isConnected ? (
+        <RetirementLocked variant="card" />
+      ) : (
+        <>
       {/* Big readiness number + bar */}
       <div className="flex items-baseline gap-2 mb-2">
         <span className="text-[28px] font-semibold tracking-tight text-white tabular-nums">
@@ -126,6 +135,8 @@ export function RetirementWidget() {
           </span>
         )}
       </div>
+        </>
+      )}
     </GlassCard>
   )
 }
