@@ -31,19 +31,17 @@ import {
   saveAgentModel,
   saveAgentConfig,
 } from "@/lib/agent-settings/data"
+import { getProviderSetupUrl } from "@/lib/settings/provider-keys"
 import type { AgentId } from "@/lib/agents"
 
 /* ------------------------------------------------------------------ */
-/*  Vendor setup URLs                                                  */
+/*  Setup link helper — reads provider setup URL from the registry     */
 /* ------------------------------------------------------------------ */
 
-const MODEL_VENDOR_SETUP: Record<string, { label: string; url: string }> = {
-  OpenAI: { label: "Get API key", url: "https://platform.openai.com/api-keys" },
-  Anthropic: { label: "Get API key", url: "https://console.anthropic.com/" },
-  Local: { label: "Download", url: "https://ollama.com/" },
-  Google: { label: "Get API key", url: "https://aistudio.google.com/apikey" },
-  Groq: { label: "Get API key", url: "https://console.groq.com/keys" },
-  Mistral: { label: "Get API key", url: "https://console.mistral.ai/api-keys/" },
+function getSetupLink(providerId: string): { label: string; url: string } | null {
+  const url = getProviderSetupUrl(providerId)
+  if (!url) return null
+  return { label: providerId === "local" ? "Download" : "Get API key", url }
 }
 
 /* ------------------------------------------------------------------ */
@@ -113,7 +111,7 @@ function ModelPicker({
 
         {availableModels.map((m) => {
           const isActive = m.id === modelId
-          const setup = MODEL_VENDOR_SETUP[m.vendor]
+          const setup = getSetupLink(m.providerId)
           return (
             <div key={m.id}>
               <button

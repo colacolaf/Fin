@@ -214,21 +214,187 @@ export const availableSkills: AgentSkill[] = [
 ]
 
 /* ------------------------------------------------------------------ */
-/*  Available models (mock data for the model selector)                */
+/*  Provider & Model Registry                                          */
 /* ------------------------------------------------------------------ */
+
+export interface ProviderOption {
+  id: string
+  name: string
+  /** Environment variable name for the API key (e.g. OPENAI_API_KEY) */
+  apiKeyEnv: string
+  /** Base URL for the chat completions endpoint */
+  baseUrl: string
+  /** URL where users can get an API key */
+  setupUrl: string
+  /** Documentation URL for the provider's API */
+  docUrl?: string
+  /** Whether this is a locally-hosted provider (Ollama) */
+  local?: boolean
+  /** Models offered by this provider */
+  models: ModelOption[]
+}
 
 export interface ModelOption {
   id: string
   label: string
   vendor: string
+  /** Provider this model belongs to */
+  providerId: string
   description: string
+  /** Pricing per 1M tokens (input) */
+  pricing: string
+  /** Maximum context window */
+  contextWindow: string
+  /** Key strengths (e.g. ["Reasoning", "Fast", "Long context"]) */
+  strengths: string[]
 }
 
-export const availableModels: ModelOption[] = [
-  { id: "gpt-5", label: "GPT-5", vendor: "OpenAI", description: "Reasoning, fast." },
-  { id: "claude-4", label: "Claude Sonnet 4", vendor: "Anthropic", description: "Long context, careful." },
-  { id: "llama-3", label: "Llama 3 70B", vendor: "Local", description: "On-device, private." },
+/* ── Providers ── */
+
+export const availableProviders: ProviderOption[] = [
+  {
+    id: "openai",
+    name: "OpenAI",
+    apiKeyEnv: "OPENAI_API_KEY",
+    baseUrl: "https://api.openai.com/v1",
+    setupUrl: "https://platform.openai.com/api-keys",
+    docUrl: "https://platform.openai.com/docs",
+    models: [
+      { id: "gpt-4o", label: "GPT-4o", vendor: "OpenAI", providerId: "openai", description: "Fast, multimodal. Best all-rounder.", pricing: "$2.50/$10.00", contextWindow: "128K", strengths: ["Reasoning", "Fast", "Multimodal"] },
+      { id: "gpt-4o-mini", label: "GPT-4o-mini", vendor: "OpenAI", providerId: "openai", description: "Cheap, fast. Good for quick Q&A.", pricing: "$0.15/$0.60", contextWindow: "128K", strengths: ["Fast", "Cheap"] },
+      { id: "o3", label: "o3", vendor: "OpenAI", providerId: "openai", description: "Advanced reasoning for complex multi-step analysis.", pricing: "$10.00/$40.00", contextWindow: "200K", strengths: ["Reasoning", "Math", "Coding"] },
+      { id: "o4-mini", label: "o4-mini", vendor: "OpenAI", providerId: "openai", description: "Fast reasoning. Good balance of speed and depth.", pricing: "$1.10/$4.40", contextWindow: "200K", strengths: ["Reasoning", "Fast"] },
+      { id: "gpt-4.1", label: "GPT-4.1", vendor: "OpenAI", providerId: "openai", description: "Latest flagship. Excellent instruction following.", pricing: "$2.00/$8.00", contextWindow: "1M", strengths: ["Reasoning", "Long context", "Coding"] },
+    ],
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    apiKeyEnv: "ANTHROPIC_API_KEY",
+    baseUrl: "https://api.anthropic.com/v1",
+    setupUrl: "https://console.anthropic.com",
+    docUrl: "https://docs.anthropic.com",
+    models: [
+      { id: "claude-opus-4", label: "Claude Opus 4", vendor: "Anthropic", providerId: "anthropic", description: "Most capable. Best for complex financial analysis.", pricing: "$15.00/$75.00", contextWindow: "200K", strengths: ["Reasoning", "Careful", "Long context", "Coding"] },
+      { id: "claude-sonnet-4", label: "Claude Sonnet 4", vendor: "Anthropic", providerId: "anthropic", description: "Balanced performance. Great for financial writing.", pricing: "$3.00/$15.00", contextWindow: "200K", strengths: ["Careful", "Long context", "Writing"] },
+      { id: "claude-haiku", label: "Claude Haiku", vendor: "Anthropic", providerId: "anthropic", description: "Fastest Claude. Good for quick checks.", pricing: "$0.80/$4.00", contextWindow: "200K", strengths: ["Fast", "Cheap"] },
+    ],
+  },
+  {
+    id: "google",
+    name: "Google",
+    apiKeyEnv: "GOOGLE_API_KEY",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    setupUrl: "https://aistudio.google.com/apikey",
+    docUrl: "https://ai.google.dev/gemini-api/docs",
+    models: [
+      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", vendor: "Google", providerId: "google", description: "Large context, strong reasoning. 1M token window.", pricing: "$1.25/$5.00", contextWindow: "1M", strengths: ["Reasoning", "Long context", "Multimodal"] },
+      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", vendor: "Google", providerId: "google", description: "Fast, affordable. 1M context.", pricing: "$0.15/$0.60", contextWindow: "1M", strengths: ["Fast", "Cheap", "Long context"] },
+      { id: "gemini-flash-lite", label: "Gemini Flash-Lite", vendor: "Google", providerId: "google", description: "Cheapest option. Good for simple tasks.", pricing: "$0.075/$0.30", contextWindow: "1M", strengths: ["Cheap", "Fast"] },
+    ],
+  },
+  {
+    id: "groq",
+    name: "Groq",
+    apiKeyEnv: "GROQ_API_KEY",
+    baseUrl: "https://api.groq.com/openai/v1",
+    setupUrl: "https://console.groq.com/keys",
+    docUrl: "https://console.groq.com/docs",
+    models: [
+      { id: "llama-4-maverick", label: "Llama 4 Maverick", vendor: "Meta (Groq)", providerId: "groq", description: "128B open model. Strong general reasoning.", pricing: "$0.20/$0.60", contextWindow: "128K", strengths: ["Reasoning", "Fast", "Open"] },
+      { id: "llama-4-scout", label: "Llama 4 Scout", vendor: "Meta (Groq)", providerId: "groq", description: "17B compact model. Very fast.", pricing: "$0.09/$0.30", contextWindow: "128K", strengths: ["Fast", "Cheap", "Open"] },
+      { id: "deepseek-r1-groq", label: "DeepSeek R1 (Groq)", vendor: "DeepSeek (Groq)", providerId: "groq", description: "Open-weight reasoning model, hosted on Groq.", pricing: "$0.55/$2.19", contextWindow: "128K", strengths: ["Reasoning", "Math", "Open"] },
+    ],
+  },
+  {
+    id: "together",
+    name: "Together AI",
+    apiKeyEnv: "TOGETHER_API_KEY",
+    baseUrl: "https://api.together.xyz/v1",
+    setupUrl: "https://api.together.ai",
+    docUrl: "https://docs.together.ai",
+    models: [
+      { id: "llama-4-together", label: "Llama 4 (Together)", vendor: "Meta (Together)", providerId: "together", description: "Latest Llama on Together's fast infra.", pricing: "$0.20/$0.60", contextWindow: "128K", strengths: ["Fast", "Open"] },
+      { id: "mixtral-8x22b", label: "Mixtral 8x22B", vendor: "Mistral (Together)", providerId: "together", description: "MoE model. Strong for structured analysis.", pricing: "$0.90/$0.90", contextWindow: "64K", strengths: ["Reasoning", "Multilingual"] },
+    ],
+  },
+  {
+    id: "mistral",
+    name: "Mistral",
+    apiKeyEnv: "MISTRAL_API_KEY",
+    baseUrl: "https://api.mistral.ai/v1",
+    setupUrl: "https://console.mistral.ai/api-keys",
+    docUrl: "https://docs.mistral.ai",
+    models: [
+      { id: "mistral-large", label: "Mistral Large 2", vendor: "Mistral", providerId: "mistral", description: "Top-tier. Strong reasoning and multilingual.", pricing: "$2.00/$6.00", contextWindow: "128K", strengths: ["Reasoning", "Multilingual", "Coding"] },
+      { id: "mistral-small", label: "Mistral Small", vendor: "Mistral", providerId: "mistral", description: "Fast, efficient. Good for everyday use.", pricing: "$0.30/$0.90", contextWindow: "128K", strengths: ["Fast", "Cheap"] },
+    ],
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek",
+    apiKeyEnv: "DEEPSEEK_API_KEY",
+    baseUrl: "https://api.deepseek.com/v1",
+    setupUrl: "https://platform.deepseek.com/api_keys",
+    docUrl: "https://platform.deepseek.com/docs",
+    models: [
+      { id: "deepseek-v3", label: "DeepSeek V3", vendor: "DeepSeek", providerId: "deepseek", description: "General purpose. Excellent value.", pricing: "$0.14/$0.28", contextWindow: "128K", strengths: ["Cheap", "Reasoning", "Coding"] },
+      { id: "deepseek-r1", label: "DeepSeek R1", vendor: "DeepSeek", providerId: "deepseek", description: "Open-weight reasoning. Great for math and logic.", pricing: "$0.55/$2.19", contextWindow: "128K", strengths: ["Reasoning", "Math", "Open"] },
+    ],
+  },
+  {
+    id: "xai",
+    name: "xAI",
+    apiKeyEnv: "XAI_API_KEY",
+    baseUrl: "https://api.x.ai/v1",
+    setupUrl: "https://x.ai/api",
+    docUrl: "https://docs.x.ai",
+    models: [
+      { id: "grok-3", label: "Grok 3", vendor: "xAI", providerId: "xai", description: "Latest Grok. Real-time knowledge, strong reasoning.", pricing: "$2.00/$8.00", contextWindow: "128K", strengths: ["Reasoning", "Real-time"] },
+      { id: "grok-3-mini", label: "Grok 3 Mini", vendor: "xAI", providerId: "xai", description: "Faster, cheaper Grok.", pricing: "$0.40/$1.60", contextWindow: "128K", strengths: ["Fast", "Cheap"] },
+    ],
+  },
+  {
+    id: "cohere",
+    name: "Cohere",
+    apiKeyEnv: "COHERE_API_KEY",
+    baseUrl: "https://api.cohere.ai/v1",
+    setupUrl: "https://dashboard.cohere.com/api-keys",
+    docUrl: "https://docs.cohere.com",
+    models: [
+      { id: "command-r-plus", label: "Command R+", vendor: "Cohere", providerId: "cohere", description: "Enterprise-grade. Strong for structured data.", pricing: "$2.50/$10.00", contextWindow: "128K", strengths: ["Reasoning", "Structured", "Enterprise"] },
+      { id: "command-r", label: "Command R", vendor: "Cohere", providerId: "cohere", description: "Efficient. Good for data extraction.", pricing: "$0.50/$1.50", contextWindow: "128K", strengths: ["Fast", "Structured"] },
+    ],
+  },
+  {
+    id: "local",
+    name: "Local (Ollama)",
+    apiKeyEnv: "",
+    baseUrl: "http://localhost:11434/v1",
+    setupUrl: "https://ollama.com",
+    docUrl: "https://github.com/ollama/ollama",
+    local: true,
+    models: [
+      { id: "llama3.1-local", label: "Llama 3.1 (Local)", vendor: "Local", providerId: "local", description: "On-device, private. No API costs.", pricing: "Free", contextWindow: "128K", strengths: ["Private", "Free", "Offline"] },
+      { id: "mistral-local", label: "Mistral (Local)", vendor: "Local", providerId: "local", description: "Efficient local model. Runs on consumer hardware.", pricing: "Free", contextWindow: "32K", strengths: ["Private", "Free", "Fast"] },
+      { id: "gemma2-local", label: "Gemma 2 (Local)", vendor: "Local", providerId: "local", description: "Google's open model. Small but capable.", pricing: "Free", contextWindow: "8K", strengths: ["Private", "Free", "Compact"] },
+    ],
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter",
+    apiKeyEnv: "OPENROUTER_API_KEY",
+    baseUrl: "https://openrouter.ai/api/v1",
+    setupUrl: "https://openrouter.ai/keys",
+    docUrl: "https://openrouter.ai/docs",
+    models: [
+      { id: "openrouter-auto", label: "OpenRouter (Auto)", vendor: "OpenRouter", providerId: "openrouter", description: "Auto-routes to best model. Unified billing.", pricing: "Varies", contextWindow: "Varies", strengths: ["Flexible", "Unified"] },
+    ],
+  },
 ]
+
+/** Flat array of all models from all providers — backward compatible with existing consumers */
+export const availableModels: ModelOption[] = availableProviders.flatMap((p) => p.models)
 
 /* ------------------------------------------------------------------ */
 /*  Connectors                                                          */

@@ -28,6 +28,9 @@ import {
   type AgentId,
 } from "@/lib/agents"
 import {
+  getProviderSetupUrl,
+} from "@/lib/settings/provider-keys"
+import {
   getAgentConfig,
   saveAgentConfig,
   getAgentConstraints,
@@ -122,16 +125,18 @@ function ModelSection({
                   <span className="text-[11px] text-white/[0.40]">{m.description}</span>
                 </div>
               </div>
-              {/* Setup link per vendor */}
-              <a
-                href={m.vendor === "OpenAI" ? "https://platform.openai.com/api-keys" : m.vendor === "Anthropic" ? "https://console.anthropic.com" : "https://ollama.com"}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0 text-[9px] text-[#818CF8] hover:underline flex items-center gap-1"
-              >
-                Setup <ExternalLink className="h-2.5 w-2.5" />
-              </a>
+              {/* Setup link per provider */}
+              {m.providerId && (
+                <a
+                  href={getProviderSetupUrl(m.providerId) ?? "https://ollama.com"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 text-[9px] text-[#818CF8] hover:underline flex items-center gap-1"
+                >
+                  Setup <ExternalLink className="h-2.5 w-2.5" />
+                </a>
+              )}
             </button>
           )
         })}

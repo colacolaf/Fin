@@ -504,29 +504,22 @@ function ConnectStep() {
 /*  Step 5: Select LLM Model                                           */
 /* ================================================================== */
 
-const setupModels = [
-  ...availableModels,
-  { id: "gpt-4o", label: "GPT-4o", vendor: "OpenAI", description: "Fast, multimodal." },
-  { id: "gemini-2", label: "Gemini 2.5 Pro", vendor: "Google", description: "Large context, reasoning." },
-  { id: "deepseek-r1", label: "DeepSeek R1", vendor: "DeepSeek", description: "Open-weight reasoning." },
-  { id: "qwen-3", label: "Qwen 3 72B", vendor: "Alibaba", description: "Multilingual, open." },
-  { id: "mistral-large", label: "Mistral Large 3", vendor: "Mistral", description: "Fast, European." },
-]
-
 function ModelStep() {
   const [selected, setSelected] = useLocalStorage<string>("fo-selected-model", availableModels[0].id)
   const [customUrl, setCustomUrl] = useLocalStorage<string>("fo-custom-model-url", "")
   const [showCustom, setShowCustom] = React.useState(false)
+  // Show top models first (limit to avoid overwhelming new users)
+  const topModels = availableModels.slice(0, 12)
 
   return (
     <div className="space-y-5">
       <div className="text-center space-y-2">
         <h2 className="text-[20px] font-semibold text-white">Select AI Model</h2>
-        <p className="text-[13px] text-white/[0.45]">Choose which model powers your agents. Local models keep data private.</p>
+        <p className="text-[13px] text-white/[0.45]">Choose which model powers your agents. You'll configure API keys in Settings.</p>
       </div>
 
       <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
-        {setupModels.map((m) => {
+        {topModels.map((m) => {
           const isActive = selected === m.id
           return (
             <button
