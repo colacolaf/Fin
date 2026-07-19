@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 import { motion, AnimatePresence } from "motion/react"
 import {
   ArrowUp,
@@ -17,6 +16,7 @@ import {
   Settings,
   Globe,
   ExternalLink,
+  Hash,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -100,6 +100,9 @@ function SkillsMenu({
             {activeSkills.size} active
           </span>
         </div>
+        <div className="text-[10px] text-white/[0.30] px-2 mb-1.5">
+          Type <kbd className="rounded border border-white/[0.08] bg-white/[0.03] px-1 py-0.5 font-mono text-[9px]">/</kbd> in the chat to quick-add skills
+        </div>
         {availableSkills.map((skill: AgentSkill) => {
           const isActive = activeSkills.has(skill.id)
           return (
@@ -138,32 +141,24 @@ function SkillsMenu({
 }
 
 /* ------------------------------------------------------------------ */
-/*  ConnectorsButton — reads directly from localStorage (no catalog)   */
+/*  ConnectorsButton — reads from localStorage after mount             */
 /* ------------------------------------------------------------------ */
 
 interface RealConnector {
   id: string
   name: string
   category: string
-  status: "connected" | "disconnected"
 }
 
 function ConnectorsButton({ accentColor }: { accentColor: string }) {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
+  const [connectedConnectors, setConnectedConnectors] = React.useState<RealConnector[]>([])
 
-  // Read directly from localStorage — bypass useConnectors catalog entirely
-  const providers = React.useMemo(
-    () => safeGetJSON<Record<string, string>>("fo-connected-providers", {}),
-    []
-  )
-  const apiKeys = React.useMemo(
-    () => safeGetJSON<Record<string, string>>("fo-api-keys", {}),
-    []
-  )
-
-  // Build connector list from ONLY what's in localStorage
-  const connectedConnectors: RealConnector[] = React.useMemo(() => {
+  // Read from localStorage after mount — avoids SSR staleness
+  React.useEffect(() => {
+    const providers = safeGetJSON<Record<string, string>>("fo-connected-providers", {})
+    const apiKeys = safeGetJSON<Record<string, string>>("fo-api-keys", {})
     const list: RealConnector[] = []
     for (const [category, providerId] of Object.entries(providers)) {
       if (providerId) {
@@ -171,29 +166,20 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
           id: providerId,
           name: providerId.charAt(0).toUpperCase() + providerId.slice(1).replace(/-/g, " "),
           category,
-          status: "connected",
         })
       }
     }
-    // Also check apiKeys for any provider IDs not in providers map
     for (const keyId of Object.keys(apiKeys)) {
       if (!list.some((c) => c.id === keyId) && apiKeys[keyId]) {
         list.push({
           id: keyId,
           name: keyId.charAt(0).toUpperCase() + keyId.slice(1).replace(/-/g, " "),
           category: "unknown",
-          status: "connected",
         })
       }
     }
-    return list
-  }, [providers, apiKeys])
-
-  const statusDot = (status: string) => {
-    if (status === "connected")
-      return <span className="h-1.5 w-1.5 rounded-full bg-[#34D399]" />
-    return <span className="h-1.5 w-1.5 rounded-full bg-white/[0.25]" />
-  }
+    setConnectedConnectors(list)
+  }, [])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -265,7 +251,7 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
                   key={c.id}
                   className="flex items-center gap-2 rounded-md px-2 py-1.5"
                 >
-                  {statusDot(c.status)}
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#34D399] shrink-0" />
                   <span className="text-[12px] font-medium text-white">{c.name}</span>
                   <span className="ml-auto text-[9px] uppercase tracking-wider text-[#34D399]">
                     live
@@ -308,9 +294,15 @@ function SettingsPopover({
 }) {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
-  const [webSearch, setWebSearch] = React.useState(() => {
-    try { return localStorage.getItem("fo-web-search") === "true" } catch { return true }
-  })
+  const [webSearch, setWebSearch] = React.useState(true)
+
+  // Read from localStorage after mount
+  React.useEffect(() => {
+    try {
+      const val = localStorage.getItem("fo-web-search")
+      if (val !== null) setWebSearch(val === "true")
+    } catch { /* use default */ }
+  }, [])
 
   const toggleWebSearch = () => {
     const next = !webSearch
@@ -403,6 +395,81 @@ function SettingsPopover({
 }
 
 /* ------------------------------------------------------------------ */
+/*  SlashCommandPicker — /skill-name autocomplete                      */
+/* ------------------------------------------------------------------ */
+
+function SlashCommandPicker({
+  query,
+  onSelect,
+  accentColor,
+  onClose,
+}: {
+  query: string
+  onSelect: (skillId: string) => void
+  accentColor: string
+  onClose: () => void
+}) {
+  const filtered = query
+    ? availableSkills.filter(
+        (s) =>
+          s.id.toLowerCase().includes(query.toLowerCase()) ||
+          s.label.toLowerCase().includes(query.toLowerCase())
+      )
+    : availableSkills
+
+  if (filtered.length === 0 && query.length > 0) {
+    return (
+      <div className="absolute bottom-full left-0 mb-2 w-[300px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-3 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center gap-2 mb-1">
+          <Hash className="h-3 w-3 text-white/[0.35]" />
+          <span className="text-[11px] text-white/[0.40]">No skills match &quot;{query}&quot;</span>
+        </div>
+        <p className="text-[10px] text-white/[0.25]">Type a skill ID like /search_web or /rebalance_recommend</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="absolute bottom-full left-0 mb-2 w-[300px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-1.5 shadow-2xl backdrop-blur-xl z-50">
+      <div className="mb-1 flex items-center justify-between px-2 pt-1">
+        <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-white/[0.40]">
+          {query ? `Skills matching "${query}"` : "Skills"}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-[9px] text-white/[0.30] hover:text-white/60 transition-colors"
+        >
+          esc to close
+        </button>
+      </div>
+      {filtered.slice(0, 8).map((skill) => (
+        <button
+          key={skill.id}
+          type="button"
+          onClick={() => onSelect(skill.id)}
+          className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-white/[0.04]"
+        >
+          <div
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[9px] font-mono font-bold"
+            style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+          >
+            /
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[12px] font-medium text-white">{skill.label}</span>
+              <code className="text-[9px] text-white/[0.30] font-mono">/{skill.id}</code>
+            </div>
+            <div className="text-[10px] text-white/[0.40] truncate">{skill.description}</div>
+          </div>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
 /*  ChatComposer                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -412,10 +479,8 @@ interface ChatComposerProps {
   onToggleSkill: (id: string) => void
   onSend: (text: string) => void
   disabled?: boolean
-  /** When the agent is thinking, show a stop button instead of send */
   isThinking?: boolean
   onStop?: () => void
-  /** Whether a model is connected — if false, shows error on submit */
   modelConnected?: boolean
 }
 
@@ -432,6 +497,7 @@ export function ChatComposer({
   const [value, setValue] = React.useState("")
   const [showModelError, setShowModelError] = React.useState(false)
   const [isListening, setIsListening] = React.useState(false)
+  const [slashQuery, setSlashQuery] = React.useState<string | null>(null)
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = React.useRef<any>(null)
@@ -451,6 +517,60 @@ export function ChatComposer({
     }
   }, [])
 
+  // Detect slash command typing
+  const detectSlash = React.useCallback((text: string) => {
+    // Look for the last `/` that starts a word
+    const cursorPos = inputRef.current?.selectionStart ?? text.length
+    const textBeforeCursor = text.slice(0, cursorPos)
+    const lastSlashIdx = textBeforeCursor.lastIndexOf("/")
+
+    if (lastSlashIdx === -1) {
+      setSlashQuery(null)
+      return
+    }
+
+    // Check if the `/` is at a word boundary (start of text, after space, or after newline)
+    const charBefore = lastSlashIdx > 0 ? textBeforeCursor[lastSlashIdx - 1] : " "
+    if (charBefore !== " " && charBefore !== "\n") {
+      setSlashQuery(null)
+      return
+    }
+
+    // Get the text after `/` up to the cursor
+    const query = textBeforeCursor.slice(lastSlashIdx + 1)
+    // Only trigger if query doesn't contain spaces (it's a single word)
+    if (query.includes(" ")) {
+      setSlashQuery(null)
+      return
+    }
+
+    setSlashQuery(query)
+  }, [])
+
+  const handleSelectSkill = (skillId: string) => {
+    // Replace the `/query` with `/skillId ` in the textarea
+    const cursorPos = inputRef.current?.selectionStart ?? value.length
+    const textBeforeCursor = value.slice(0, cursorPos)
+    const textAfterCursor = value.slice(cursorPos)
+    const lastSlashIdx = textBeforeCursor.lastIndexOf("/")
+
+    if (lastSlashIdx !== -1) {
+      const before = value.slice(0, lastSlashIdx)
+      const after = textAfterCursor
+      const newValue = before ? `${before} /${skillId} ${after}`.trimStart() : `/${skillId} ${after}`.trimStart()
+      setValue(newValue)
+    }
+
+    setSlashQuery(null)
+    inputRef.current?.focus()
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
+    setValue(newValue)
+    detectSlash(newValue)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = value.trim()
@@ -462,12 +582,38 @@ export function ChatComposer({
       return
     }
 
+    setSlashQuery(null)
     onSend(trimmed)
     setValue("")
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Close slash picker on Escape
+    if (e.key === "Escape" && slashQuery !== null) {
+      e.preventDefault()
+      setSlashQuery(null)
+      return
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
+      // If slash picker is open, select first match or close — never submit
+      if (slashQuery !== null) {
+        e.preventDefault()
+        if (slashQuery.length > 0) {
+          const filtered = availableSkills.filter(
+            (s) =>
+              s.id.toLowerCase().includes(slashQuery.toLowerCase()) ||
+              s.label.toLowerCase().includes(slashQuery.toLowerCase())
+          )
+          if (filtered.length >= 1) {
+            handleSelectSkill(filtered[0].id)
+            return
+          }
+        }
+        // No matches — just close the picker
+        setSlashQuery(null)
+        return
+      }
       e.preventDefault()
       handleSubmit(e)
     }
@@ -573,19 +719,24 @@ export function ChatComposer({
           <SettingsPopover agent={agent} accentColor={agent.color} />
           <div className="ml-auto flex items-center gap-1.5 text-[10px] text-white/[0.25]">
             <kbd className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono">
+              /
+            </kbd>
+            <span>skills</span>
+            <span className="text-white/[0.15]">·</span>
+            <kbd className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono">
               ↵
             </kbd>
-            <span>to send</span>
+            <span>send</span>
           </div>
         </div>
 
         {/* Input row */}
-        <div className="flex items-end gap-2.5">
+        <div className="relative flex items-end gap-2.5">
           <textarea
             ref={inputRef}
             rows={1}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder={agent.placeholder}
             aria-label={`Message ${agent.shortLabel}`}
@@ -594,6 +745,18 @@ export function ChatComposer({
               "placeholder:text-white/[0.25] outline-none border-none py-1.5 px-1"
             )}
           />
+
+          {/* Slash command picker */}
+          <AnimatePresence>
+            {slashQuery !== null && (
+              <SlashCommandPicker
+                query={slashQuery}
+                onSelect={handleSelectSkill}
+                accentColor={agent.color}
+                onClose={() => setSlashQuery(null)}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Voice input button */}
           <button
@@ -666,6 +829,100 @@ export function ChatComposer({
           </AnimatePresence>
         </div>
       </form>
+    </div>
+  )
+}
+
+/* ================================================================== */
+/*  Custom Popover — avoids Radix dep for simpler use cases            */
+/* ================================================================== */
+
+const PopoverContext = React.createContext<{
+  open: boolean
+  onOpenChange: (open: boolean) => void
+} | null>(null)
+
+function Popover({
+  open,
+  onOpenChange,
+  children,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  children: React.ReactNode
+}) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const ctx = React.useMemo(() => ({ open, onOpenChange }), [open, onOpenChange])
+
+  React.useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onOpenChange(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [open, onOpenChange])
+
+  return (
+    <PopoverContext.Provider value={ctx}>
+      <div ref={ref} className="relative inline-flex">
+        {children}
+      </div>
+    </PopoverContext.Provider>
+  )
+}
+
+function PopoverTrigger({
+  asChild,
+  children,
+}: {
+  asChild?: boolean
+  children: React.ReactNode
+}) {
+  const ctx = React.useContext(PopoverContext)
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    ctx?.onOpenChange(!ctx.open)
+  }
+
+  if (asChild && React.isValidElement(children)) {
+    const child = children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>
+    return React.cloneElement(child, {
+      onClick: (e: React.MouseEvent) => {
+        child.props.onClick?.(e)
+        if (!e.defaultPrevented) handleClick(e)
+      },
+    })
+  }
+  return <span onClick={handleClick}>{children}</span>
+}
+
+function PopoverContent({
+  align = "start",
+  sideOffset = 6,
+  className,
+  children,
+}: {
+  align?: "start" | "end" | "center"
+  sideOffset?: number
+  className?: string
+  children: React.ReactNode
+}) {
+  const ctx = React.useContext(PopoverContext)
+  if (!ctx?.open) return null
+  return (
+    <div
+      className={cn(
+        "absolute z-50",
+        align === "end" ? "right-0" : align === "center" ? "left-1/2 -translate-x-1/2" : "left-0",
+        className,
+      )}
+      style={{ top: `calc(100% + ${sideOffset}px)` }}
+    >
+      {children}
     </div>
   )
 }
