@@ -13,7 +13,9 @@ import { RetirementWidget } from "@/components/retirement/retirement-widget"
 import { DebtDonut } from "@/components/debt/debt-donut"
 import { NewsCard } from "@/components/news/news-card"
 import { AgentOrbs } from "@/components/agent-orbs"
-import { portfolioSummary, chartData } from "@/lib/portfolio/data"
+import { usePortfolioConnection } from "@/lib/portfolio/use-portfolio-connection"
+import { usePortfolioData } from "@/lib/portfolio/data"
+import { PortfolioLocked } from "@/components/portfolio/portfolio-locked"
 import { debtSummary, amberTheme, getDebtsWithTheme } from "@/lib/debt/data"
 import { useDesktopNotifications } from "@/lib/notifications/use-desktop-notifications"
 
@@ -172,6 +174,8 @@ function MiniChart({ data }: { data: { date: string; value: number }[] }) {
 /* ================================================================== */
 
 export function DashboardPage() {
+  const { isConnected } = usePortfolioConnection()
+  const { summary: portfolioSummary, chartData } = usePortfolioData()
   const animatedValue = useAnimatedValue(portfolioSummary.totalValue)
   const debtsWithColor = getDebtsWithTheme(amberTheme)
   const { notify, permissionGranted, requestPermission } = useDesktopNotifications()
@@ -283,13 +287,19 @@ export function DashboardPage() {
                 fullscreenLabel="Full View"
                 accentColor="#818CF8"
               />
-              <MetricsRow
-                summary={portfolioSummary}
-                animatedValue={animatedValue}
-              />
-              <div className="mt-3 h-14 w-full">
-                <MiniChart data={chartData} />
-              </div>
+              {!isConnected ? (
+                <PortfolioLocked variant="card" />
+              ) : (
+                <>
+                  <MetricsRow
+                    summary={portfolioSummary}
+                    animatedValue={animatedValue}
+                  />
+                  <div className="mt-3 h-14 w-full">
+                    <MiniChart data={chartData} />
+                  </div>
+                </>
+              )}
             </GlassCard>
 
             {/* ═══════════════════════════════════════════ */}

@@ -7,10 +7,33 @@ import type {
 } from "./types"
 
 /* ================================================================== */
-/*  MOCK DATA                                                         */
-/*  Replace each constant with an API fetch call when ready.          */
-/*  All data follows the interfaces in types.ts.                      */
+/*  EMPTY DEFAULTS — zeroed / empty, ready for real data               */
+/*  When a brokerage connector is linked, swap these for API fetches.  */
 /* ================================================================== */
+
+const emptySummary: PortfolioSummary = {
+  totalValue: 0,
+  dayPnl: 0,
+  totalReturn: 0,
+  annualized: 0,
+  sharpe: 0,
+  volatility: 0,
+  winRate: 0,
+  drawdown: 0,
+}
+
+const emptyChartData: ChartPoint[] = []
+
+const emptyAllocationData: AllocationSlice[] = []
+
+const emptyHoldings: PortfolioAsset[] = []
+
+const emptyTrades: Trade[] = []
+
+/* ------------------------------------------------------------------ */
+/*  MOCK DATA (for reference / dev use only)                          */
+/*  These are NOT exported by default — use the hook below.           */
+/* ------------------------------------------------------------------ */
 
 export const portfolioSummary: PortfolioSummary = {
   totalValue: 124_580,
@@ -75,3 +98,20 @@ export const trades: Trade[] = [
   { type: "BUY",  ticker: "BND",  shares: 20, price: 72.1,  date: "Dec 5, 11:00 AM" },
   { type: "SELL", ticker: "TSLA", shares: 2,  price: 245.0, date: "Dec 3, 9:30 AM" },
 ]
+
+/* ================================================================== */
+/*  usePortfolioData — returns empty defaults until real data flows     */
+/*  When a brokerage connector is linked and an API is wired, replace  */
+/*  the body with a fetch / SWR / React Query call.                   */
+/* ================================================================== */
+
+export function usePortfolioData() {
+  // TODO: swap for real API fetch when broker is connected
+  return {
+    summary: emptySummary,
+    chartData: emptyChartData,
+    allocationData: emptyAllocationData,
+    holdings: emptyHoldings,
+    trades: emptyTrades,
+  }
+}

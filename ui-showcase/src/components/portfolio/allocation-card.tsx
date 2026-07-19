@@ -90,6 +90,17 @@ export function AllocationCard({
   const chartHeight = size === "large" ? 260 : 220
   const centerFontSize = size === "large" ? 18 : 16
 
+  if (data.length === 0) {
+    return (
+      <GlassCard className="p-5">
+        <div className="flex flex-col items-center justify-center py-8 text-center" style={{ minHeight: chartHeight }}>
+          <p className="text-[13px] text-white/[0.25]">No allocation data yet.</p>
+          <p className="text-[11px] text-white/[0.18] mt-1">Allocation breakdown will appear once your brokerage is linked.</p>
+        </div>
+      </GlassCard>
+    )
+  }
+
   return (
     <GlassCard className="p-5">
       <div style={{ height: chartHeight, minWidth: 250 }}>

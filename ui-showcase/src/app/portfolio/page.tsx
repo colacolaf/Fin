@@ -30,8 +30,10 @@ import { ChartTooltip } from "@/components/portfolio/chart-tooltip"
 import { AllocationCard } from "@/components/portfolio/allocation-card"
 import { TradeRow } from "@/components/portfolio/trade-row"
 import { MetricsRow } from "@/components/portfolio/metrics-row"
+import { PortfolioLocked } from "@/components/portfolio/portfolio-locked"
 
-import { portfolioSummary, chartData, allocationData, holdings, trades } from "@/lib/portfolio/data"
+import { usePortfolioData } from "@/lib/portfolio/data"
+import { usePortfolioConnection } from "@/lib/portfolio/use-portfolio-connection"
 import { useCountUp } from "@/lib/portfolio/hooks"
 
 /* ================================================================== */
@@ -40,7 +42,9 @@ import { useCountUp } from "@/lib/portfolio/hooks"
 
 export default function PortfolioPage() {
   const [timeRange, setTimeRange] = useState("1Y")
-  const animatedValue = useCountUp(portfolioSummary.totalValue)
+  const { isConnected } = usePortfolioConnection()
+  const { summary, chartData, allocationData, holdings, trades } = usePortfolioData()
+  const animatedValue = useCountUp(summary.totalValue)
 
   return (
     <div className="dark flex h-screen w-full bg-[#08090C]">
@@ -71,141 +75,167 @@ export default function PortfolioPage() {
 
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-[1400px] px-8 py-5 space-y-4">
+            {!isConnected ? (
+              <PortfolioLocked variant="full" />
+            ) : (
+              <>
+                {/* Metrics */}
+                <MetricsRow summary={summary} animatedValue={animatedValue} />
 
-            {/* Metrics */}
-            <MetricsRow summary={portfolioSummary} animatedValue={animatedValue} />
+                {/* Time range */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/[0.38]">Performance</h2>
+                  <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+                </div>
 
-            {/* Time range */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/[0.38]">Performance</h2>
-              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-            </div>
+                {/* Chart + Right column */}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  {/* Performance chart */}
+                  <GlassCard className="lg:col-span-2 p-5">
+                    {chartData.length === 0 ? (
+                      <div className="flex items-center justify-center h-[380px]">
+                        <p className="text-[13px] text-white/[0.25]">No chart data yet — connect a brokerage to populate.</p>
+                      </div>
+                    ) : (
+                      <div className="relative h-[380px] w-full">
+                        <div className="absolute top-3 left-5 z-10 flex gap-2">
+                          <div className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-1">
+                            <ArrowUpRight className="h-3 w-3 text-[#34D399]" />
+                            <span className="text-[10px] text-white/[0.5]">Best</span>
+                            <span className="text-[10px] font-semibold text-[#34D399]">--</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-1">
+                            <ArrowDownRight className="h-3 w-3 text-[#F87171]" />
+                            <span className="text-[10px] text-white/[0.5]">Worst</span>
+                            <span className="text-[10px] font-semibold text-[#F87171]">--</span>
+                          </div>
+                        </div>
 
-            {/* Chart (2/3) + Right column (1/3) */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={chartData} margin={{ top: 36, right: 12, left: 4, bottom: 4 }}>
+                            <defs>
+                              <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#818CF8" stopOpacity={0.2} />
+                                <stop offset="100%" stopColor="#818CF8" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }} dy={8} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} dx={-8} domain={["dataMin - 5000", "dataMax + 5000"]} />
+                            <Tooltip content={<ChartTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1, strokeDasharray: "3 3" }} />
+                            <Area
+                              type="monotone" dataKey="value" stroke="#818CF8" strokeWidth={2}
+                              fill="url(#chartGlow)" dot={false}
+                              activeDot={{ r: 4, fill: "#08090C", stroke: "#818CF8", strokeWidth: 2 }}
+                              style={{ filter: "drop-shadow(0 0 6px rgba(129,140,248,0.3))" }}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </GlassCard>
 
-              {/* Performance chart */}
-              <GlassCard className="lg:col-span-2 p-5">
-                <div className="relative h-[380px] w-full">
-                  <div className="absolute top-3 left-5 z-10 flex gap-2">
-                    <div className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-1">
-                      <ArrowUpRight className="h-3 w-3 text-[#34D399]" />
-                      <span className="text-[10px] text-white/[0.5]">Best</span>
-                      <span className="text-[10px] font-semibold text-[#34D399]">+6.2%</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-1">
-                      <ArrowDownRight className="h-3 w-3 text-[#F87171]" />
-                      <span className="text-[10px] text-white/[0.5]">Worst</span>
-                      <span className="text-[10px] font-semibold text-[#F87171]">-4.3%</span>
-                    </div>
+                  {/* Right column */}
+                  <div className="space-y-4">
+                    <GlassCard className="p-4">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38] mb-1">Day P&amp;L</p>
+                      <p className="text-[22px] font-semibold text-[#34D399] tabular-nums">
+                        ${summary.dayPnl.toLocaleString()}
+                      </p>
+                      <p className="text-[11px] text-white/[0.38]">-- today</p>
+                    </GlassCard>
+
+                    <GlassCard className="p-4">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38] mb-1">Total Return</p>
+                      <p className="text-[22px] font-semibold text-white tabular-nums">
+                        {summary.totalReturn}%
+                      </p>
+                      <p className="text-[11px] text-white/[0.38]">Since inception</p>
+                    </GlassCard>
+
+                    <AllocationCard data={allocationData} totalValue={summary.totalValue} />
                   </div>
-
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 36, right: 12, left: 4, bottom: 4 }}>
-                      <defs>
-                        <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#818CF8" stopOpacity={0.2} />
-                          <stop offset="100%" stopColor="#818CF8" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="rgba(255,255,255,0.03)" vertical={false} />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }} dy={8} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} dx={-8} domain={["dataMin - 5000", "dataMax + 5000"]} />
-                      <Tooltip content={<ChartTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1, strokeDasharray: "3 3" }} />
-                      <Area
-                        type="monotone" dataKey="value" stroke="#818CF8" strokeWidth={2}
-                        fill="url(#chartGlow)" dot={false}
-                        activeDot={{ r: 4, fill: "#08090C", stroke: "#818CF8", strokeWidth: 2 }}
-                        style={{ filter: "drop-shadow(0 0 6px rgba(129,140,248,0.3))" }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
                 </div>
-              </GlassCard>
 
-              {/* Right column */}
-              <div className="space-y-4">
-                <GlassCard className="p-4">
-                  <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38] mb-1">Day P&amp;L</p>
-                  <p className="text-[22px] font-semibold text-[#34D399] tabular-nums">
-                    +${portfolioSummary.dayPnl.toLocaleString()}
-                  </p>
-                  <p className="text-[11px] text-white/[0.38]">+1.01% today</p>
-                </GlassCard>
-
-                <GlassCard className="p-4">
-                  <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38] mb-1">Total Return</p>
-                  <p className="text-[22px] font-semibold text-white tabular-nums">
-                    +{portfolioSummary.totalReturn}%
-                  </p>
-                  <p className="text-[11px] text-white/[0.38]">Since Jan 2025</p>
-                </GlassCard>
-
-                <AllocationCard data={allocationData} totalValue={portfolioSummary.totalValue} />
-              </div>
-            </div>
-
-            {/* Holdings + Trades */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-              {/* Holdings */}
-              <GlassCard className="lg:col-span-3 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38]">Holdings</h3>
-                  <span className="text-[10px] text-white/[0.25]">{holdings.length} assets</span>
-                </div>
-                <div className="grid grid-cols-[1fr_56px_72px_56px_72px_72px] gap-3 pb-2.5 border-b border-white/[0.04]">
-                  {["Asset", "Weight", "Today", "Gain", "Trend", "Value"].map((h) => (
-                    <span key={h} className={`text-[9px] font-medium uppercase tracking-[0.08em] text-white/[0.25] ${h !== "Asset" && h !== "Trend" ? "text-right" : ""}`}>
-                      {h}
-                    </span>
-                  ))}
-                </div>
-                <div className="divide-y divide-white/[0.03]">
-                  {holdings.map((h) => (
-                    <div key={h.ticker} className="grid grid-cols-[1fr_56px_72px_56px_72px_72px] gap-3 items-center py-2.5 -mx-2 px-2 rounded-lg transition-colors duration-150 hover:bg-white/[0.02]">
-                      <div>
-                        <p className="text-[13px] font-medium text-white">{h.ticker}</p>
-                        <p className="text-[10px] text-white/[0.38]">{h.name}</p>
-                      </div>
-                      <span className="text-right text-[12px] tabular-nums text-white/[0.5]">{h.weight}%</span>
-                      <span className={`text-right text-[12px] font-medium tabular-nums ${h.today >= 0 ? "text-[#34D399]" : "text-[#F87171]"}`}>
-                        {h.today >= 0 ? "+" : ""}{h.today}%
-                      </span>
-                      <span className={`text-right text-[12px] tabular-nums ${h.totalGain >= 0 ? "text-[#34D399]" : "text-[#F87171]"}`}>
-                        {h.totalGain >= 0 ? "+" : ""}{h.totalGain}%
-                      </span>
-                      <div className="flex justify-end">
-                        <TinySparkline data={h.sparkData} positive={h.totalGain >= 0} />
-                      </div>
-                      <span className="text-right text-[12px] font-medium tabular-nums text-white">
-                        ${h.value.toLocaleString()}
-                      </span>
+                {/* Holdings + Trades */}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+                  {/* Holdings */}
+                  <GlassCard className="lg:col-span-3 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38]">Holdings</h3>
+                      <span className="text-[10px] text-white/[0.25]">{holdings.length} assets</span>
                     </div>
-                  ))}
-                </div>
-              </GlassCard>
+                    {holdings.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <p className="text-[13px] text-white/[0.25]">No holdings yet.</p>
+                        <p className="text-[11px] text-white/[0.18] mt-1">Positions will appear here once your brokerage is linked.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-[1fr_56px_72px_56px_72px_72px] gap-3 pb-2.5 border-b border-white/[0.04]">
+                          {["Asset", "Weight", "Today", "Gain", "Trend", "Value"].map((h) => (
+                            <span key={h} className={`text-[9px] font-medium uppercase tracking-[0.08em] text-white/[0.25] ${h !== "Asset" && h !== "Trend" ? "text-right" : ""}`}>
+                              {h}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="divide-y divide-white/[0.03]">
+                          {holdings.map((h) => (
+                            <div key={h.ticker} className="grid grid-cols-[1fr_56px_72px_56px_72px_72px] gap-3 items-center py-2.5 -mx-2 px-2 rounded-lg transition-colors duration-150 hover:bg-white/[0.02]">
+                              <div>
+                                <p className="text-[13px] font-medium text-white">{h.ticker}</p>
+                                <p className="text-[10px] text-white/[0.38]">{h.name}</p>
+                              </div>
+                              <span className="text-right text-[12px] tabular-nums text-white/[0.5]">{h.weight}%</span>
+                              <span className={`text-right text-[12px] font-medium tabular-nums ${h.today >= 0 ? "text-[#34D399]" : "text-[#F87171]"}`}>
+                                {h.today >= 0 ? "+" : ""}{h.today}%
+                              </span>
+                              <span className={`text-right text-[12px] tabular-nums ${h.totalGain >= 0 ? "text-[#34D399]" : "text-[#F87171]"}`}>
+                                {h.totalGain >= 0 ? "+" : ""}{h.totalGain}%
+                              </span>
+                              <div className="flex justify-end">
+                                <TinySparkline data={h.sparkData} positive={h.totalGain >= 0} />
+                              </div>
+                              <span className="text-right text-[12px] font-medium tabular-nums text-white">
+                                ${h.value.toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </GlassCard>
 
-              {/* Trades */}
-              <GlassCard className="lg:col-span-2 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38]">Recent Trades</h3>
-                  <span className="text-[10px] text-white/[0.25]">Last 30 days</span>
+                  {/* Trades */}
+                  <GlassCard className="lg:col-span-2 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/[0.38]">Recent Trades</h3>
+                      <span className="text-[10px] text-white/[0.25]">{trades.length} trades</span>
+                    </div>
+                    {trades.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <p className="text-[13px] text-white/[0.25]">No recent trades.</p>
+                        <p className="text-[11px] text-white/[0.18] mt-1">Trade history will appear once your brokerage is linked.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5">
+                        {trades.map((t, i) => <TradeRow key={i} trade={t} />)}
+                      </div>
+                    )}
+                  </GlassCard>
                 </div>
-                <div className="space-y-0.5">
-                  {trades.map((t, i) => <TradeRow key={i} trade={t} />)}
-                </div>
-              </GlassCard>
-            </div>
 
-            {/* Expand */}
-            <div className="flex justify-center pt-1 pb-4">
-              <Link href="/portfolio/full">
-                <MetalButton preset="chromatic" theme="dark" variant="outline" size="sm" className="gap-2 text-xs" strength={0.7}>
-                  <Maximize2 className="h-3.5 w-3.5" />
-                  Expand Portfolio
-                </MetalButton>
-              </Link>
-            </div>
+                {/* Expand */}
+                <div className="flex justify-center pt-1 pb-4">
+                  <Link href="/portfolio/full">
+                    <MetalButton preset="chromatic" theme="dark" variant="outline" size="sm" className="gap-2 text-xs" strength={0.7}>
+                      <Maximize2 className="h-3.5 w-3.5" />
+                      Expand Portfolio
+                    </MetalButton>
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </main>
