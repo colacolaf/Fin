@@ -20,6 +20,7 @@ import { PageShell, SectionCard, SettingRow } from "@/components/page-shell/page
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { useConnectors } from "@/lib/settings/use-connectors"
+import { useLocalStorage } from "@/lib/use-local-storage"
 import {
   getAgent,
   availableModels,
@@ -238,43 +239,56 @@ function BehaviorSection({
 /*  Connector Access section                                           */
 /* ================================================================== */
 
-function ConnectorAccessSection({ agentId }: { agentId: string }) {
+function ConnectorAccessSection() {
   const { connectors } = useConnectors()
+  const [providers] = useLocalStorage<Record<string, string>>("fo-connected-providers", {})
+
+  // Only show truly connected: has API key OR has an active provider mapping
+  const trulyConnected = connectors.filter((c) => {
+    if (c.status !== "connected") return false
+    const isProviderMapped = Object.values(providers).includes(c.id)
+    return c.hasApiKey || isProviderMapped
+  })
 
   return (
     <SectionCard label="Connector Access" description="Which connected data sources this agent can read.">
-      {connectors.filter((c) => c.status === "connected").length === 0 ? (
-        <p className="text-[11px] text-white/[0.30] py-2">
-          No connectors connected.{" "}
-          <a href="/connectors" className="text-[#818CF8] hover:underline">Connect accounts</a>{" "}
-          to grant this agent data access.
-        </p>
+      {trulyConnected.length === 0 ? (
+        <div className="flex flex-col items-start gap-2 py-2">
+          <p className="text-[11px] text-white/[0.30]">
+            No connectors connected. Link your financial accounts to grant this agent data access.
+          </p>
+          <a
+            href="/connectors"
+            className="flex items-center gap-1.5 rounded-md border border-[#818CF8]/30 bg-[#818CF8]/10 px-3 py-1.5 text-[11px] font-medium text-[#818CF8] transition-all hover:bg-[#818CF8]/15 active:scale-[0.97]"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Go to Connectors
+          </a>
+        </div>
       ) : (
         <div className="space-y-1">
-          {connectors
-            .filter((c) => c.status === "connected")
-            .map((c) => (
-              <div key={c.id} className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/[0.02]">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold text-white"
-                  style={{ backgroundColor: `${c.accentColor}20`, border: `1px solid ${c.accentColor}30` }}
-                >
-                  {c.abbreviation}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-medium text-white">{c.name}</span>
-                    {c.hasApiKey ? (
-                      <span className="rounded-full bg-[#34D399]/10 border border-[#34D399]/20 px-1.5 py-0.5 text-[8px] font-semibold text-[#34D399]">Key set</span>
-                    ) : (
-                      <span className="rounded-full bg-[#FBBF24]/10 border border-[#FBBF24]/20 px-1.5 py-0.5 text-[8px] font-semibold text-[#FBBF24]">No key</span>
-                    )}
-                  </div>
-                  <span className="text-[10px] uppercase tracking-wider text-white/[0.30]">{c.category}</span>
-                </div>
-                <span className="text-[10px] text-[#34D399]">Connected</span>
+          {trulyConnected.map((c) => (
+            <div key={c.id} className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/[0.02]">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold text-white"
+                style={{ backgroundColor: `${c.accentColor}20`, border: `1px solid ${c.accentColor}30` }}
+              >
+                {c.abbreviation}
               </div>
-            ))}
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium text-white">{c.name}</span>
+                  {c.hasApiKey ? (
+                    <span className="rounded-full bg-[#34D399]/10 border border-[#34D399]/20 px-1.5 py-0.5 text-[8px] font-semibold text-[#34D399]">Key set</span>
+                  ) : (
+                    <span className="rounded-full bg-[#FBBF24]/10 border border-[#FBBF24]/20 px-1.5 py-0.5 text-[8px] font-semibold text-[#FBBF24]">No key</span>
+                  )}
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-white/[0.30]">{c.category}</span>
+              </div>
+              <span className="text-[10px] text-[#34D399]">Connected</span>
+            </div>
+          ))}
         </div>
       )}
     </SectionCard>
@@ -550,7 +564,7 @@ function AgentSettingsPageInner({ agent, agentId }: { agent: AgentDef; agentId: 
           onTempChange={(v) => setConfig({ ...config, temperature: v })}
         />
         <BehaviorSection agent={agent} state={config} onChange={setConfig} />
-        <ConnectorAccessSection agentId={agentId} />
+        <ConnectorAccessSection />
         <ConstraintsSection agentId={agentId} constraints={constraints} onChange={setConstraints} />
         <LearningSection agentId={agentId} notes={learning} onChange={setLearning} />
       </div>
