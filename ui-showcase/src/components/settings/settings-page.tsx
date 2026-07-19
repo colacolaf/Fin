@@ -23,8 +23,9 @@ import { cn } from "@/lib/utils"
 import { PageShell, SectionCard, SettingRow } from "@/components/page-shell/page-shell"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
-import { availableModels, type ModelOption } from "@/lib/agents"
+import { availableProviders } from "@/lib/agents"
 import { useLocalStorage } from "@/lib/use-local-storage"
+import { ProviderCard } from "@/components/settings/provider-card"
 import { useConnectors, type RuntimeConnector } from "@/lib/settings/use-connectors"
 import {
   notificationEvents,
@@ -444,66 +445,25 @@ function NotificationsTab() {
 }
 
 /* ================================================================== */
-/*  AI Model Tab                                                       */
+/*  AI Model Tab — Provider-first credential + model management        */
 /* ================================================================== */
 
-function ModelRow({
-  m,
-  active,
-  onSelect,
-  isConnected,
-}: {
-  m: ModelOption
-  active: boolean
-  onSelect: () => void
-  isConnected?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors duration-100",
-        active ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
-      )}
-    >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04]">
-        <Cpu className="h-4 w-4 text-white/[0.55]" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] font-medium text-white">{m.label}</span>
-          {active && <Check className="h-3.5 w-3.5 text-[#67E8F9]" />}
-          {isConnected && (
-            <span className="flex items-center gap-1 rounded-full bg-[#34D399]/10 border border-[#34D399]/20 px-1.5 py-0.5 text-[8px] font-semibold text-[#34D399]">
-              <span className="h-1 w-1 rounded-full bg-[#34D399]" />
-              Active
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] uppercase tracking-wider text-white/[0.30]">
-            {m.vendor}
-          </span>
-          <span className="text-[9px] text-white/[0.25]">·</span>
-          <span className="text-[11px] text-white/[0.40]">{m.description}</span>
-        </div>
-      </div>
-    </button>
-  )
-}
-
 function ModelTab() {
-  const [model, setModel] = useLocalStorage<ModelOption>("fo-primary-model", availableModels[0])
-  const [fallback, setFallback] = useLocalStorage<ModelOption>("fo-fallback-model", availableModels[1])
+  const [apiKeys, setApiKeys] = useLocalStorage<Record<string, string>>("fo-provider-keys", {})
+  const [verified, setVerified] = useLocalStorage<Record<string, number>>("fo-provider-verified", {})
+  const [enabledModels, setEnabledModels] = useLocalStorage<string[]>("fo-provider-models", [])
   const [voiceInput, setVoiceInput] = useLocalStorage("fo-voice-input", false)
   const [temp, setTemp] = useLocalStorage("fo-temperature", 0.4)
   const [listening, setListening] = React.useState(false)
 
+  const enabledSet = React.useMemo(() => new Set(enabledModels), [enabledModels])
+  const configuredCount = Object.keys(apiKeys).length
+  const verifiedCount = Object.keys(verified).length
+  const enabledCount = enabledModels.length
+
   // Voice input via Web Speech API
   const toggleVoiceInput = React.useCallback(() => {
     if (!voiceInput) {
-      // Enable
       if (typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)) {
         setVoiceInput(true)
       } else {
@@ -515,11 +475,8 @@ function ModelTab() {
     }
   }, [voiceInput, setVoiceInput])
 
-  // Quick microphone test
   const testMic = React.useCallback(() => {
-    if (!voiceInput) {
-      toggleVoiceInput()
-    }
+    if (!voiceInput) toggleVoiceInput()
     if (!listening) {
       setListening(true)
       setTimeout(() => setListening(false), 3000)
@@ -528,44 +485,75 @@ function ModelTab() {
     }
   }, [voiceInput, listening, toggleVoiceInput])
 
+  // ── Provider card callbacks ──
+
+  const handleKeyChange = React.useCallback(
+    (providerId: string) => (key: string) => {
+      setApiKeys((prev) => ({ ...prev, [providerId]: key }))
+      // Clear verification when key changes (will be re-verified by real API call)
+      if (key !== (apiKeys[providerId] ?? "")) {
+        setVerified((prev) => {
+          const next = { ...prev }
+          delete next[providerId]
+          return next
+        })
+      }
+    },
+    [apiKeys, setApiKeys, setVerified],
+  )
+
+  const handleToggleModel = React.useCallback(
+    (modelId: string) => {
+      setEnabledModels((prev) =>
+        prev.includes(modelId) ? prev.filter((id) => id !== modelId) : [...prev, modelId]
+      )
+    },
+    [setEnabledModels],
+  )
+
   return (
     <div className="space-y-4">
-      <SectionCard
-        label="Primary Model"
-        description="Used for all agent responses. Currently active: the model with the green badge."
-      >
-        <div className="space-y-1">
-          {availableModels.map((m) => (
-            <ModelRow
-              key={m.id}
-              m={m}
-              active={m.id === model.id}
-              isConnected={m.id === model.id}
-              onSelect={() => setModel(m)}
-            />
-          ))}
+      {/* ── Summary banner ── */}
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl px-5 py-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/[0.45]">Providers</span>
+              <span className="text-[13px] font-semibold text-white tabular-nums">{configuredCount}</span>
+              <span className="text-[9px] text-white/[0.25]">configured</span>
+            </div>
+            <div className="h-4 w-px bg-white/[0.08]" />
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/[0.45]">Verified</span>
+              <span className="text-[13px] font-semibold text-[#34D399] tabular-nums">{verifiedCount}</span>
+            </div>
+            <div className="h-4 w-px bg-white/[0.08]" />
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/[0.45]">Models</span>
+              <span className="text-[13px] font-semibold text-[#818CF8] tabular-nums">{enabledCount}</span>
+              <span className="text-[9px] text-white/[0.25]">enabled</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-white/[0.30]">
+            Keys stored locally. Never leave your device.
+          </p>
         </div>
-        <p className="mt-2 text-[10px] text-white/[0.25]">
-          Model selection is saved to localStorage and persists across sessions.
-        </p>
-      </SectionCard>
+      </div>
 
-      <SectionCard
-        label="Fallback Model"
-        description="Used if the primary model is unavailable."
-      >
-        <div className="space-y-1">
-          {availableModels.map((m) => (
-            <ModelRow
-              key={m.id}
-              m={m}
-              active={m.id === fallback.id}
-              onSelect={() => setFallback(m)}
-            />
-          ))}
-        </div>
-      </SectionCard>
+      {/* ── Provider cards ── */}
+      {availableProviders.map((provider) => (
+        <ProviderCard
+          key={provider.id}
+          provider={provider}
+          apiKey={apiKeys[provider.id] || ""}
+          onKeyChange={handleKeyChange(provider.id)}
+          verified={verified[provider.id] ?? null}
+          enabledModels={enabledSet}
+          onToggleModel={handleToggleModel}
+        />
+      ))}
 
+      {/* ── Voice & Reasoning ── */}
       <SectionCard label="Voice & Reasoning">
         <div className="divide-y divide-white/[0.04]">
           <SettingRow
