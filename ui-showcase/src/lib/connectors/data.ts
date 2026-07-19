@@ -25,7 +25,7 @@ export interface ConnectorItem {
   name: string
   category: ConnectorCategory
   description: string
-  status: "connected" | "disconnected" | "syncing"
+  status: "connected" | "disconnected" | "syncing" | "error"
   /** Number of linked accounts (only shown when connected) */
   accountCount?: number
   /** Last sync time string (only shown when connected/syncing) */

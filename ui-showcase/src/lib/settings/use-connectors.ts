@@ -32,6 +32,22 @@ export interface ConnectorsState {
   isSyncing: boolean
 }
 
+/* ------------------------------------------------------------------ */
+/*  formatRelativeTime — turn a timestamp into a human-readable string */
+/* ------------------------------------------------------------------ */
+
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts
+  const sec = Math.floor(diff / 1000)
+  if (sec < 60) return "Just now"
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hrs = Math.floor(min / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
 /* ================================================================== */
 /*  useConnectors — merges catalog data with real localStorage state    */
 /* ================================================================== */
@@ -48,6 +64,11 @@ export function useConnectors(): ConnectorsState {
   // Override status for connectors we've marked as syncing/connected locally
   const [localStatus, setLocalStatus] = useLocalStorage<Record<string, "connected" | "disconnected">>(
     "fo-connector-status",
+    {}
+  )
+  // Track real sync timestamps
+  const [syncTimes, setSyncTimes] = useLocalStorage<Record<string, number>>(
+    "fo-connector-sync-times",
     {}
   )
 
@@ -73,13 +94,16 @@ export function useConnectors(): ConnectorsState {
       } else if (isProviderConnected || hasKey) {
         status = "connected"
       } else {
-        status = item.status // catalog default
+        status = item.status // catalog default (may be "error", "disconnected", etc.)
       }
 
       return {
         ...item,
         status,
         hasApiKey: hasKey,
+        lastSync: syncTimes[item.id]
+          ? formatRelativeTime(syncTimes[item.id])
+          : item.lastSync,
       }
     })
   }, [providers, apiKeys, syncingIds, localStatus])
@@ -138,8 +162,10 @@ export function useConnectors(): ConnectorsState {
       })
       // Mark as connected after sync
       setLocalStatus((prev) => ({ ...prev, [id]: "connected" }))
+      // Record sync timestamp
+      setSyncTimes((prev) => ({ ...prev, [id]: Date.now() }))
     },
-    [setLocalStatus]
+    [setLocalStatus, setSyncTimes]
   )
 
   return {
