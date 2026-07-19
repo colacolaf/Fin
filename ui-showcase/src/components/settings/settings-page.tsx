@@ -26,6 +26,7 @@ import { Slider } from "@/components/ui/slider"
 import { availableProviders } from "@/lib/agents"
 import { useLocalStorage } from "@/lib/use-local-storage"
 import { ProviderCard } from "@/components/settings/provider-card"
+import { testProviderConnection } from "@/lib/models/client"
 import { useConnectors, type RuntimeConnector } from "@/lib/settings/use-connectors"
 import {
   notificationEvents,
@@ -456,6 +457,10 @@ function ModelTab() {
   const [temp, setTemp] = useLocalStorage("fo-temperature", 0.4)
   const [listening, setListening] = React.useState(false)
 
+  // Test connection state
+  const [testingProvider, setTestingProvider] = React.useState<string | null>(null)
+  const [testErrors, setTestErrors] = React.useState<Record<string, string>>({})
+
   const enabledSet = React.useMemo(() => new Set(enabledModels), [enabledModels])
   const configuredCount = Object.keys(apiKeys).length
   const verifiedCount = Object.keys(verified).length
@@ -511,6 +516,44 @@ function ModelTab() {
     [setEnabledModels],
   )
 
+  const handleTestConnection = React.useCallback(
+    async (providerId: string) => {
+      const keyAtStart = apiKeys[providerId]
+      if (!keyAtStart) return
+
+      setTestingProvider(providerId)
+      // Clear previous error for this provider
+      setTestErrors((prev) => {
+        const next = { ...prev }
+        delete next[providerId]
+        return next
+      })
+
+      try {
+        const result = await testProviderConnection(providerId, keyAtStart)
+
+        // Guard: if the key changed during the test, discard the result
+        const currentKey = apiKeys[providerId]
+        if (currentKey !== keyAtStart) return
+
+        if (result.ok) {
+          setVerified((prev) => ({ ...prev, [providerId]: Date.now() }))
+        } else {
+          setTestErrors((prev) => ({ ...prev, [providerId]: result.error ?? "Verification failed." }))
+          // Clear verification on failure
+          setVerified((prev) => {
+            const next = { ...prev }
+            delete next[providerId]
+            return next
+          })
+        }
+      } finally {
+        setTestingProvider(null)
+      }
+    },
+    [apiKeys, setVerified],
+  )
+
   return (
     <div className="space-y-4">
       {/* ── Summary banner ── */}
@@ -550,6 +593,9 @@ function ModelTab() {
           verified={verified[provider.id] ?? null}
           enabledModels={enabledSet}
           onToggleModel={handleToggleModel}
+          onTestConnection={handleTestConnection}
+          testing={testingProvider === provider.id}
+          testError={testErrors[provider.id] ?? null}
         />
       ))}
 

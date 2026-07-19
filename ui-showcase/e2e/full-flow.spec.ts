@@ -299,7 +299,66 @@ test("Chat composer is visible and accepts input", async ({ page }) => {
 })
 
 /* ================================================================== */
-/*  13. Enabled model checkboxes persist after collapse/expand           */
+/*  14. Test Connection button appears/disappears with key entry        */
+/* ================================================================== */
+
+test("Test Connection button appears when API key is entered", async ({ page }) => {
+  await page.goto("/settings")
+  await page.click("button:has-text('AI Model')")
+  await page.waitForTimeout(500)
+
+  // Expand OpenAI, enter key
+  await page.locator("text=OpenAI").first().click()
+  await page.waitForTimeout(400)
+
+  // Before key entry, Test Connection button should NOT be visible
+  await expect(page.locator("button:has-text('Test Connection')")).not.toBeAttached({ timeout: 2000 })
+
+  // Enter a key
+  await page.locator("input[type='password']").first().fill("sk-test-key")
+  await page.waitForTimeout(500)
+
+  // Now Test Connection button should appear
+  await expect(page.locator("button:has-text('Test Connection')").first()).toBeVisible({ timeout: 3000 })
+
+  // "Stored" indicator should also be visible
+  await expect(page.locator("text=Stored").first()).toBeVisible({ timeout: 2000 })
+})
+
+/* ================================================================== */
+/*  15. Verified state renders correctly with pre-seeded timestamp       */
+/* ================================================================== */
+
+test("Provider card shows Verified badge when verification is pre-seeded", async ({ page }) => {
+  // Pre-seed a verified provider
+  await page.goto("/")
+  await page.evaluate(() => {
+    localStorage.setItem("fo-provider-keys", JSON.stringify({ openai: "sk-test" }))
+    localStorage.setItem("fo-provider-verified", JSON.stringify({ openai: Date.now() }))
+  })
+
+  await page.goto("/settings")
+  await page.click("button:has-text('AI Model')")
+  await page.waitForTimeout(500)
+
+  // The summary banner should show "Verified" count
+  await expect(page.locator("text=Verified").first()).toBeVisible({ timeout: 3000 })
+
+  // Expand OpenAI card
+  await page.locator("text=OpenAI").first().click()
+  await page.waitForTimeout(400)
+
+  // Should show "Verified" in the test button (green check + timestamp)
+  await expect(page.locator("button:has-text('Verified')").first()).toBeVisible({ timeout: 3000 })
+
+  // Status badge in header should be green "Verified"
+  const verifiedBadges = page.locator("text=Verified")
+  const count = await verifiedBadges.count()
+  expect(count).toBeGreaterThanOrEqual(1)
+})
+
+/* ================================================================== */
+/*  16. Enabled model checkboxes persist after collapse/expand           */
 /* ================================================================== */
 
 test("Enabled model toggles persist after card collapse", async ({ page }) => {

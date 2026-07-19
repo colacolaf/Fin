@@ -11,6 +11,8 @@ import {
   Server,
   AlertCircle,
   Clock,
+  RefreshCw,
+  XCircle,
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -149,6 +151,12 @@ export interface ProviderCardProps {
   enabledModels: Set<string>
   /** Toggle a model on/off */
   onToggleModel: (modelId: string) => void
+  /** Initiate a real API key verification */
+  onTestConnection: (providerId: string) => void
+  /** Whether this provider's key is currently being tested */
+  testing: boolean
+  /** Error message from the last failed test */
+  testError: string | null
 }
 
 export function ProviderCard({
@@ -158,9 +166,21 @@ export function ProviderCard({
   verified,
   enabledModels,
   onToggleModel,
+  onTestConnection,
+  testing,
+  testError,
 }: ProviderCardProps) {
   const [expanded, setExpanded] = React.useState(false)
   const [showKey, setShowKey] = React.useState(false)
+  const [testClicked, setTestClicked] = React.useState(false)
+
+  // Reset testClicked when testing finishes (success or error)
+  React.useEffect(() => {
+    if (!testing && testClicked) {
+      const t = setTimeout(() => setTestClicked(false), 2000)
+      return () => clearTimeout(t)
+    }
+  }, [testing, testClicked])
 
   const isLocal = provider.local
   const hasKey = apiKey.length > 0
@@ -272,21 +292,67 @@ export function ProviderCard({
                     )}
                   </div>
 
+                  {/* ── Test Connection button ── */}
+                  {hasKey && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setTestClicked(true)
+                          onTestConnection(provider.id)
+                        }}
+                        disabled={testing}
+                        className={cn(
+                          "flex h-8 items-center gap-2 rounded-lg border px-3 text-[11px] font-medium transition-all duration-150 active:scale-95 disabled:opacity-60",
+                          isVerified
+                            ? "border-[#34D399]/30 bg-[#34D399]/10 text-[#34D399]"
+                            : testClicked && testError
+                              ? "border-[#F87171]/30 bg-[#F87171]/10 text-[#F87171]"
+                              : "border-white/[0.08] bg-white/[0.03] text-white/[0.55] hover:bg-white/[0.06] hover:text-white"
+                        )}
+                      >
+                        {testing ? (
+                          <>
+                            <RefreshCw className="h-3 w-3 animate-spin" />
+                            Testing…
+                          </>
+                        ) : testClicked && testError ? (
+                          <>
+                            <XCircle className="h-3 w-3" />
+                            Failed — click to retry
+                          </>
+                        ) : isVerified ? (
+                          <>
+                            <Check className="h-3 w-3" />
+                            Verified {formatVerified(verified!)}
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-3 w-3" />
+                            Test Connection
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
                   {/* Verified timestamp — only shown when genuinely verified */}
                   {isVerified && (
                     <div className="flex items-center gap-1.5">
                       <Check className="h-3 w-3 text-[#34D399]" />
                       <span className="text-[10px] text-[#34D399]">
-                        Last verified: {formatVerified(verified!)}
+                        API key verified — ready to use.
                       </span>
                     </div>
                   )}
 
-                  {/* Key saved but not verified hint */}
-                  {hasKey && !isVerified && (
-                    <p className="text-[10px] text-white/[0.25]">
-                      Key saved locally. Real API verification coming in a future update.
-                    </p>
+                  {/* Test error message */}
+                  {testClicked && testError && !testing && !isVerified && (
+                    <div className="flex items-start gap-1.5 rounded-lg border border-[#F87171]/20 bg-[#F87171]/5 px-3 py-2">
+                      <XCircle className="h-3 w-3 mt-0.5 shrink-0 text-[#F87171]" />
+                      <span className="text-[10px] text-[#F87171] leading-relaxed">{testError}</span>
+                    </div>
                   )}
 
                   {/* Get API key link */}
