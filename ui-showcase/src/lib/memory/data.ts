@@ -154,7 +154,6 @@ export const PROMPT_FILE_DEFS: Omit<MemoryFile, "content">[] = [
 
 const CHAT_HISTORY_KEY = "fo-chat-history"
 const SYSTEM_PROMPTS_KEY = "fo-system-prompts"
-const USER_CONTEXT_KEY = "fo-user-context"
 
 /** Read chat history from localStorage */
 export function getChatHistory(): ChatSession[] {
@@ -172,11 +171,9 @@ export function appendChatSession(session: ChatSession): void {
   if (typeof window === "undefined") return
   try {
     const sessions = getChatHistory()
-    // Replace if same ID exists (upsert), otherwise prepend
     const idx = sessions.findIndex((s) => s.id === session.id)
     if (idx >= 0) sessions[idx] = session
     else sessions.unshift(session)
-    // Keep last 50 sessions
     localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(sessions.slice(0, 50)))
   } catch { /* quota exceeded */ }
 }
@@ -218,7 +215,32 @@ export function revertSystemPrompt(id: string): void {
   } catch { /* quota exceeded */ }
 }
 
-/** Build the user context file from real localStorage state */
+/* ------------------------------------------------------------------ */
+/*  Safe localStorage reader — returns null on any failure             */
+/* ------------------------------------------------------------------ */
+
+function safeGet(key: string): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function safeGetJSON<T>(key: string, fallback: T): T {
+  try {
+    const raw = safeGet(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+/* ================================================================== */
+/*  buildUserContextFile — from real localStorage state, schema-compliant*/
+/* ================================================================== */
+
 export function buildUserContextFile(): MemoryFile {
   if (typeof window === "undefined") {
     return {
@@ -230,31 +252,46 @@ export function buildUserContextFile(): MemoryFile {
     }
   }
 
-  // Read real state from localStorage
-  const authKey = localStorage.getItem("fo-auth-key") || ""
-  const encryptKey = localStorage.getItem("fo-encryption-key") || ""
-  const providersRaw = localStorage.getItem("fo-connected-providers")
-  const providers: Record<string, string> = providersRaw ? JSON.parse(providersRaw) : {}
-  const model = localStorage.getItem("fo-selected-model") || ""
-  const primaryModel = localStorage.getItem("fo-primary-model")
-  const modelLabel = primaryModel ? JSON.parse(primaryModel).label : ""
-  const hint = localStorage.getItem("fo-key-hint") || ""
-  const setupComplete = localStorage.getItem("fo-setup-complete") === "true"
+  /* ---- security — from setup wizard KeySetupStep ---- */
+  const authKey = safeGet("fo-auth-key") || ""
+  const encryptKey = safeGet("fo-encryption-key") || ""
+  const hint = safeGet("fo-key-hint") || ""
 
-  // Read sessions
-  const sessionsRaw = localStorage.getItem("fo-agent-sessions")
-  const sessions: Record<string, number> = sessionsRaw ? JSON.parse(sessionsRaw) : {}
+  /* ---- setup — from setup wizard + connectors ---- */
+  const providers = safeGetJSON<Record<string, string>>("fo-connected-providers", {})
+  const selectedModel = safeGet("fo-selected-model") || ""
+  const setupComplete = safeGet("fo-setup-complete") === "true"
 
-  const userProfileRaw = localStorage.getItem("fo-user-context-profile")
-  const userProfile = userProfileRaw
-    ? JSON.parse(userProfileRaw)
-    : { risk_tolerance: "balanced", time_horizon_years: 25, annual_income: 95000, monthly_cash_flow: 2400, goals: [] }
+  /* ---- user_profile — from editable localStorage or nulls ---- */
+  const profileFromStorage = safeGetJSON<Record<string, unknown> | null>("fo-user-context-profile", null)
 
+  /* ---- accounts — from fo-connected-providers ---- */
+  const apiKeys = safeGetJSON<Record<string, string>>("fo-api-keys", {})
+
+  /* ---- portfolio/debts/retirement — populated by backend API in production ---- */
+  // These sections show null values until a real backend populates them.
+
+  /* ---- agent learning — populated by backend in production ---- */
+  const agentLearning: Record<string, string[]> = {}
+
+  /* ---- notifications — from fo-notif-master + fo-notif-events ---- */
+  const notifMaster = safeGet("fo-notif-master")
+  const notifEvents = safeGetJSON<{ id: string; enabled: boolean }[]>("fo-notif-events", [])
+
+  /* ---- sessions — from agent chat tracking ---- */
+  const sessions = safeGetJSON<Record<string, number>>("fo-agent-sessions", {})
+
+  /* ---- primary model — from settings ---- */
+  const primaryModelRaw = safeGet("fo-primary-model")
+  let primaryModelLabel = ""
+  try { if (primaryModelRaw) primaryModelLabel = JSON.parse(primaryModelRaw).label } catch { /* ignore */ }
+
+  /* ---- Build context matching User Context Schema exactly ---- */
   const context = {
     security: {
-      authorization_key_hash: authKey ? authKey.replace(/./g, "•") : "(not set)",
-      encryption_key: encryptKey ? encryptKey.replace(/./g, "•") : "(not set)",
-      key_storage_hint: hint || "(not set)",
+      authorization_key_hash: authKey ? "••••••••••••" : null,
+      encryption_key: encryptKey ? "••••••••••••" : null,
+      key_storage_hint: hint || null,
     },
     setup: {
       authorization_key_set: !!authKey,
@@ -262,17 +299,72 @@ export function buildUserContextFile(): MemoryFile {
       portfolio_connected: !!providers.portfolio,
       bank_connected: !!providers.bank,
       debt_connected: !!providers.debt,
-      llm_model_selected: !!model,
+      llm_model_selected: !!selectedModel || !!primaryModelLabel,
       setup_complete: setupComplete,
     },
-    user_profile: userProfile,
-    agents: {
-      portfolio_sessions: sessions.portfolio ?? 0,
-      debt_sessions: sessions.debt ?? 0,
-      retirement_sessions: sessions.retirement ?? 0,
-      current_model: modelLabel || (model || "(not set)"),
+    user_profile: profileFromStorage ?? {
+      risk_tolerance: null,
+      time_horizon_years: null,
+      annual_income: null,
+      monthly_cash_flow: null,
+      goals: [],
     },
-    _editable: "Edit the user_profile section above. It persists across app restarts.",
+    accounts: {
+      brokerages: providers.portfolio
+        ? [{ name: providers.portfolio, connected: true, last_sync: null }]
+        : [],
+      banks: providers.bank
+        ? [{ name: providers.bank, connected: true, last_sync: null }]
+        : [],
+      retirement_accounts: providers.retirement
+        ? [{ name: providers.retirement, connected: true, last_sync: null }]
+        : [],
+    },
+    portfolio: {
+      total_value: null,
+      concentration_risk: null,
+      last_updated: null,
+      sync_frequency: "on_app_open",
+    },
+    debts: {
+      total_balance: null,
+      weighted_apr: null,
+      monthly_minimum: null,
+    },
+    retirement: {
+      funded_percentage: null,
+      projected_annual_income: null,
+      target_retirement_age: null,
+    },
+    assets: {
+      properties: [],
+      other_assets: [],
+      startup_holdings: [],
+      crypto: [],
+      vehicles: [],
+    },
+    behavioral_patterns: {
+      prefers_gradual_changes: null,
+      asks_for_guarantees: null,
+      typical_response_time: null,
+      most_executed_agent: (() => {
+        const entries = Object.entries(sessions) as [string, number][]
+        if (entries.length === 0) return null
+        return entries.reduce((a, b) => (a[1] > b[1] ? a : b))[0]
+      })(),
+    },
+    past_decisions: [],
+    agent_learning: agentLearning,
+    notifications: {
+      enabled: notifMaster !== null ? notifMaster === "true" || notifMaster === "1" : null,
+      events: notifEvents.map((e) => ({
+        event_type: e.id,
+        enabled: e.enabled,
+      })),
+    },
+    _editable: "Edit the user_profile section to set your risk tolerance, income, and goals. Changes persist across app restarts.",
+    _model: primaryModelLabel || selectedModel || null,
+    _api_keys_configured: Object.keys(apiKeys).length,
   }
 
   return {
@@ -290,15 +382,4 @@ export function saveUserContextProfile(profile: Record<string, unknown>): void {
   try {
     localStorage.setItem("fo-user-context-profile", JSON.stringify(profile))
   } catch { /* quota exceeded */ }
-}
-
-/** Read the editable user profile from localStorage */
-export function getUserContextProfile(): Record<string, unknown> {
-  if (typeof window === "undefined") return {}
-  try {
-    const raw = localStorage.getItem("fo-user-context-profile")
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
 }
