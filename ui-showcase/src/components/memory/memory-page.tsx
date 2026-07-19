@@ -11,12 +11,21 @@ import {
   Hash,
   User,
   Bot,
+  Pencil,
+  Check,
+  RotateCcw,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PageShell } from "@/components/page-shell/page-shell"
 import {
-  chatSessions,
-  allMemoryFiles,
+  getChatHistory,
+  getSystemPromptFiles,
+  buildUserContextFile,
+  saveSystemPrompt,
+  revertSystemPrompt,
+  saveUserContextProfile,
+  ORIGINAL_PROMPTS,
   agentMeta,
   type ChatSession,
   type MemoryFile,
@@ -172,7 +181,6 @@ function ChatViewer({ session }: { session: ChatSession }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
         <div
           className="flex h-8 w-8 items-center justify-center rounded-lg text-[11px] font-bold"
@@ -187,8 +195,6 @@ function ChatViewer({ session }: { session: ChatSession }) {
           </p>
         </div>
       </div>
-
-      {/* Messages */}
       <div className="flex flex-col gap-3">
         {session.messages.map((msg, i) => (
           <div
@@ -230,38 +236,137 @@ function ChatViewer({ session }: { session: ChatSession }) {
 }
 
 /* ================================================================== */
-/*  FileViewer — renders a context or system prompt file                 */
+/*  FileViewer — renders context or system prompt with edit mode         */
 /* ================================================================== */
 
-function FileViewer({ file }: { file: MemoryFile }) {
+function FileViewer({ file, onFileChanged }: { file: MemoryFile; onFileChanged: () => void }) {
   const isContext = file.type === "context"
+  const isSystemPrompt = file.type === "system-prompt"
+  const [editing, setEditing] = React.useState(false)
+  const [draft, setDraft] = React.useState(file.content)
+  const [saved, setSaved] = React.useState(false)
+  const agent = file.agent ? agentMeta[file.agent] : null
+  const hasOriginal = isSystemPrompt && !!ORIGINAL_PROMPTS[file.id]
+  const isModified = isSystemPrompt && ORIGINAL_PROMPTS[file.id] && file.content !== ORIGINAL_PROMPTS[file.id]
+
+  const handleSave = () => {
+    if (isSystemPrompt) {
+      saveSystemPrompt(file.id, draft)
+    } else if (isContext) {
+      try {
+        const parsed = JSON.parse(draft)
+        if (parsed.user_profile) {
+          saveUserContextProfile(parsed.user_profile)
+        }
+      } catch {
+        // If JSON is invalid, save raw content
+      }
+    }
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+    setEditing(false)
+    onFileChanged()
+  }
+
+  const handleRevert = () => {
+    if (isSystemPrompt) {
+      revertSystemPrompt(file.id)
+      setDraft(ORIGINAL_PROMPTS[file.id] ?? "")
+      setEditing(false)
+      onFileChanged()
+    }
+  }
+
+  const handleCancel = () => {
+    setDraft(file.content)
+    setEditing(false)
+  }
 
   return (
     <div className="flex flex-col gap-4">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-white/[0.06] pb-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08]">
-          {isContext ? (
-            <FileText className="h-4 w-4 text-[#818CF8]" />
-          ) : (
-            <Settings className="h-4 w-4 text-white/[0.40]" />
-          )}
+      <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.08]">
+            {isContext ? (
+              <FileText className="h-4 w-4 text-[#818CF8]" />
+            ) : (
+              <Settings className="h-4 w-4 text-white/[0.40]" />
+            )}
+          </div>
+          <div>
+            <h3 className="text-[13px] font-semibold text-white">{file.label}</h3>
+            <p className="text-[10px] text-white/[0.35]">
+              {file.name}
+              {isContext && " · Auto-generated from app state"}
+              {isSystemPrompt && (isModified ? " · Edited" : " · Original")}
+              {agent ? ` · ${agent.label}` : ""}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-[13px] font-semibold text-white">{file.label}</h3>
-          <p className="text-[10px] text-white/[0.35]">
-            {file.name} · {isContext ? "Read-only context" : "System prompt"}
-            {file.agent ? ` · ${agentMeta[file.agent].label}` : ""}
-          </p>
-        </div>
+
+        {/* Action buttons */}
+        {!editing ? (
+          <button
+            type="button"
+            onClick={() => { setDraft(file.content); setEditing(true) }}
+            className="flex h-7 items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 text-[11px] font-medium text-white/[0.55] transition-all hover:bg-white/[0.06] hover:text-white active:scale-[0.97]"
+          >
+            <Pencil className="h-3 w-3" />
+            Edit
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            {hasOriginal && (
+              <button
+                type="button"
+                onClick={handleRevert}
+                className="flex h-7 items-center gap-1 rounded-md border border-[#FBBF24]/20 bg-[#FBBF24]/8 px-2.5 text-[11px] font-medium text-[#FBBF24] transition-all hover:bg-[#FBBF24]/12 active:scale-[0.97]"
+                title="Revert to original"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Revert
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex h-7 items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 text-[11px] font-medium text-white/[0.45] transition-all hover:bg-white/[0.06] hover:text-white active:scale-[0.97]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className={cn(
+                "flex h-7 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-all active:scale-[0.97]",
+                saved
+                  ? "border-[#34D399]/30 bg-[#34D399]/10 text-[#34D399]"
+                  : "border-[#818CF8]/30 bg-[#818CF8]/10 text-[#818CF8] hover:bg-[#818CF8]/15"
+              )}
+            >
+              {saved ? <Check className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+              {saved ? "Saved" : "Save"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-        <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-white/[0.60]">
-          {file.content}
-        </pre>
-      </div>
+      {editing ? (
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="min-h-[400px] w-full rounded-xl border border-[#818CF8]/20 bg-white/[0.02] p-4 font-mono text-[11px] leading-relaxed text-white/[0.80] outline-none resize-y placeholder:text-white/[0.20]"
+          spellCheck={false}
+        />
+      ) : (
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-white/[0.60]">
+            {file.content}
+          </pre>
+        </div>
+      )}
     </div>
   )
 }
@@ -289,11 +394,12 @@ function EmptyState({ query }: { query: string }) {
 }
 
 /* ================================================================== */
-/*  MemoryPage — Two-panel File Browser                                 */
+/*  MemoryPage — Two-panel File Browser, all data from localStorage      */
 /* ================================================================== */
 
 export function MemoryPage() {
   const [query, setQuery] = React.useState("")
+  const [fileVersion, setFileVersion] = React.useState(0) // bump to re-read files
   const [expanded, setExpanded] = React.useState<Record<SectionId, boolean>>({
     "chats-portfolio": true,
     "chats-debt": true,
@@ -307,67 +413,56 @@ export function MemoryPage() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
   }, [])
 
-  // Filter sessions and files by search query
+  // Read all data from localStorage (re-reads when fileVersion changes)
+  const chatSessions = React.useMemo(() => getChatHistory(), [fileVersion])
+  const systemPromptFiles = React.useMemo(() => getSystemPromptFiles(), [fileVersion])
+  const userContextFile = React.useMemo(() => buildUserContextFile(), [fileVersion])
+
+  const allMemoryFiles: MemoryFile[] = React.useMemo(
+    () => [userContextFile, ...systemPromptFiles],
+    [userContextFile, systemPromptFiles]
+  )
+
   const q = query.toLowerCase().trim()
 
   const portfolioChats = React.useMemo(
-    () =>
-      chatSessions.filter(
-        (s) =>
-          s.agent === "portfolio" &&
-          (!q ||
-            s.category.toLowerCase().includes(q) ||
-            s.messages.some((m) => m.content.toLowerCase().includes(q)))
-      ),
-    [q]
+    () => chatSessions.filter((s) => s.agent === "portfolio" && (!q || s.category.toLowerCase().includes(q) || s.messages.some((m) => m.content.toLowerCase().includes(q)))),
+    [chatSessions, q]
   )
-
   const debtChats = React.useMemo(
-    () =>
-      chatSessions.filter(
-        (s) =>
-          s.agent === "debt" &&
-          (!q ||
-            s.category.toLowerCase().includes(q) ||
-            s.messages.some((m) => m.content.toLowerCase().includes(q)))
-      ),
-    [q]
+    () => chatSessions.filter((s) => s.agent === "debt" && (!q || s.category.toLowerCase().includes(q) || s.messages.some((m) => m.content.toLowerCase().includes(q)))),
+    [chatSessions, q]
   )
-
   const retirementChats = React.useMemo(
-    () =>
-      chatSessions.filter(
-        (s) =>
-          s.agent === "retirement" &&
-          (!q ||
-            s.category.toLowerCase().includes(q) ||
-            s.messages.some((m) => m.content.toLowerCase().includes(q)))
-      ),
-    [q]
+    () => chatSessions.filter((s) => s.agent === "retirement" && (!q || s.category.toLowerCase().includes(q) || s.messages.some((m) => m.content.toLowerCase().includes(q)))),
+    [chatSessions, q]
   )
-
   const contextFiles = React.useMemo(
-    () =>
-      allMemoryFiles.filter(
-        (f) =>
-          f.type === "context" &&
-          (!q || f.label.toLowerCase().includes(q) || f.content.toLowerCase().includes(q))
-      ),
-    [q]
+    () => allMemoryFiles.filter((f) => f.type === "context" && (!q || f.label.toLowerCase().includes(q) || f.content.toLowerCase().includes(q))),
+    [allMemoryFiles, q]
   )
-
   const promptFiles = React.useMemo(
-    () =>
-      allMemoryFiles.filter(
-        (f) =>
-          f.type === "system-prompt" &&
-          (!q || f.label.toLowerCase().includes(q) || f.content.toLowerCase().includes(q))
-      ),
-    [q]
+    () => allMemoryFiles.filter((f) => f.type === "system-prompt" && (!q || f.label.toLowerCase().includes(q) || f.content.toLowerCase().includes(q))),
+    [allMemoryFiles, q]
   )
 
-  const totalResults =
-    portfolioChats.length + debtChats.length + retirementChats.length + contextFiles.length + promptFiles.length
+  const totalResults = portfolioChats.length + debtChats.length + retirementChats.length + contextFiles.length + promptFiles.length
+
+  // Callback for when a file is edited/saved/reverted
+  const handleFileChanged = React.useCallback(() => {
+    setFileVersion((v) => v + 1)
+    // Refresh selected item
+    setSelected((prev) => {
+      if (!prev || prev.kind !== "file") return prev
+      if (prev.file.type === "context") {
+        return { kind: "file" as const, file: buildUserContextFile() }
+      }
+      const files = getSystemPromptFiles()
+      const refreshed = files.find((f) => f.id === prev.file.id)
+      if (refreshed) return { kind: "file" as const, file: refreshed }
+      return prev
+    })
+  }, [])
 
   return (
     <PageShell
@@ -395,13 +490,11 @@ export function MemoryPage() {
       <div className="flex gap-4 min-h-[500px]">
         {/* Left panel: folder tree */}
         <div className="w-[260px] shrink-0 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl p-3 overflow-y-auto">
-          {/* Stats */}
           <div className="mb-3 flex items-center gap-2 px-2 text-[10px] text-white/[0.25]">
             <Hash className="h-3 w-3" />
             <span>{chatSessions.length} chats · {allMemoryFiles.length} files</span>
           </div>
 
-          {/* Chat sections by agent */}
           <FolderTreeSection
             id="chats-portfolio"
             label="Portfolio"
@@ -411,13 +504,7 @@ export function MemoryPage() {
             onToggle={toggleSection}
           >
             {portfolioChats.map((s) => (
-              <TreeItemRow
-                key={s.id}
-                item={{ kind: "chat", session: s }}
-                selected={selected?.kind === "chat" && selected.session.id === s.id}
-                query={query}
-                onSelect={setSelected}
-              />
+              <TreeItemRow key={s.id} item={{ kind: "chat", session: s }} selected={selected?.kind === "chat" && selected.session.id === s.id} query={query} onSelect={setSelected} />
             ))}
           </FolderTreeSection>
 
@@ -430,13 +517,7 @@ export function MemoryPage() {
             onToggle={toggleSection}
           >
             {debtChats.map((s) => (
-              <TreeItemRow
-                key={s.id}
-                item={{ kind: "chat", session: s }}
-                selected={selected?.kind === "chat" && selected.session.id === s.id}
-                query={query}
-                onSelect={setSelected}
-              />
+              <TreeItemRow key={s.id} item={{ kind: "chat", session: s }} selected={selected?.kind === "chat" && selected.session.id === s.id} query={query} onSelect={setSelected} />
             ))}
           </FolderTreeSection>
 
@@ -449,20 +530,12 @@ export function MemoryPage() {
             onToggle={toggleSection}
           >
             {retirementChats.map((s) => (
-              <TreeItemRow
-                key={s.id}
-                item={{ kind: "chat", session: s }}
-                selected={selected?.kind === "chat" && selected.session.id === s.id}
-                query={query}
-                onSelect={setSelected}
-              />
+              <TreeItemRow key={s.id} item={{ kind: "chat", session: s }} selected={selected?.kind === "chat" && selected.session.id === s.id} query={query} onSelect={setSelected} />
             ))}
           </FolderTreeSection>
 
-          {/* Divider */}
           <div className="my-2 border-t border-white/[0.04]" />
 
-          {/* Context section */}
           <FolderTreeSection
             id="context"
             label="Context"
@@ -472,17 +545,10 @@ export function MemoryPage() {
             onToggle={toggleSection}
           >
             {contextFiles.map((f) => (
-              <TreeItemRow
-                key={f.id}
-                item={{ kind: "file", file: f }}
-                selected={selected?.kind === "file" && selected.file.id === f.id}
-                query={query}
-                onSelect={setSelected}
-              />
+              <TreeItemRow key={f.id} item={{ kind: "file", file: f }} selected={selected?.kind === "file" && selected.file.id === f.id} query={query} onSelect={setSelected} />
             ))}
           </FolderTreeSection>
 
-          {/* System prompts section */}
           <FolderTreeSection
             id="prompts"
             label="System Prompts"
@@ -492,17 +558,10 @@ export function MemoryPage() {
             onToggle={toggleSection}
           >
             {promptFiles.map((f) => (
-              <TreeItemRow
-                key={f.id}
-                item={{ kind: "file", file: f }}
-                selected={selected?.kind === "file" && selected.file.id === f.id}
-                query={query}
-                onSelect={setSelected}
-              />
+              <TreeItemRow key={f.id} item={{ kind: "file", file: f }} selected={selected?.kind === "file" && selected.file.id === f.id} query={query} onSelect={setSelected} />
             ))}
           </FolderTreeSection>
 
-          {/* Search results count */}
           {q && (
             <div className="mt-3 px-2 text-[10px] text-white/[0.25]">
               {totalResults} result{totalResults !== 1 ? "s" : ""}
@@ -524,16 +583,11 @@ export function MemoryPage() {
                 {selected.kind === "chat" ? (
                   <ChatViewer session={selected.session} />
                 ) : (
-                  <FileViewer file={selected.file} />
+                  <FileViewer file={selected.file} onFileChanged={handleFileChanged} />
                 )}
               </motion.div>
             ) : (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <EmptyState query={query} />
               </motion.div>
             )}

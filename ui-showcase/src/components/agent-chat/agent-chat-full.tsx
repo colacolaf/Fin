@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils"
 import { getAgent, type AgentDef, type AgentId } from "@/lib/agents"
 import { useAgentThinking, type AgentMessage } from "@/lib/agents/use-agent-thinking"
+import { appendChatSession, type AgentSlug } from "@/lib/memory/data"
 import { Timer } from "@/components/ui/timer"
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
 import {
@@ -22,6 +23,19 @@ import {
 import { ChatMessage, ChatEmptyState } from "./chat-message"
 import { ChatComposer } from "./chat-composer"
 import { ThinkingCard } from "./thinking-card"
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+function getDefaultCategoryForAgent(agentId: string): string {
+  switch (agentId) {
+    case "portfolio": return "Rebalancing"
+    case "debt": return "Payoff Strategy"
+    case "retirement": return "Contribution Strategy"
+    default: return "Chat"
+  }
+}
 
 /* ================================================================== */
 /*  AgentChatHeader                                                    */
@@ -194,11 +208,32 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
+  const [sessionId] = React.useState(`agent-${agentId}-${Date.now()}`)
+  const sessionCategoryRef = React.useRef(getDefaultCategoryForAgent(agentId))
+
   const { isThinking, steps, totalElapsed, send, cancel } = useAgentThinking({
     onReply: (reply) => {
       setMessages((prev) => [...prev, reply])
     },
   })
+
+  // Persist chat history to localStorage when messages change
+  React.useEffect(() => {
+    if (messages.length === 0) return
+    const session: import("@/lib/memory/data").ChatSession = {
+      id: sessionId,
+      agent: agentId as AgentSlug,
+      category: sessionCategoryRef.current,
+      createdAt: new Date(messages[0].createdAt).toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: messages.map((m) => ({
+        role: m.role === "agent" ? "assistant" : "user",
+        content: m.text,
+        timestamp: new Date(m.createdAt).toISOString(),
+      })),
+    }
+    appendChatSession(session)
+  }, [messages, agentId])
 
   // Auto-scroll to bottom on new messages and when thinking starts/stops.
   // Deliberately NOT depending on `steps` — that updates every RAF frame
