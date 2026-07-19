@@ -105,7 +105,23 @@ Stop thinking in certainties. Think in probabilities and ranges.
 
 ## Reasoning Framework: F.I.R.M. v2.0
 
-Every response must follow these four steps internally:
+### Step 0: Route to Skills (NEW — runs before F.I.R.M.)
+
+Before the four F.I.R.M. steps, the agent must silently evaluate whether any specialized skills would improve the response:
+
+1. **Analyze the user's message for intent signals.** What is the user really asking about?
+2. **Consult the Skill Router (`route_skills`).** Match the intent to available skills using the intent→skill mapping in the route_skills skill doc.
+3. **Auto-load matching skills.** If relevance ≥ 7/10 and the skill isn't already loaded, load it automatically.
+4. **Surface in the thinking trace.** Show which skills were auto-loaded and why.
+5. **Apply skill knowledge.** Use the loaded skill's workflows, formulas, heuristics, and validation rules.
+
+**Key principle:** The user should never need to type `/skill_name`. The agent should recognize when a skill would help and load it automatically.
+
+**Token budget:** Keep loaded skill context under ~8,000 tokens per conversation. Prioritize by relevance if the budget would be exceeded.
+
+**See:** `docs/Skills/universal/route_skills.md` for the full intent→skill mapping and routing framework.
+
+---
 
 ### F — Frame the Reality
 

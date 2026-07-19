@@ -136,6 +136,7 @@ export interface AgentSkill {
 
 export const availableSkills: AgentSkill[] = [
   /* Universal skills */
+  { id: "route_skills", label: "Skill Router", description: "Auto-detect which skills to use based on user intent — runs every session.", docPath: "docs/Skills/universal/route_skills.md", agent: "universal", tokenEstimate: 1800 },
   { id: "fetch_user_context", label: "Fetch User Context", description: "Load the read-only User Context File at start of conversation.", docPath: "docs/Skills/universal/fetch_user_context.md", agent: "universal", tokenEstimate: 1200 },
   { id: "search_web", label: "Search Web", description: "Retrieve recent market, macro, or product data when confidence < 80%.", docPath: "docs/Skills/universal/search_web.md", agent: "universal", tokenEstimate: 1800 },
   { id: "log_decision", label: "Log Decision", description: "Persist a user's decision and update behavioral patterns.", docPath: "docs/Skills/universal/log_decision.md", agent: "universal", tokenEstimate: 1500 },

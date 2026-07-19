@@ -36,10 +36,99 @@ export interface AgentMessage {
 }
 
 /* ================================================================== */
+/*  Intent → Skill Router (auto-suggestion when no skills are toggled) */
+/* ================================================================== */
+
+interface SkillMatch {
+  skillId: string
+  relevance: number
+  reason: string
+}
+
+/**
+ * Analyze a user message and return the best-matching skills.
+ * This mirrors the intent→skill mapping in route_skills.md.
+ */
+function routeToSkills(userText: string, alreadyLoaded: string[]): SkillMatch[] {
+  const lower = userText.toLowerCase()
+  const matches: SkillMatch[] = []
+
+  // Skip greetings / small talk — only for very short messages (≤ 3 words)
+  // Removed "good" and "great" — they appear in real questions like "Good portfolio strategy?"
+  const greetingPatterns = /^(hi|hey|hello|thanks|thank you|ok|okay|got it|nice)\b/i
+  if (greetingPatterns.test(lower.trim()) && lower.trim().split(/\s+/).length <= 3) {
+    return []
+  }
+
+  /* ── Portfolio domain ── */
+  if (/\b(analyze|allocation|diversif|concentrat|holdings|portfolio|positions|exposure|overweight|underweight|sector|tech)\b.*\b(portfolio|my|how|what|too)\b/i.test(lower) ||
+      /\b(portfolio|allocation|diversif|concentrat).*(analy|check|review|look|see|assess)\b/i.test(lower) ||
+      /\b(too.*(much|heavy|concentrated).*(tech|stock|single)|overweight.*(tech|stock|sector))\b/i.test(lower)) {
+    matches.push({ skillId: "portfolio_analyze", relevance: 10, reason: "portfolio analysis intent detected" })
+  }
+
+  if (/\b(rebalance|trim|reduc|add to|increase.*position|sell.*buy|buy.*sell|reallocat)\b/i.test(lower)) {
+    matches.push({ skillId: "rebalance_recommend", relevance: 10, reason: "rebalancing intent detected" })
+  }
+
+  if (/\b(value|worth|price|estimate|valuation).*(startup|private|share|equity|stock option|ISO|NSO|RSU)\b/i.test(lower) ||
+      /\b(startup|private.*share|private.*equity|stock option|409a|secondary)\b/i.test(lower)) {
+    matches.push({ skillId: "value_private_asset", relevance: 10, reason: "private asset valuation intent detected" })
+  }
+
+  if (/\b(trade|buy|sell|execut|place.*order|purchase)\b/i.test(lower) &&
+      !/\b(paper|simulat|test)\b/i.test(lower)) {
+    matches.push({ skillId: "execute_trade", relevance: 8, reason: "trade execution intent detected" })
+  }
+
+  if (/\b(paper.*trad|simulat|test.*trade|practice)\b/i.test(lower)) {
+    matches.push({ skillId: "enable_paper_trading", relevance: 10, reason: "paper trading intent detected" })
+  }
+
+  /* ── Debt domain ── */
+  if (/\b(pay.*off|payoff|debt.*strateg|avalanche|snowball|extra.*payment|how.*long.*debt|debt.*free)\b/i.test(lower) ||
+      /\b(debt|credit.*card|student.*loan|car.*loan|mortgage).*(pay|strateg|plan|timeline)\b/i.test(lower)) {
+    matches.push({ skillId: "debt_payoff_simulate", relevance: 10, reason: "debt payoff intent detected" })
+  }
+
+  if (/\b(debt.*invest|invest.*debt|pay.*debt.*or.*invest|should.*pay|extra.*money)\b/i.test(lower) ||
+      /\b(payoff|debt).*(vs|versus|or).*(invest|market|portfolio|stock)\b/i.test(lower)) {
+    matches.push({ skillId: "debt_vs_invest_analyze", relevance: 10, reason: "debt vs invest intent detected" })
+  }
+
+  /* ── Retirement domain ── */
+  if (/\b(retire|retirement|on track|readiness|how.*much.*retire|enough.*retire|retire.*age)\b/i.test(lower) ||
+      /\b(retirement|retire).*(project|plan|save|enough|need|readiness)\b/i.test(lower)) {
+    matches.push({ skillId: "retirement_readiness_score", relevance: 10, reason: "retirement readiness intent detected" })
+  }
+
+  if (/\b(employer.*match|401k.*match|match.*capture|full.*match|increase.*contribution|match.*percent)\b/i.test(lower) ||
+      /\b(401k|401\(k\)).*(match|contribute|increase)\b/i.test(lower)) {
+    matches.push({ skillId: "match_capture_recommend", relevance: 10, reason: "employer match intent detected" })
+  }
+
+  /* ── Universal domain ── */
+  if (/\b(current|price|rate|news|recent|today|what.*is.*the|fed|market.*update)\b/i.test(lower)) {
+    matches.push({ skillId: "search_web", relevance: 7, reason: "market data intent detected" })
+  }
+
+  // Filter: remove already-loaded skills, enforce minimum relevance ≥ 7,
+  // sort by relevance descending, take top 2
+  return matches
+    .filter((m) => !alreadyLoaded.includes(m.skillId) && m.relevance >= 7)
+    .sort((a, b) => b.relevance - a.relevance)
+    .slice(0, 2) // Max 2 auto-loaded skills per message
+}
+
+/* ================================================================== */
 /*  Mock thinking scripts — enriched with skill context                */
 /* ================================================================== */
 
-function buildScripts(activeSkills: SkillContent[], failedSkills: string[]): Record<FirmStepKey, string[]> {
+function buildScripts(
+  activeSkills: SkillContent[],
+  failedSkills: string[],
+  autoLoadedSkills: SkillMatch[],
+): Record<FirmStepKey, string[]> {
   const skillNames = activeSkills.map((s) => s.skillId.replace(/_/g, " "))
   const skillCount = activeSkills.length
 
@@ -66,7 +155,15 @@ function buildScripts(activeSkills: SkillContent[], failedSkills: string[]): Rec
     ],
   }
 
-  // If skills are active, enrich the thinking trace
+  // If skills were auto-loaded by the router, surface them in the trace
+  if (autoLoadedSkills.length > 0) {
+    const lines = autoLoadedSkills.map(
+      (m) => `🎯 Auto-loaded skill: ${m.skillId.replace(/_/g, " ")} (relevance ${m.relevance}/10 — ${m.reason})`
+    )
+    base.inspect = [...lines, ...base.inspect]
+  }
+
+  // If skills are active (manual or auto-loaded), show token budget
   if (skillCount > 0) {
     base.inspect = [
       ...base.inspect,
@@ -191,26 +288,36 @@ export function useAgentThinking({
       accumulatedElapsedRef.current = 0
       currentStepIdxRef.current = -1
 
-      // ── Load active skill contents before starting the thinking flow ──
+      // ── Auto-route to skills based on user intent (before manual skills are loaded) ──
+      const autoMatches = activeSkillIds.length === 0
+        ? routeToSkills(userText, activeSkillIds)
+        : []
+
+      // Combine manual + auto-suggested skill IDs
+      const allSkillIds = [
+        ...activeSkillIds,
+        ...autoMatches.map((m) => m.skillId),
+      ]
+
+      // ── Load skill contents before starting the thinking flow ──
       let loadedSkills: SkillContent[] = []
       const failedSkills: string[] = []
-      if (activeSkillIds.length > 0) {
+      if (allSkillIds.length > 0) {
         try {
-          const skillMap = await fetchSkillContents(activeSkillIds)
+          const skillMap = await fetchSkillContents(allSkillIds)
           loadedSkills = Array.from(skillMap.values())
           // Track which skills failed to load
-          for (const id of activeSkillIds) {
+          for (const id of allSkillIds) {
             if (!skillMap.has(id)) failedSkills.push(id)
           }
         } catch {
-          // If the entire fetch operation fails, proceed without skills
           console.warn("[useAgentThinking] Failed to load skill contents — proceeding without skills")
-          failedSkills.push(...activeSkillIds)
+          failedSkills.push(...allSkillIds)
         }
       }
 
       // Build scripts and response with loaded skill context
-      const scripts = buildScripts(loadedSkills, failedSkills)
+      const scripts = buildScripts(loadedSkills, failedSkills, autoMatches)
       const responseText = buildResponse(loadedSkills)
 
       // For each step: set running, stream text, then mark done

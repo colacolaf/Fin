@@ -44,6 +44,7 @@ const categories: CategoryDef[] = [
 /* ------------------------------------------------------------------ */
 
 const skillCategoryMap: Record<string, SkillCategory> = {
+  route_skills: "universal",
   fetch_user_context: "universal",
   search_web: "universal",
   log_decision: "universal",
