@@ -920,7 +920,7 @@ function PopoverContent({
         align === "end" ? "right-0" : align === "center" ? "left-1/2 -translate-x-1/2" : "left-0",
         className,
       )}
-      style={{ top: `calc(100% + ${sideOffset}px)` }}
+      style={{ bottom: `calc(100% + ${sideOffset}px)` }}
     >
       {children}
     </div>
