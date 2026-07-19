@@ -159,38 +159,6 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
     buildDefaultModelSettingsState(agentId)
   )
 
-  // Record analytics on mount — increment session count and update last-used
-  React.useEffect(() => {
-    if (!agent) return
-    const id = agent.id
-    const now = Date.now()
-
-    const defaults = {
-      sessions: { portfolio: 0, debt: 0, retirement: 0 } as Record<string, number>,
-      lastUsed: { portfolio: null, debt: null, retirement: null } as Record<string, number | null>,
-      categories: {
-        portfolio: "Rebalancing",
-        debt: "Payoff Strategy",
-        retirement: "Contribution Strategy",
-      } as Record<string, string>,
-    }
-
-    try {
-      const sessions = { ...defaults.sessions, ...JSON.parse(localStorage.getItem("fo-agent-sessions") || "null") }
-      sessions[id] = (sessions[id] ?? 0) + 1
-      localStorage.setItem("fo-agent-sessions", JSON.stringify(sessions))
-
-      const lastUsed = { ...defaults.lastUsed, ...JSON.parse(localStorage.getItem("fo-agent-last-used") || "null") }
-      lastUsed[id] = now
-      localStorage.setItem("fo-agent-last-used", JSON.stringify(lastUsed))
-
-      const categories = { ...defaults.categories, ...JSON.parse(localStorage.getItem("fo-agent-last-category") || "null") }
-      localStorage.setItem("fo-agent-last-category", JSON.stringify(categories))
-    } catch {
-      // localStorage unavailable
-    }
-  }, [agent])
-
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
@@ -226,8 +194,47 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages, isThinking])
 
+  /**
+   * Increment analytics counters on the FIRST user send of a session —
+   * not on mount. Visiting the chat page is not a session; only sending
+   * a message is. Previously this used a mount-time effect, which double-
+   * counted in dev mode (React Strict Mode) and counted every navigation.
+   */
+  const recordFirstSessionUse = React.useCallback(() => {
+    if (!agent) return
+    const id = agent.id
+
+    const sessionDefaults: Record<string, number> = { portfolio: 0, debt: 0, retirement: 0 }
+    const lastUsedDefaults: Record<string, number | null> = {
+      portfolio: null,
+      debt: null,
+      retirement: null,
+    }
+
+    try {
+      const sessions = {
+        ...sessionDefaults,
+        ...JSON.parse(localStorage.getItem("fo-agent-sessions") || "null"),
+      } as Record<string, number>
+      sessions[id] = (sessions[id] ?? 0) + 1
+      localStorage.setItem("fo-agent-sessions", JSON.stringify(sessions))
+
+      const lastUsed = {
+        ...lastUsedDefaults,
+        ...JSON.parse(localStorage.getItem("fo-agent-last-used") || "null"),
+      } as Record<string, number | null>
+      lastUsed[id] = Date.now()
+      localStorage.setItem("fo-agent-last-used", JSON.stringify(lastUsed))
+    } catch {
+      // localStorage unavailable
+    }
+  }, [agent])
+
   const handleSend = (text: string) => {
-    if (!hasStartedChat) setHasStartedChat(true)
+    if (!hasStartedChat) {
+      setHasStartedChat(true)
+      recordFirstSessionUse()
+    }
     const userMsg: AgentMessage = {
       id: `user-${Date.now()}`,
       role: "user",
