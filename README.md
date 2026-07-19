@@ -130,7 +130,9 @@ A working Next.js UI showcase lives in `ui-showcase/` with:
 
 ## Status
 
-UI showcase is functional at `http://localhost:3000`. Backend integrations (real Plaid/OAuth flows, trade execution, desktop notifications) are documented in [`docs/TODO.md`](docs/TODO.md).
+UI showcase is functional at `http://localhost:3000`. Remaining work is tracked in:
+- **[`docs/ACTION_PLAN.md`](docs/ACTION_PLAN.md)** — prioritized roadmap with 6 phases
+- **[`docs/TODO.md`](docs/TODO.md)** — detailed technical inventory with per-file notes
 
 ## License
 
