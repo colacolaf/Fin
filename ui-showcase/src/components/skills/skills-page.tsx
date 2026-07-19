@@ -4,9 +4,7 @@ import * as React from "react"
 import {
   Search,
   Sparkles,
-  Star,
-  Download,
-  ExternalLink,
+  Lock,
   TrendingUp,
   TrendingDown,
   PiggyBank,
@@ -60,7 +58,7 @@ const skillCategoryMap: Record<string, SkillCategory> = {
 }
 
 /* ================================================================== */
-/*  GitHub Marketplace — community skills from external repos          */
+/*  GitHub Marketplace — placeholder cards (no repos live yet)         */
 /* ================================================================== */
 
 interface MarketplaceSkill {
@@ -68,85 +66,17 @@ interface MarketplaceSkill {
   label: string
   description: string
   category: string
-  /** GitHub-style repo path: "owner/repo" */
-  repo: string
-  author: string
-  stars: number
 }
 
 const marketplaceSkills: MarketplaceSkill[] = [
-  {
-    id: "tax_loss_harvest",
-    label: "Tax Loss Harvester",
-    description: "Automatically identify tax-loss harvesting opportunities across all taxable accounts.",
-    category: "Portfolio",
-    repo: "finos/tax-loss-harvester",
-    author: "finos",
-    stars: 342,
-  },
-  {
-    id: "esg_screener",
-    label: "ESG Screener",
-    description: "Filter holdings by environmental, social, and governance scores with Morningstar data.",
-    category: "Portfolio",
-    repo: "sustainable-finance/esg-screener",
-    author: "sustainable-finance",
-    stars: 187,
-  },
-  {
-    id: "crypto_tracker",
-    label: "Crypto Tracker",
-    description: "Real-time P&L across wallets and exchanges with tax-lot tracking.",
-    category: "Portfolio",
-    repo: "defi-tools/crypto-tracker",
-    author: "defi-tools",
-    stars: 256,
-  },
-  {
-    id: "bill_negotiator",
-    label: "Bill Negotiator",
-    description: "Scan recurring bills and generate AI-powered renegotiation scripts.",
-    category: "Debt",
-    repo: "frugal-ai/bill-negotiator",
-    author: "frugal-ai",
-    stars: 128,
-  },
-  {
-    id: "credit_score_monitor",
-    label: "Credit Score Monitor",
-    description: "Track your score and simulate the impact of financial moves before you make them.",
-    category: "Debt",
-    repo: "credit-tools/score-monitor",
-    author: "credit-tools",
-    stars: 203,
-  },
-  {
-    id: "roth_ladder_planner",
-    label: "Roth Ladder Planner",
-    description: "Model Roth conversion ladders for early retirement with tax-bracket optimization.",
-    category: "Retirement",
-    repo: "fire-community/roth-ladder",
-    author: "fire-community",
-    stars: 415,
-  },
-  {
-    id: "ss_optimizer",
-    label: "Social Security Optimizer",
-    description: "Find the optimal claiming age for maximum lifetime benefits.",
-    category: "Retirement",
-    repo: "retirekit/ss-optimizer",
-    author: "retirekit",
-    stars: 178,
-  },
-  {
-    id: "estate_planner",
-    label: "Estate Planner",
-    description: "Basic estate planning checklist, document reminders, and beneficiary audits.",
-    category: "Universal",
-    repo: "legacy-tools/estate-planner",
-    author: "legacy-tools",
-    stars: 94,
-  },
+  { id: "tax_loss_harvest", label: "Tax Loss Harvester", description: "Automatically identify tax-loss harvesting opportunities.", category: "Portfolio" },
+  { id: "esg_screener", label: "ESG Screener", description: "Filter holdings by environmental, social, and governance scores.", category: "Portfolio" },
+  { id: "crypto_tracker", label: "Crypto Tracker", description: "Real-time P&L across wallets and exchanges.", category: "Portfolio" },
+  { id: "bill_negotiator", label: "Bill Negotiator", description: "Scan recurring bills and generate renegotiation scripts.", category: "Debt" },
+  { id: "credit_score_monitor", label: "Credit Score Monitor", description: "Track your score and simulate financial moves.", category: "Debt" },
+  { id: "roth_ladder_planner", label: "Roth Ladder Planner", description: "Model Roth conversion ladders for early retirement.", category: "Retirement" },
+  { id: "ss_optimizer", label: "Social Security Optimizer", description: "Find the optimal claiming age for maximum lifetime benefits.", category: "Retirement" },
+  { id: "estate_planner", label: "Estate Planner", description: "Basic estate planning checklist and document reminders.", category: "Universal" },
 ]
 
 /* ================================================================== */
@@ -190,54 +120,35 @@ function SkillCard({ skill, category }: { skill: AgentSkill; category: CategoryD
 }
 
 /* ================================================================== */
-/*  MarketplaceSkillCard — GitHub-style community skill card           */
+/*  MarketplaceSkillCard — locked placeholder (no repos live yet)      */
 /* ================================================================== */
 
 function MarketplaceSkillCard({ skill }: { skill: MarketplaceSkill }) {
-  const kFormatter = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
-
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-xl transition-all duration-200 hover:border-white/[0.10] hover:bg-white/[0.04]">
-      {/* Accent line at top */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#FBBF24]/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-
-      {/* Repo header */}
+    <div className="group relative overflow-hidden rounded-xl border border-dashed border-white/[0.06] bg-white/[0.01] p-4 backdrop-blur-xl transition-all duration-200 hover:border-white/[0.10] hover:bg-white/[0.02]">
+      {/* Locked header */}
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06]">
-          <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-white/[0.50]">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-          </svg>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/[0.08] bg-white/[0.02]">
+          <Lock className="h-3.5 w-3.5 text-white/[0.20]" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-white/[0.35]">{skill.author}/</span>
-            <span className="text-[13px] font-semibold text-white truncate">{skill.label.toLowerCase().replace(/\s+/g, "-")}</span>
+          <div className="flex items-center gap-2">
+            <h4 className="text-[13px] font-medium text-white/[0.35]">{skill.label}</h4>
+            <span className="shrink-0 rounded-full border border-[#FBBF24]/15 bg-[#FBBF24]/[0.04] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-[#FBBF24]/60">
+              Locked
+            </span>
           </div>
-          <p className="text-[10px] text-white/[0.28] mt-0.5">{skill.repo}</p>
-        </div>
-        {/* Stars */}
-        <div className="flex shrink-0 items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1">
-          <Star className="h-3 w-3 text-[#FBBF24]/70" />
-          <span className="text-[10px] font-medium tabular-nums text-white/[0.50]">{kFormatter(skill.stars)}</span>
         </div>
       </div>
 
       {/* Description */}
-      <p className="mt-3 text-[11px] leading-relaxed text-white/[0.40]">{skill.description}</p>
+      <p className="mt-3 text-[11px] leading-relaxed text-white/[0.25]">{skill.description}</p>
 
-      {/* Bottom row: category + install */}
-      <div className="mt-3 flex items-center justify-between">
-        <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-[9px] font-medium text-white/[0.35]">
+      {/* Bottom row: category badge */}
+      <div className="mt-3">
+        <span className="rounded-full bg-white/[0.03] px-2 py-0.5 text-[9px] font-medium text-white/[0.20]">
           {skill.category}
         </span>
-        <button
-          type="button"
-          disabled
-          className="flex items-center gap-1.5 rounded-md border border-[#FBBF24]/15 bg-[#FBBF24]/[0.05] px-2.5 py-1 text-[10px] font-medium text-[#FBBF24]/60 opacity-60 cursor-not-allowed transition-colors"
-        >
-          <Download className="h-3 w-3" />
-          Coming soon
-        </button>
       </div>
     </div>
   )
@@ -282,7 +193,7 @@ export function SkillsPage() {
   return (
     <PageShell
       title="Skills"
-      subtitle="Manage loaded skills and browse the GitHub marketplace"
+      subtitle="Manage loaded skills and browse the community marketplace"
       accentColor="#818CF8"
       accentRgb="129,140,248"
       maxWidth="wide"
@@ -365,7 +276,7 @@ export function SkillsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[11px] text-white/[0.45]">Available</span>
+                  <span className="text-[11px] text-white/[0.45]">Planned</span>
                   <span className="text-[11px] font-mono font-medium text-[#FBBF24] tabular-nums">
                     {marketplaceSkills.length}
                   </span>
@@ -398,7 +309,7 @@ export function SkillsPage() {
 
           {/* ── Skills Marketplace ── */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="mb-1 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#FBBF24]/20 bg-[#FBBF24]/10">
                   <Sparkles className="h-3.5 w-3.5 text-[#FBBF24]" />
@@ -406,7 +317,7 @@ export function SkillsPage() {
                 <div>
                   <h3 className="text-[13px] font-semibold text-white">Skills Marketplace</h3>
                   <p className="text-[10px] text-white/[0.35]">
-                    Community skills from GitHub — install with one click
+                    Community skills from GitHub — no repos available yet
                   </p>
                 </div>
               </div>
@@ -424,13 +335,10 @@ export function SkillsPage() {
 
             {/* Footer hint */}
             <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/[0.05] bg-white/[0.01] py-3">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5 text-white/[0.25]">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-              <p className="text-[11px] text-white/[0.28]">
-                Skills are sourced from open-source GitHub repositories. More coming soon.
+              <Lock className="h-3.5 w-3.5 text-white/[0.15]" />
+              <p className="text-[11px] text-white/[0.22]">
+                No community repositories available yet. Skills will appear here once published.
               </p>
-              <ExternalLink className="h-3 w-3 text-white/[0.20]" />
             </div>
           </div>
         </div>
