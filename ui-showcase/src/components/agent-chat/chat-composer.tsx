@@ -14,6 +14,9 @@ import {
   Mic,
   MicOff,
   AlertTriangle,
+  Settings,
+  Globe,
+  ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -21,7 +24,24 @@ import {
   type AgentDef,
   type AgentSkill,
 } from "@/lib/agents"
-import { useConnectors } from "@/lib/settings/use-connectors"
+
+/* ------------------------------------------------------------------ */
+/*  localStorage helpers                                                */
+/* ------------------------------------------------------------------ */
+
+function safeGet(key: string): string | null {
+  if (typeof window === "undefined") return null
+  try { return localStorage.getItem(key) } catch { return null }
+}
+
+function safeGetJSON<T>(key: string, fallback: T): T {
+  try {
+    const raw = safeGet(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /*  SkillsMenu                                                         */
@@ -118,19 +138,60 @@ function SkillsMenu({
 }
 
 /* ------------------------------------------------------------------ */
-/*  ConnectorsButton — popover with real connector state               */
+/*  ConnectorsButton — reads directly from localStorage (no catalog)   */
 /* ------------------------------------------------------------------ */
+
+interface RealConnector {
+  id: string
+  name: string
+  category: string
+  status: "connected" | "disconnected"
+}
 
 function ConnectorsButton({ accentColor }: { accentColor: string }) {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
-  const { connectors: realConnectors, connected } = useConnectors()
+
+  // Read directly from localStorage — bypass useConnectors catalog entirely
+  const providers = React.useMemo(
+    () => safeGetJSON<Record<string, string>>("fo-connected-providers", {}),
+    []
+  )
+  const apiKeys = React.useMemo(
+    () => safeGetJSON<Record<string, string>>("fo-api-keys", {}),
+    []
+  )
+
+  // Build connector list from ONLY what's in localStorage
+  const connectedConnectors: RealConnector[] = React.useMemo(() => {
+    const list: RealConnector[] = []
+    for (const [category, providerId] of Object.entries(providers)) {
+      if (providerId) {
+        list.push({
+          id: providerId,
+          name: providerId.charAt(0).toUpperCase() + providerId.slice(1).replace(/-/g, " "),
+          category,
+          status: "connected",
+        })
+      }
+    }
+    // Also check apiKeys for any provider IDs not in providers map
+    for (const keyId of Object.keys(apiKeys)) {
+      if (!list.some((c) => c.id === keyId) && apiKeys[keyId]) {
+        list.push({
+          id: keyId,
+          name: keyId.charAt(0).toUpperCase() + keyId.slice(1).replace(/-/g, " "),
+          category: "unknown",
+          status: "connected",
+        })
+      }
+    }
+    return list
+  }, [providers, apiKeys])
 
   const statusDot = (status: string) => {
     if (status === "connected")
       return <span className="h-1.5 w-1.5 rounded-full bg-[#34D399]" />
-    if (status === "syncing")
-      return <span className="h-1.5 w-1.5 rounded-full bg-[#FBBF24] animate-pulse" />
     return <span className="h-1.5 w-1.5 rounded-full bg-white/[0.25]" />
   }
 
@@ -147,12 +208,12 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
         >
           <Plug className="h-3 w-3" style={{ color: accentColor }} />
           <span>Connectors</span>
-          {connected.length > 0 && (
+          {connectedConnectors.length > 0 && (
             <span
               className="flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-semibold"
               style={{ backgroundColor: accentColor, color: "#0F1117" }}
             >
-              {connected.length}
+              {connectedConnectors.length}
             </span>
           )}
           <ChevronDown
@@ -166,20 +227,20 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
       <PopoverContent
         align="start"
         sideOffset={6}
-        className="z-50 w-[300px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-2 shadow-2xl backdrop-blur-xl"
+        className="z-50 w-[260px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-2 shadow-2xl backdrop-blur-xl"
       >
-        <div className="mb-2 flex items-center justify-between px-1">
+        <div className="mb-1.5 flex items-center justify-between px-1">
           <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-white/[0.40]">
-            Data connectors
+            Connectors
           </span>
           <span className="text-[9px] text-white/[0.30]">
-            {connected.length}/{realConnectors.length} live
+            {connectedConnectors.length} connected
           </span>
         </div>
 
-        {realConnectors.length === 0 ? (
+        {connectedConnectors.length === 0 ? (
           <div className="py-4 text-center">
-            <p className="text-[12px] text-white/[0.40]">No connectors configured</p>
+            <p className="text-[12px] text-white/[0.40]">No connectors connected</p>
             <button
               type="button"
               onClick={() => {
@@ -198,42 +259,20 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
           </div>
         ) : (
           <>
-            <div className="space-y-0.5 max-h-[240px] overflow-y-auto">
-              {realConnectors.map((c) => (
+            <div className="space-y-0.5 max-h-[180px] overflow-y-auto">
+              {connectedConnectors.map((c) => (
                 <div
                   key={c.id}
-                  className="flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.03]"
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5"
                 >
                   {statusDot(c.status)}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-medium text-white">{c.name}</div>
-                    <div className="text-[10px] text-white/[0.40] truncate">
-                      {c.status === "connected" && c.lastSync
-                        ? `Synced ${c.lastSync}`
-                        : c.status === "connected"
-                          ? "Connected"
-                          : c.status === "syncing"
-                            ? "Syncing…"
-                            : c.status === "error"
-                              ? "Error"
-                              : c.description}
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[9px] uppercase tracking-wider",
-                      c.status === "connected" && "text-[#34D399]",
-                      c.status === "syncing" && "text-[#FBBF24]",
-                      c.status === "error" && "text-[#F87171]",
-                      c.status === "disconnected" && "text-white/[0.30]"
-                    )}
-                  >
-                    {c.status}
+                  <span className="text-[12px] font-medium text-white">{c.name}</span>
+                  <span className="ml-auto text-[9px] uppercase tracking-wider text-[#34D399]">
+                    live
                   </span>
                 </div>
               ))}
             </div>
-
             <button
               type="button"
               onClick={() => {
@@ -251,6 +290,113 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
             </button>
           </>
         )}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  SettingsPopover — web search, quick nav links                      */
+/* ------------------------------------------------------------------ */
+
+function SettingsPopover({
+  agent,
+  accentColor,
+}: {
+  agent: AgentDef
+  accentColor: string
+}) {
+  const router = useRouter()
+  const [open, setOpen] = React.useState(false)
+  const [webSearch, setWebSearch] = React.useState(() => {
+    try { return localStorage.getItem("fo-web-search") === "true" } catch { return true }
+  })
+
+  const toggleWebSearch = () => {
+    const next = !webSearch
+    setWebSearch(next)
+    try { localStorage.setItem("fo-web-search", String(next)) } catch { /* noop */ }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Settings"
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03]",
+            "text-white/[0.40] transition-all duration-150",
+            "hover:bg-white/[0.06] hover:text-white/[0.6] active:scale-[0.97]",
+            open && "bg-white/[0.06] text-white/[0.7]"
+          )}
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="z-50 w-[260px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-3 shadow-2xl backdrop-blur-xl"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-white/[0.40]">
+            Settings
+          </span>
+          <span className="text-[9px] font-medium" style={{ color: accentColor }}>
+            {agent.shortLabel}
+          </span>
+        </div>
+
+        {/* Web search toggle */}
+        <button
+          type="button"
+          onClick={toggleWebSearch}
+          className="flex w-full items-center justify-between gap-3 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+        >
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Globe className="h-3 w-3 text-white/[0.45]" />
+              <span className="text-[12px] font-medium text-white">Web search</span>
+            </div>
+            <div className="text-[10px] text-white/[0.35]">Let the agent search the web for current data</div>
+          </div>
+          <span
+            className={cn(
+              "relative h-4 w-7 shrink-0 rounded-full transition-colors duration-150",
+              webSearch ? "bg-white/[0.20]" : "bg-white/[0.08]"
+            )}
+            style={webSearch ? { backgroundColor: accentColor } : undefined}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-150",
+                webSearch ? "translate-x-3.5" : "translate-x-0.5"
+              )}
+            />
+          </span>
+        </button>
+
+        <div className="h-px bg-white/[0.06] my-1.5" />
+
+        <button
+          type="button"
+          onClick={() => { setOpen(false); router.push(`/agent/${agent.id}/settings`) }}
+          className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+        >
+          <span className="text-[12px] font-medium text-white">Agent settings</span>
+          <span className="text-[10px] text-white/[0.35]">Constraints, learning, model</span>
+          <ExternalLink className="ml-auto h-3 w-3 text-white/[0.25]" />
+        </button>
+        <button
+          type="button"
+          onClick={() => { setOpen(false); router.push("/connectors") }}
+          className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+        >
+          <span className="text-[12px] font-medium text-white">Connectors</span>
+          <span className="text-[10px] text-white/[0.35]">Data sources & API keys</span>
+          <ExternalLink className="ml-auto h-3 w-3 text-white/[0.25]" />
+        </button>
       </PopoverContent>
     </Popover>
   )
@@ -416,7 +562,7 @@ export function ChatComposer({
             : undefined,
         }}
       >
-        {/* Top row: skills + connectors */}
+        {/* Top row: skills + connectors + settings */}
         <div className="mb-2 flex items-center gap-2">
           <SkillsMenu
             activeSkills={activeSkills}
@@ -424,6 +570,7 @@ export function ChatComposer({
             accentColor={agent.color}
           />
           <ConnectorsButton accentColor={agent.color} />
+          <SettingsPopover agent={agent} accentColor={agent.color} />
           <div className="ml-auto flex items-center gap-1.5 text-[10px] text-white/[0.25]">
             <kbd className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono">
               ↵

@@ -129,10 +129,23 @@ export interface AgentSkill {
 }
 
 export const availableSkills: AgentSkill[] = [
-  { id: "rebalance", label: "Rebalance Analyzer", description: "Compute drift and suggest trades." },
-  { id: "tax", label: "Tax Estimator", description: "Estimate capital gains impact." },
-  { id: "risk", label: "Risk Profiler", description: "Score portfolio volatility." },
-  { id: "forecast", label: "Cash Flow Forecast", description: "Project 12-month liquidity." },
+  /* Universal skills */
+  { id: "fetch_user_context", label: "Fetch User Context", description: "Load the read-only User Context File at start of conversation." },
+  { id: "search_web", label: "Search Web", description: "Retrieve recent market, macro, or product data when confidence < 80%." },
+  { id: "log_decision", label: "Log Decision", description: "Persist a user's decision and update behavioral patterns." },
+  { id: "send_desktop_notification", label: "Desktop Notifications", description: "Send a native desktop notification on task complete or milestones." },
+  /* Portfolio skills */
+  { id: "portfolio_analyze", label: "Portfolio Analyzer", description: "Compute allocation, concentration, and diversification metrics." },
+  { id: "rebalance_recommend", label: "Rebalance Recommender", description: "Generate a rebalancing recommendation with before/after metrics." },
+  { id: "value_private_asset", label: "Value Private Asset", description: "Research and estimate the value of private holdings." },
+  { id: "execute_trade", label: "Execute Trade", description: "Place a long-term trade through connected brokerage (auth required)." },
+  { id: "enable_paper_trading", label: "Paper Trading", description: "Toggle paper trading mode for testing without real execution." },
+  /* Debt skills */
+  { id: "debt_payoff_simulate", label: "Payoff Simulator", description: "Calculate payoff timelines and total interest for each strategy." },
+  { id: "debt_vs_invest_analyze", label: "Debt vs Invest", description: "Compare debt payoff vs. investment return with employer match." },
+  /* Retirement skills */
+  { id: "retirement_readiness_score", label: "Readiness Score", description: "Calculate funded percentage and projected retirement income." },
+  { id: "match_capture_recommend", label: "Match Capture", description: "Recommend contribution rate to capture full employer match." },
 ]
 
 /* ------------------------------------------------------------------ */
