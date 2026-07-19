@@ -10,6 +10,8 @@ import {
   PiggyBank,
   Layers,
   Clock,
+  FileText,
+  Zap,
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -110,6 +112,17 @@ function SkillCard({ skill, category }: { skill: AgentSkill; category: CategoryD
             </span>
           </div>
           <p className="mt-1.5 text-[12px] leading-relaxed text-white/[0.42]">{skill.description}</p>
+          {/* Expanded metadata row — visible on hover */}
+          <div className="mt-2 flex items-center gap-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <span className="inline-flex items-center gap-1 text-[10px] text-white/[0.30] max-w-[180px]">
+              <FileText className="h-3 w-3 shrink-0" />
+              <code className="font-mono truncate">{skill.docPath}</code>
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] text-white/[0.30]">
+              <Zap className="h-3 w-3" />
+              <span className="font-mono tabular-nums">~{skill.tokenEstimate.toLocaleString()} tokens</span>
+            </span>
+          </div>
         </div>
         <div className="shrink-0 self-center rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <code className="text-[10px] text-white/[0.35]">/{skill.id}</code>
@@ -182,6 +195,7 @@ export function SkillsPage() {
 
   const counts = React.useMemo(() => {
     const c: Record<string, number> = { all: availableSkills.length }
+    c.totalTokens = availableSkills.reduce((sum, s) => sum + s.tokenEstimate, 0)
     categories.forEach((cat) => {
       c[cat.id] = availableSkills.filter(
         (s) => (skillCategoryMap[s.id] ?? "universal") === cat.id
@@ -273,6 +287,12 @@ export function SkillsPage() {
                   <span className="text-[11px] text-white/[0.45]">Active</span>
                   <span className="text-[11px] font-mono font-medium text-[#818CF8] tabular-nums">
                     {counts.all}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[11px] text-white/[0.45]">Total tokens</span>
+                  <span className="text-[11px] font-mono font-medium text-[#67E8F9] tabular-nums">
+                    ~{counts.totalTokens?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">

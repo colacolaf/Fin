@@ -126,26 +126,32 @@ export interface AgentSkill {
   id: string
   label: string
   description: string
+  /** Path to the rich skill document the AI reads when this skill is invoked */
+  docPath: string
+  /** Agent category this skill belongs to */
+  agent: AgentId | "universal"
+  /** Approximate token count of the skill doc (for context budgeting) */
+  tokenEstimate: number
 }
 
 export const availableSkills: AgentSkill[] = [
   /* Universal skills */
-  { id: "fetch_user_context", label: "Fetch User Context", description: "Load the read-only User Context File at start of conversation." },
-  { id: "search_web", label: "Search Web", description: "Retrieve recent market, macro, or product data when confidence < 80%." },
-  { id: "log_decision", label: "Log Decision", description: "Persist a user's decision and update behavioral patterns." },
-  { id: "send_desktop_notification", label: "Desktop Notifications", description: "Send a native desktop notification on task complete or milestones." },
+  { id: "fetch_user_context", label: "Fetch User Context", description: "Load the read-only User Context File at start of conversation.", docPath: "docs/Skills/universal/fetch_user_context.md", agent: "universal", tokenEstimate: 1200 },
+  { id: "search_web", label: "Search Web", description: "Retrieve recent market, macro, or product data when confidence < 80%.", docPath: "docs/Skills/universal/search_web.md", agent: "universal", tokenEstimate: 1800 },
+  { id: "log_decision", label: "Log Decision", description: "Persist a user's decision and update behavioral patterns.", docPath: "docs/Skills/universal/log_decision.md", agent: "universal", tokenEstimate: 1500 },
+  { id: "send_desktop_notification", label: "Desktop Notifications", description: "Send a native desktop notification on task complete or milestones.", docPath: "docs/Skills/universal/send_desktop_notification.md", agent: "universal", tokenEstimate: 1200 },
   /* Portfolio skills */
-  { id: "portfolio_analyze", label: "Portfolio Analyzer", description: "Compute allocation, concentration, and diversification metrics." },
-  { id: "rebalance_recommend", label: "Rebalance Recommender", description: "Generate a rebalancing recommendation with before/after metrics." },
-  { id: "value_private_asset", label: "Value Private Asset", description: "Research and estimate the value of private holdings." },
-  { id: "execute_trade", label: "Execute Trade", description: "Place a long-term trade through connected brokerage (auth required)." },
-  { id: "enable_paper_trading", label: "Paper Trading", description: "Toggle paper trading mode for testing without real execution." },
+  { id: "portfolio_analyze", label: "Portfolio Analyzer", description: "Compute allocation, concentration, and diversification metrics.", docPath: "docs/Skills/portfolio/portfolio_analyze.md", agent: "portfolio", tokenEstimate: 2400 },
+  { id: "rebalance_recommend", label: "Rebalance Recommender", description: "Generate a rebalancing recommendation with before/after metrics.", docPath: "docs/Skills/portfolio/rebalance_recommend.md", agent: "portfolio", tokenEstimate: 2400 },
+  { id: "value_private_asset", label: "Value Private Asset", description: "Research and estimate the value of private holdings.", docPath: "docs/Skills/portfolio/value_private_asset.md", agent: "portfolio", tokenEstimate: 2200 },
+  { id: "execute_trade", label: "Execute Trade", description: "Place a long-term trade through connected brokerage (auth required).", docPath: "docs/Skills/portfolio/execute_trade.md", agent: "portfolio", tokenEstimate: 2000 },
+  { id: "enable_paper_trading", label: "Paper Trading", description: "Toggle paper trading mode for testing without real execution.", docPath: "docs/Skills/portfolio/enable_paper_trading.md", agent: "portfolio", tokenEstimate: 1500 },
   /* Debt skills */
-  { id: "debt_payoff_simulate", label: "Payoff Simulator", description: "Calculate payoff timelines and total interest for each strategy." },
-  { id: "debt_vs_invest_analyze", label: "Debt vs Invest", description: "Compare debt payoff vs. investment return with employer match." },
+  { id: "debt_payoff_simulate", label: "Payoff Simulator", description: "Calculate payoff timelines and total interest for each strategy.", docPath: "docs/Skills/debt/debt_payoff_simulate.md", agent: "debt", tokenEstimate: 2200 },
+  { id: "debt_vs_invest_analyze", label: "Debt vs Invest", description: "Compare debt payoff vs. investment return with employer match.", docPath: "docs/Skills/debt/debt_vs_invest_analyze.md", agent: "debt", tokenEstimate: 2200 },
   /* Retirement skills */
-  { id: "retirement_readiness_score", label: "Readiness Score", description: "Calculate funded percentage and projected retirement income." },
-  { id: "match_capture_recommend", label: "Match Capture", description: "Recommend contribution rate to capture full employer match." },
+  { id: "retirement_readiness_score", label: "Readiness Score", description: "Calculate funded percentage and projected retirement income.", docPath: "docs/Skills/retirement/retirement_readiness_score.md", agent: "retirement", tokenEstimate: 2300 },
+  { id: "match_capture_recommend", label: "Match Capture", description: "Recommend contribution rate to capture full employer match.", docPath: "docs/Skills/retirement/match_capture_recommend.md", agent: "retirement", tokenEstimate: 1800 },
 ]
 
 /* ------------------------------------------------------------------ */
