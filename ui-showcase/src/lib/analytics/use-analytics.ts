@@ -76,10 +76,12 @@ function getAgentConnectorCategories(agentId: AgentId): string[] {
   }
 }
 
-/** Derive agent status from its connectors */
+/** Derive agent status from its connectors. Only counts a connector as
+ *  truly connected if it has an API key or an active provider mapping. */
 function deriveAgentStatus(
   connectors: RuntimeConnector[],
-  agentId: AgentId
+  agentId: AgentId,
+  providers: Record<string, string>
 ): { status: AgentAnalytics["status"]; errors: string[] } {
   const categories = getAgentConnectorCategories(agentId)
   const relevant = connectors.filter((c) => categories.includes(c.category))
@@ -94,11 +96,15 @@ function deriveAgentStatus(
   let hasConnected = false
 
   for (const c of relevant) {
+    // A connector is only truly connected if it has an API key or an active provider mapping
+    const isProviderMapped = Object.values(providers).includes(c.id)
+    const isReallyConnected = c.status === "connected" && (c.hasApiKey || isProviderMapped)
+
     if (c.status === "error") {
       errors.push(`${c.name}: Authentication expired`)
     } else if (c.status === "syncing") {
       hasSyncing = true
-    } else if (c.status === "connected") {
+    } else if (isReallyConnected) {
       hasConnected = true
     }
   }
@@ -142,6 +148,9 @@ function getDefaultCategory(agentId: AgentId): string {
 
 export function useAnalytics(): AnalyticsState {
   const { connectors: runtimeConnectors } = useConnectors()
+
+  // Read provider mappings to determine truly-connected connectors
+  const [providers] = useLocalStorage<Record<string, string>>("fo-connected-providers", {})
 
   // Per-agent session counters
   const [sessions] = useLocalStorage<Record<AgentId, number>>("fo-agent-sessions", {
@@ -191,7 +200,7 @@ export function useAnalytics(): AnalyticsState {
   const agents: AgentAnalytics[] = React.useMemo(
     () =>
       agentDefs.map((def) => {
-        const { status, errors } = deriveAgentStatus(runtimeConnectors, def.id)
+        const { status, errors } = deriveAgentStatus(runtimeConnectors, def.id, providers)
         const accRate =
           decisions[def.id].total > 0
             ? Math.round((decisions[def.id].accepted / decisions[def.id].total) * 100)
@@ -210,14 +219,21 @@ export function useAnalytics(): AnalyticsState {
           errors,
         }
       }),
-    [runtimeConnectors, sessions, lastUsedMap, decisions, lastCategories]
+    [runtimeConnectors, sessions, lastUsedMap, decisions, lastCategories, providers]
   )
 
-  /* ---- Derive connector analytics from useConnectors ---- */
+  /* ---- Derive connector analytics — only show truly connected ones ---- */
   const connectors: ConnectorAnalytics[] = React.useMemo(
     () =>
       runtimeConnectors
-        .filter((c) => c.status !== "disconnected")
+        .filter((c) => {
+          // Only show connectors with real data, not catalog defaults
+          const isProviderMapped = Object.values(providers).includes(c.id)
+          const isTrulyConnected = c.hasApiKey || isProviderMapped
+          if (c.status === "disconnected") return false
+          // Show if syncing, in error, or genuinely connected with credentials
+          return c.status === "syncing" || c.status === "error" || isTrulyConnected
+        })
         .map((c) => ({
           id: c.id,
           name: c.name,
@@ -230,7 +246,7 @@ export function useAnalytics(): AnalyticsState {
           errorMessage:
             c.status === "error" ? "Authentication expired. Reconnect to resume syncing." : undefined,
         })),
-    [runtimeConnectors]
+    [runtimeConnectors, providers]
   )
 
   /* ---- Total sessions ---- */
