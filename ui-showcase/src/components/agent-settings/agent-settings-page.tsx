@@ -29,6 +29,7 @@ import {
 } from "@/lib/agents"
 import {
   getProviderSetupUrl,
+  isProviderLocal,
 } from "@/lib/settings/provider-keys"
 import {
   getAgentConfig,
@@ -69,6 +70,26 @@ function ModelSection({
   const [listening, setListening] = React.useState(false)
   const hasModel = !!modelId
 
+  // Only show models from configured providers + local
+  const [apiKeys] = useLocalStorage<Record<string, string>>("fo-provider-keys", {})
+  const configuredIds = React.useMemo(() => new Set(Object.keys(apiKeys)), [apiKeys])
+  const configuredModels = React.useMemo(
+    () => availableModels.filter(
+      (m) => configuredIds.has(m.providerId) || isProviderLocal(m.providerId)
+    ),
+    [configuredIds],
+  )
+
+  // Always include the selected model even if its provider was unconfigured
+  const visibleModels = React.useMemo(() => {
+    if (!modelId) return configuredModels
+    if (configuredModels.some((m) => m.id === modelId)) return configuredModels
+    const selected = availableModels.find((m) => m.id === modelId)
+    return selected ? [selected, ...configuredModels] : configuredModels
+  }, [modelId, configuredModels])
+
+  const hasConfiguredModels = configuredModels.length > 0
+
   const testMic = () => {
     if (!voiceInput) return
     setListening(true)
@@ -99,8 +120,9 @@ function ModelSection({
 
       {/* Model selection */}
       <div className="space-y-1">
-        {availableModels.map((m) => {
+        {visibleModels.map((m) => {
           const isActive = m.id === modelId
+          const isReady = configuredModels.some((cm) => cm.id === m.id)
           return (
             <button
               key={m.id}
@@ -123,10 +145,15 @@ function ModelSection({
                   <span className="text-[9px] uppercase tracking-wider text-white/[0.30]">{m.vendor}</span>
                   <span className="text-[9px] text-white/[0.25]">·</span>
                   <span className="text-[11px] text-white/[0.40]">{m.description}</span>
+                  {isReady ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#34D399] shrink-0" title="API key configured" />
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#FBBF24] shrink-0" title="Needs API key" />
+                  )}
                 </div>
               </div>
               {/* Setup link per provider */}
-              {m.providerId && (
+              {m.providerId && !isReady && (
                 <a
                   href={getProviderSetupUrl(m.providerId) ?? "https://ollama.com"}
                   target="_blank"
@@ -140,6 +167,15 @@ function ModelSection({
             </button>
           )
         })}
+        {!hasConfiguredModels && (
+          <div className="py-4 text-center">
+            <p className="text-[11px] text-white/[0.45]">No models configured.</p>
+            <p className="text-[10px] text-white/[0.30] mt-1">
+              Add API keys in{" "}
+              <a href="/settings" className="text-[#818CF8] hover:underline">Settings → AI Models</a>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Voice Input + Temperature */}

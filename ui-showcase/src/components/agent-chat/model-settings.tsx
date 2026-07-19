@@ -31,8 +31,24 @@ import {
   saveAgentModel,
   saveAgentConfig,
 } from "@/lib/agent-settings/data"
-import { getProviderSetupUrl } from "@/lib/settings/provider-keys"
+import { getProviderSetupUrl, isProviderLocal } from "@/lib/settings/provider-keys"
+import { useLocalStorage } from "@/lib/use-local-storage"
 import type { AgentId } from "@/lib/agents"
+
+/* ------------------------------------------------------------------ */
+/*  Derived: models from configured providers only                     */
+/* ------------------------------------------------------------------ */
+
+function useConfiguredModels() {
+  const [keys] = useLocalStorage<Record<string, string>>("fo-provider-keys", {})
+  const configuredIds = React.useMemo(() => new Set(Object.keys(keys)), [keys])
+  return React.useMemo(
+    () => availableModels.filter(
+      (m) => configuredIds.has(m.providerId) || isProviderLocal(m.providerId)
+    ),
+    [configuredIds],
+  )
+}
 
 /* ------------------------------------------------------------------ */
 /*  Setup link helper — reads provider setup URL from the registry     */
@@ -57,10 +73,22 @@ function ModelPicker({
   onSelect: (m: ModelOption) => void
 }) {
   const [open, setOpen] = React.useState(false)
+  const configuredModels = useConfiguredModels()
+
+  // Always include the currently selected model in the list, even if its provider
+  // was later unconfigured — avoids the user losing their choice.
+  const visibleModels = React.useMemo(() => {
+    if (!modelId) return configuredModels
+    if (configuredModels.some((m) => m.id === modelId)) return configuredModels
+    const selected = availableModels.find((m) => m.id === modelId)
+    return selected ? [selected, ...configuredModels] : configuredModels
+  }, [modelId, configuredModels])
 
   const selectedModel = modelId
     ? availableModels.find((m) => m.id === modelId) ?? null
     : null
+
+  const hasConfiguredModels = configuredModels.length > 0
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -109,9 +137,10 @@ function ModelPicker({
           Select model
         </div>
 
-        {availableModels.map((m) => {
+        {visibleModels.map((m) => {
           const isActive = m.id === modelId
           const setup = getSetupLink(m.providerId)
+          const isReady = configuredModels.some((cm) => cm.id === m.id)
           return (
             <div key={m.id}>
               <button
@@ -143,10 +172,15 @@ function ModelPicker({
                     <span className="text-[10px] text-white/[0.40]">
                       {m.description}
                     </span>
+                    {isReady ? (
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#34D399] shrink-0" title="API key configured" />
+                    ) : (
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#FBBF24] shrink-0" title="Needs API key" />
+                    )}
                   </div>
                 </div>
               </button>
-              {setup && (
+              {setup && !isReady && (
                 <a
                   href={setup.url}
                   target="_blank"
@@ -161,17 +195,29 @@ function ModelPicker({
           )
         })}
 
-        <div className="mt-1.5 border-t border-white/[0.06] pt-1.5 px-2">
-          <p className="text-[10px] text-white/[0.30] leading-relaxed">
-            Paste your API key in{" "}
-            <a
-              href="/settings"
-              className="text-[#67E8F9]/70 hover:text-[#67E8F9] underline underline-offset-2"
-            >
-              Settings → AI Models
-            </a>
-          </p>
-        </div>
+        {!hasConfiguredModels && (
+          <div className="px-2 py-4 text-center">
+            <p className="text-[11px] text-white/[0.45]">No models configured.</p>
+            <p className="text-[10px] text-white/[0.30] mt-1">
+              Add API keys in{" "}
+              <a href="/settings" className="text-[#67E8F9] hover:underline">Settings → AI Models</a>
+            </p>
+          </div>
+        )}
+
+        {hasConfiguredModels && (
+          <div className="mt-1.5 border-t border-white/[0.06] pt-1.5 px-2">
+            <p className="text-[10px] text-white/[0.30] leading-relaxed">
+              Manage API keys in{" "}
+              <a
+                href="/settings"
+                className="text-[#67E8F9]/70 hover:text-[#67E8F9] underline underline-offset-2"
+              >
+                Settings → AI Models
+              </a>
+            </p>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   )
@@ -557,10 +603,17 @@ export function buildDefaultModelSettingsState(
 ): ModelSettingsState {
   const storedModelId = getAgentModel(agentId as AgentId)
   const storedConfig = getAgentConfig(agentId as AgentId)
+  // Read keys at call time (not module scope) so it reflects current state
+  const keys = JSON.parse(typeof window !== "undefined" ? localStorage.getItem("fo-provider-keys") ?? "{}" : "{}")
+  const configuredIds = new Set(Object.keys(keys))
+  const configuredModels = availableModels.filter(
+    (m) => configuredIds.has(m.providerId) || isProviderLocal(m.providerId)
+  )
+  const fallbackModel = configuredModels[0] ?? availableModels[0]
   const model =
     storedModelId
-      ? availableModels.find((m) => m.id === storedModelId) ?? availableModels[0]
-      : availableModels[0]
+      ? availableModels.find((m) => m.id === storedModelId) ?? fallbackModel
+      : fallbackModel
 
   return {
     modelId: storedModelId,
