@@ -221,6 +221,87 @@ interface SettingsState {
   tokenMode: TokenMode
 }
 
+/* ── Collapsible mode section (accordion) ── */
+
+function CollapsibleModeSection({
+  icon,
+  label,
+  options,
+  activeId,
+  onSelect,
+  accentColor,
+}: {
+  icon: React.ReactNode
+  label: string
+  options: { id: string; label: string; description: string }[]
+  activeId: string
+  onSelect: (id: string) => void
+  accentColor: string
+}) {
+  const [expanded, setExpanded] = React.useState(false)
+  const active = options.find((o) => o.id === activeId) ?? options[0]
+
+  return (
+    <div className="mb-3 px-1 py-1">
+      {/* Header — click to toggle */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+      >
+        {icon}
+        <span className="flex-1 text-[10px] font-medium uppercase tracking-[0.10em] text-white/[0.40]">
+          {label}
+        </span>
+        <span className="text-[11px] font-medium text-white/[0.70] truncate max-w-[120px]">
+          {active.label}
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 text-white/[0.35] shrink-0 transition-transform duration-150",
+            expanded && "rotate-180"
+          )}
+        />
+      </button>
+
+      {/* Expanded options */}
+      {expanded && (
+        <div className="mt-1 space-y-1">
+          {options.map((mode) => {
+            const isActive = mode.id === activeId
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => { onSelect(mode.id); setExpanded(false) }}
+                className={cn(
+                  "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors",
+                  isActive ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                )}
+              >
+                <span
+                  className={cn(
+                    "mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border flex items-center justify-center",
+                    isActive ? "border-transparent" : "border-white/[0.15]"
+                  )}
+                  style={isActive ? { backgroundColor: accentColor } : undefined}
+                >
+                  {isActive && <Check className="h-2 w-2 text-[#0F1117]" />}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[12px] font-medium text-white">{mode.label}</div>
+                  <div className="text-[10px] text-white/[0.35]">{mode.description}</div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* Hoisted to module scope — defining Toggle inside SettingsGear would
    recreate the component type on every render and remount its subtree. */
 function SettingsToggle({
@@ -338,83 +419,27 @@ function SettingsGear({
 
         <div className="h-px bg-white/[0.06] my-1.5" />
 
-        {/* ── Thinking Mode ── */}
-        <div className="mb-3 px-1 py-1">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Brain className="h-3 w-3 text-white/[0.45]" />
-            <span className="text-[10px] font-medium uppercase tracking-[0.10em] text-white/[0.40]">Think Mode</span>
-          </div>
-          <div className="space-y-1">
-            {thinkingModes.map((mode) => {
-              const isActive = state.thinkingMode === mode.id
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => onChange({ ...state, thinkingMode: mode.id })}
-                  className={cn(
-                    "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors",
-                    isActive ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border flex items-center justify-center",
-                      isActive ? "border-transparent" : "border-white/[0.15]"
-                    )}
-                    style={isActive ? { backgroundColor: agent.color } : undefined}
-                  >
-                    {isActive && <Check className="h-2 w-2 text-[#0F1117]" />}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-[12px] font-medium text-white">{mode.label}</div>
-                    <div className="text-[10px] text-white/[0.35]">{mode.description}</div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        {/* ── Thinking Mode (collapsible) ── */}
+        <CollapsibleModeSection
+          icon={<Brain className="h-3 w-3 text-white/[0.45]" />}
+          label="Think Mode"
+          options={thinkingModes}
+          activeId={state.thinkingMode}
+          onSelect={(id) => onChange({ ...state, thinkingMode: id as ThinkingMode })}
+          accentColor={agent.color}
+        />
 
         <div className="h-px bg-white/[0.06] my-1.5" />
 
-        {/* ── Token Compression Mode ── */}
-        <div className="mb-3 px-1 py-1">
-          <div className="flex items-center gap-1.5 mb-2">
-            <FileDown className="h-3 w-3 text-white/[0.45]" />
-            <span className="text-[10px] font-medium uppercase tracking-[0.10em] text-white/[0.40]">Token Mode</span>
-          </div>
-          <div className="space-y-1">
-            {tokenModes.map((mode) => {
-              const isActive = state.tokenMode === mode.id
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => onChange({ ...state, tokenMode: mode.id })}
-                  className={cn(
-                    "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors",
-                    isActive ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border flex items-center justify-center",
-                      isActive ? "border-transparent" : "border-white/[0.15]"
-                    )}
-                    style={isActive ? { backgroundColor: agent.color } : undefined}
-                  >
-                    {isActive && <Check className="h-2 w-2 text-[#0F1117]" />}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-[12px] font-medium text-white">{mode.label}</div>
-                    <div className="text-[10px] text-white/[0.35]">{mode.description}</div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        {/* ── Token Mode (collapsible) ── */}
+        <CollapsibleModeSection
+          icon={<FileDown className="h-3 w-3 text-white/[0.45]" />}
+          label="Token Mode"
+          options={tokenModes}
+          activeId={state.tokenMode}
+          onSelect={(id) => onChange({ ...state, tokenMode: id as TokenMode })}
+          accentColor={agent.color}
+        />
 
         <div className="h-px bg-white/[0.06] my-1.5" />
 
