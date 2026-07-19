@@ -93,8 +93,10 @@ export function useConnectors(): ConnectorsState {
         status = local
       } else if (isProviderConnected || hasKey) {
         status = "connected"
+      } else if (item.status === "error") {
+        status = "error" // Preserve error state from catalog
       } else {
-        status = item.status // catalog default (may be "error", "disconnected", etc.)
+        status = "disconnected" // No real data — default to disconnected
       }
 
       return {
