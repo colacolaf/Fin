@@ -2,28 +2,58 @@ import * as React from "react"
 
 /**
  * useState that persists to localStorage.
- * SSR-safe: returns defaultValue on server, reads from localStorage on client.
+ *
+ * SSR-safe: always renders defaultValue on both server and client during
+ * initial render (avoids hydration mismatch). After mount, reads the actual
+ * value from localStorage and re-renders. Writes are never dropped — the
+ * setter uses a ref for the ready flag so it can write even before the
+ * initial sync completes.
  */
-export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
-  const [value, setValue] = React.useState<T>(() => {
-    if (typeof window === "undefined") return defaultValue
-    try {
-      const stored = localStorage.getItem(key)
-      if (stored !== null) return JSON.parse(stored) as T
-    } catch {
-      // corrupted storage, fall back to default
-    }
-    return defaultValue
-  })
+export function useLocalStorage<T>(
+  key: string,
+  defaultValue: T,
+): [T, (value: T | ((prev: T) => T)) => void] {
+  // Always start with defaultValue — server and client agree
+  const [value, setValue] = React.useState<T>(defaultValue)
 
-  // Write to localStorage whenever value changes
+  // Use ref so the setter always sees current ready state
+  // (avoids dropped writes during the hydration gap)
+  const readyRef = React.useRef(false)
+
+  // After mount, sync the real value from localStorage (client only)
   React.useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(value))
+      const stored = localStorage.getItem(key)
+      if (stored !== null) {
+        setValue(JSON.parse(stored) as T)
+      }
     } catch {
-      // storage full or blocked
+      // corrupted storage, stick with default
     }
-  }, [key, value])
+    readyRef.current = true
+  }, [key])
 
-  return [value, setValue]
+  // Persist changes to localStorage. Uses ref for ready so writes
+  // are never silently dropped regardless of render timing.
+  const setAndPersist = React.useCallback(
+    (newValue: T | ((prev: T) => T)) => {
+      setValue((prev) => {
+        const resolved =
+          typeof newValue === "function"
+            ? (newValue as (prev: T) => T)(prev)
+            : newValue
+        if (readyRef.current) {
+          try {
+            localStorage.setItem(key, JSON.stringify(resolved))
+          } catch {
+            // storage full or blocked
+          }
+        }
+        return resolved
+      })
+    },
+    [key],
+  )
+
+  return [value, setAndPersist]
 }

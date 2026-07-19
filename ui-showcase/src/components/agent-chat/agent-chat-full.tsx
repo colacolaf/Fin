@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import { ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getAgent, type AgentDef, type AgentId } from "@/lib/agents"
+import { getAgent, availableModels, type AgentDef, type AgentId } from "@/lib/agents"
 import { useAgentThinking, type AgentMessage } from "@/lib/agents/use-agent-thinking"
+import { getAgentModel, getAgentConfig } from "@/lib/agent-settings/data"
 import { appendChatSession, type AgentSlug } from "@/lib/memory/data"
 import { Timer } from "@/components/ui/timer"
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
@@ -154,10 +155,32 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
   const [activeSkills, setActiveSkills] = React.useState<Set<string>>(new Set())
   const [hasStartedChat, setHasStartedChat] = React.useState(false)
 
-  // Read model + config from localStorage on mount
+  // Start with SSR-safe defaults, then sync from localStorage after mount
   const [modelState, setModelState] = React.useState<ModelSettingsState>(() =>
     buildDefaultModelSettingsState(agentId)
   )
+
+  // After mount, load the real stored model + config from localStorage
+  React.useEffect(() => {
+    const storedModelId = getAgentModel(agentId as AgentId)
+    const storedConfig = getAgentConfig(agentId as AgentId)
+    const model = storedModelId
+      ? availableModels.find((m) => m.id === storedModelId) ?? availableModels[0]
+      : availableModels[0]
+    setModelState({
+      modelId: storedModelId,
+      model,
+      voice: storedConfig.voiceInput,
+      settings: {
+        temperature: storedConfig.temperature,
+        streamThinking: storedConfig.streamThinking,
+        autoExecute: storedConfig.autoExecute,
+        citations: storedConfig.citations,
+        thinkingMode: storedConfig.thinkingMode,
+        tokenMode: storedConfig.tokenMode,
+      },
+    })
+  }, [agentId])
 
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const bottomRef = React.useRef<HTMLDivElement>(null)

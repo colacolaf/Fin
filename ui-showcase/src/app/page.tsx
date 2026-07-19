@@ -6,23 +6,16 @@ import { DashboardPage } from "@/components/dashboard/dashboard-page"
 import { SetupWizard } from "@/components/setup/setup-wizard"
 
 export default function Home() {
-  const [showLoading, setShowLoading] = React.useState(() => {
-    // Only show loading screen once per browser session
-    if (typeof window === "undefined") return false
-    return !sessionStorage.getItem("fo-loading-seen")
-  })
+  const [showLoading, setShowLoading] = React.useState(false)
+  const [showSetup, setShowSetup] = React.useState(false)
 
-  const [showSetup, setShowSetup] = React.useState(() => {
-    if (typeof window === "undefined") return false
-    return !localStorage.getItem("fo-setup-complete")
-  })
-
-  // If loading screen finishes and setup was already done, ensure wizard stays closed
+  // After mount, read from localStorage to avoid hydration mismatch
   React.useEffect(() => {
-    if (!showLoading && localStorage.getItem("fo-setup-complete")) {
-      setShowSetup(false)
-    }
-  }, [showLoading])
+    const loadingSeen = sessionStorage.getItem("fo-loading-seen")
+    const setupComplete = localStorage.getItem("fo-setup-complete")
+    setShowLoading(!loadingSeen)
+    setShowSetup(!setupComplete)
+  }, [])
 
   const handleLoadingComplete = React.useCallback(() => {
     sessionStorage.setItem("fo-loading-seen", "1")

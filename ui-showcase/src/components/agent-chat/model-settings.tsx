@@ -597,35 +597,23 @@ export function ModelSettings({
   )
 }
 
-/** Build default model settings from localStorage for a given agent */
+/** Build default model settings for a given agent.
+ *  SSR-safe: always returns defaults on both server and client.
+ *  The caller re-syncs from localStorage after mount. */
 export function buildDefaultModelSettingsState(
-  agentId: string,
+  _agentId: string,
 ): ModelSettingsState {
-  const storedModelId = getAgentModel(agentId as AgentId)
-  const storedConfig = getAgentConfig(agentId as AgentId)
-  // Read keys at call time (not module scope) so it reflects current state
-  const keys = JSON.parse(typeof window !== "undefined" ? localStorage.getItem("fo-provider-keys") ?? "{}" : "{}")
-  const configuredIds = new Set(Object.keys(keys))
-  const configuredModels = availableModels.filter(
-    (m) => configuredIds.has(m.providerId) || isProviderLocal(m.providerId)
-  )
-  const fallbackModel = configuredModels[0] ?? availableModels[0]
-  const model =
-    storedModelId
-      ? availableModels.find((m) => m.id === storedModelId) ?? fallbackModel
-      : fallbackModel
-
   return {
-    modelId: storedModelId,
-    model,
-    voice: storedConfig.voiceInput,
+    modelId: availableModels[0].id,
+    model: availableModels[0],
+    voice: false,
     settings: {
-      temperature: storedConfig.temperature,
-      streamThinking: storedConfig.streamThinking,
-      autoExecute: storedConfig.autoExecute,
-      citations: storedConfig.citations,
-      thinkingMode: storedConfig.thinkingMode,
-      tokenMode: storedConfig.tokenMode,
+      temperature: 0.4,
+      streamThinking: true,
+      autoExecute: false,
+      citations: true,
+      thinkingMode: "full" as ThinkingMode,
+      tokenMode: "normal" as TokenMode,
     },
   }
 }
