@@ -1,6 +1,14 @@
 /* ================================================================== */
-/*  Connector data — real financial institutions for the Card Grid page */
-/*  In production these come from Plaid's institution list + user state. */
+/*  Connector catalog — list of all available financial institutions   */
+/*                                                                     */
+/*  This is a pure availability catalog. The `status` field is the     */
+/*  default when nothing is in localStorage; real connection state is  */
+/*  merged at read time by `useConnectors()` in                       */
+/*  `lib/settings/use-connectors.ts` using `fo-connected-providers`    */
+/*  and `fo-api-keys`.                                                 */
+/*                                                                     */
+/*  No entry should default to "connected" or "syncing" here — only     */
+/*  localStorage state can promote a connector above "disconnected".   */
 /* ================================================================== */
 
 export type ConnectorCategory =
@@ -25,10 +33,16 @@ export interface ConnectorItem {
   name: string
   category: ConnectorCategory
   description: string
+  /**
+   * Connection status. Catalog entries default to "disconnected" — only
+   * localStorage state (see `useConnectors`) may promote them to
+   * "connected" or "syncing". The wider union is kept here so the merge
+   * layer and any UI that compares against "connected" still type-check.
+   */
   status: "connected" | "disconnected" | "syncing" | "error"
-  /** Number of linked accounts (only shown when connected) */
+  /** Number of linked accounts — populated by `useConnectors` from localStorage. */
   accountCount?: number
-  /** Last sync time string (only shown when connected/syncing) */
+  /** Last sync time string — populated by `useConnectors` from localStorage. */
   lastSync?: string
   /** Two-letter abbreviation shown in the icon square */
   abbreviation: string
@@ -45,9 +59,7 @@ export const connectorItems: ConnectorItem[] = [
     name: "Chase",
     category: "banking",
     description: "Checking, savings, and credit accounts.",
-    status: "connected",
-    accountCount: 2,
-    lastSync: "5m ago",
+    status: "disconnected",
     abbreviation: "CH",
     accentColor: "#1A73E8",
     popular: true,
@@ -114,9 +126,7 @@ export const connectorItems: ConnectorItem[] = [
     name: "Schwab",
     category: "brokerage",
     description: "Stocks, ETFs, mutual funds, and options.",
-    status: "connected",
-    accountCount: 3,
-    lastSync: "2m ago",
+    status: "disconnected",
     abbreviation: "SC",
     accentColor: "#00A0DC",
     popular: true,
@@ -165,9 +175,7 @@ export const connectorItems: ConnectorItem[] = [
     name: "Vanguard",
     category: "retirement",
     description: "401(k), IRA, and low-cost index funds.",
-    status: "syncing",
-    accountCount: 1,
-    lastSync: "syncing now",
+    status: "disconnected",
     abbreviation: "VG",
     accentColor: "#96232D",
     popular: true,
@@ -206,9 +214,7 @@ export const connectorItems: ConnectorItem[] = [
     name: "American Express",
     category: "credit",
     description: "Credit cards, rewards, and membership points.",
-    status: "connected",
-    accountCount: 2,
-    lastSync: "1m ago",
+    status: "disconnected",
     abbreviation: "AE",
     accentColor: "#006FCF",
     popular: true,

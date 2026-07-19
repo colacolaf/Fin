@@ -36,22 +36,6 @@ export const setupChecklist: SetupChecklistItem[] = [
 
 export const setupComplete = setupChecklist.every((item) => item.done)
 
-export interface SettingsConnector {
-  id: string
-  label: string
-  type: string
-  status: "connected" | "disconnected" | "syncing"
-  lastSync: string
-}
-
-export const settingsConnectors: SettingsConnector[] = [
-  { id: "schwab", label: "Schwab", type: "Brokerage", status: "connected", lastSync: "2m ago" },
-  { id: "chase", label: "Chase", type: "Bank", status: "connected", lastSync: "5m ago" },
-  { id: "vanguard", label: "Vanguard", type: "Retirement", status: "syncing", lastSync: "syncing now" },
-  { id: "amex", label: "Amex", type: "Credit Card", status: "connected", lastSync: "1m ago" },
-  { id: "sofi", label: "SoFi", type: "Student Loan", status: "disconnected", lastSync: "never" },
-]
-
 export interface NotificationEvent {
   id: string
   label: string

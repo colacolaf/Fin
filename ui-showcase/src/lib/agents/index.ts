@@ -166,19 +166,12 @@ export const availableModels: ModelOption[] = [
 ]
 
 /* ------------------------------------------------------------------ */
-/*  Connectors (mock data — full page designed later)                  */
+/*  Connectors                                                          */
+/*                                                                    */
+/*  Source of truth for connection state is localStorage (`fo-connected-*/
+/*  providers`, `fo-api-keys`, `fo-connector-status`) merged at read   */
+/*  time by `useConnectors()` in `lib/settings/use-connectors.ts`.     */
+/*  No static `connectors` array here — keep this file free of mock    */
+/*  connection state names ("Schwab", "SoFi", "Chase", "Vanguard")     */
+/*  that would leak through as "connected" when nothing is.            */
 /* ------------------------------------------------------------------ */
-
-export interface Connector {
-  id: string
-  label: string
-  status: "connected" | "disconnected" | "syncing"
-  detail: string
-}
-
-export const connectors: Connector[] = [
-  { id: "portfolio", label: "Portfolio", status: "connected", detail: "Schwab · synced 2m ago" },
-  { id: "bank", label: "Bank", status: "connected", detail: "Chase · synced 5m ago" },
-  { id: "debt", label: "Debt", status: "connected", detail: "3 accounts · synced 1m ago" },
-  { id: "retirement", label: "Retirement", status: "syncing", detail: "Vanguard · syncing now" },
-]

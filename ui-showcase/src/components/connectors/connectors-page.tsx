@@ -12,14 +12,28 @@ import {
   type ConnectorItem,
   type ConnectorCategory,
 } from "@/lib/connectors/data"
+import { useConnectors, type RuntimeConnector } from "@/lib/settings/use-connectors"
 
 /* ================================================================== */
 /*  ConnectorCard — single provider card                               */
+/*  Reads `status` from the merged RuntimeConnector (real state), not  */
+/*  from the static catalog.                                           */
 /* ================================================================== */
 
-function ConnectorCard({ item }: { item: ConnectorItem }) {
-  const isConnected = item.status === "connected"
-  const isSyncing = item.status === "syncing"
+function ConnectorCard({
+  item,
+  runtime,
+  onConnect,
+}: {
+  item: ConnectorItem
+  runtime?: RuntimeConnector
+  onConnect: (id: string) => void
+}) {
+  const status = runtime?.status ?? item.status
+  const accountCount = runtime?.accountCount
+  const lastSync = runtime?.lastSync
+  const isConnected = status === "connected"
+  const isSyncing = status === "syncing"
 
   return (
     <motion.div
@@ -40,8 +54,8 @@ function ConnectorCard({ item }: { item: ConnectorItem }) {
           : undefined
       }
     >
-      {/* Popular badge */}
-      {item.popular && !isConnected && (
+      {/* Popular badge — only when not connected */}
+      {item.popular && !isConnected && !isSyncing && (
         <div className="absolute -right-1.5 -top-1.5 flex items-center gap-1 rounded-full border border-[#818CF8]/20 bg-[#818CF8]/10 px-2 py-0.5">
           <Sparkles className="h-2.5 w-2.5 text-[#818CF8]" />
           <span className="text-[8px] font-semibold uppercase tracking-wider text-[#818CF8]">
@@ -89,7 +103,11 @@ function ConnectorCard({ item }: { item: ConnectorItem }) {
             <>
               <Check className="h-3 w-3 text-[#34D399]" />
               <span>
-                {item.accountCount} account{item.accountCount !== 1 ? "s" : ""} · {item.lastSync}
+                {accountCount !== undefined
+                  ? `${accountCount} account${accountCount !== 1 ? "s" : ""}${lastSync ? ` · ${lastSync}` : ""}`
+                  : lastSync
+                    ? `Connected · ${lastSync}`
+                    : "Connected"}
               </span>
             </>
           )}
@@ -113,6 +131,7 @@ function ConnectorCard({ item }: { item: ConnectorItem }) {
       ) : (
         <button
           type="button"
+          onClick={() => onConnect(item.id)}
           className={cn(
             "flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition-all duration-150",
             "border-[#818CF8]/20 bg-[#818CF8]/10 text-[#818CF8]",
@@ -170,6 +189,11 @@ function CategoryPill({
 
 /* ================================================================== */
 /*  ConnectorsPage — Card Grid                                         */
+/*                                                                    */
+/*  Source of truth is the merged state from `useConnectors()`. The   */
+/*  catalog only lists the available providers; their `status` field   */
+/*  always defaults to "disconnected" — only localStorage state can  */
+/*  promote a provider.                                               */
 /* ================================================================== */
 
 export function ConnectorsPage() {
@@ -177,13 +201,23 @@ export function ConnectorsPage() {
   const [search, setSearch] = React.useState("")
   const [activeCategory, setActiveCategory] = React.useState<ConnectorCategory | "all">("all")
 
+  // Real connection state from localStorage
+  const { connectors: runtimeConnectors, connect } = useConnectors()
+
   // Simulate data loading — in production, replace with real fetch + Suspense
   React.useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 1500)
     return () => clearTimeout(timer)
   }, [])
 
-  // Filter connectors by search + category
+  // Map catalog id → runtime state for quick lookup
+  const runtimeById = React.useMemo(() => {
+    const map = new Map<string, RuntimeConnector>()
+    for (const rc of runtimeConnectors) map.set(rc.id, rc)
+    return map
+  }, [runtimeConnectors])
+
+  // Filter catalog by search + category
   const filtered = React.useMemo(() => {
     let items = connectorItems
     if (activeCategory !== "all") {
@@ -201,7 +235,7 @@ export function ConnectorsPage() {
     return items
   }, [search, activeCategory])
 
-  // Count per category
+  // Count per category (always total counts, regardless of filter)
   const categoryCounts = React.useMemo(() => {
     const counts = { all: connectorItems.length } as Record<ConnectorCategory | "all", number>
     for (const cat of connectorCategories) {
@@ -210,9 +244,21 @@ export function ConnectorsPage() {
     return counts
   }, [])
 
-  // Split into connected + available
-  const connected = filtered.filter((item) => item.status === "connected" || item.status === "syncing")
-  const available = filtered.filter((item) => item.status === "disconnected")
+  // Split into connected + available using merged runtime state
+  const split = React.useMemo(() => {
+    const connected: { item: ConnectorItem; runtime?: RuntimeConnector }[] = []
+    const available: { item: ConnectorItem; runtime?: RuntimeConnector }[] = []
+    for (const item of filtered) {
+      const runtime = runtimeById.get(item.id)
+      const status = runtime?.status ?? item.status
+      if (status === "connected" || status === "syncing") {
+        connected.push({ item, runtime })
+      } else {
+        available.push({ item, runtime })
+      }
+    }
+    return { connected, available }
+  }, [filtered, runtimeById])
 
   return (
     <PageShell
@@ -260,7 +306,7 @@ export function ConnectorsPage() {
           </div>
 
           {/* Connected section */}
-          {connected.length > 0 && (
+          {split.connected.length > 0 && (
             <div className="mb-8">
               <div className="mb-3 flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#34D399]" />
@@ -268,21 +314,35 @@ export function ConnectorsPage() {
                   Connected
                 </span>
                 <span className="text-[10px] text-white/[0.25]">
-                  {connected.length}
+                  {split.connected.length}
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <AnimatePresence mode="popLayout">
-                  {connected.map((item) => (
-                    <ConnectorCard key={item.id} item={item} />
+                  {split.connected.map(({ item, runtime }) => (
+                    <ConnectorCard
+                      key={item.id}
+                      item={item}
+                      runtime={runtime}
+                      onConnect={connect}
+                    />
                   ))}
                 </AnimatePresence>
               </div>
             </div>
           )}
 
+          {/* Empty state when nothing is connected — guide user */}
+          {split.connected.length === 0 && (
+            <div className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+              <p className="text-[11px] text-white/[0.40]">
+                No accounts connected yet. Pick a provider below to link an account.
+              </p>
+            </div>
+          )}
+
           {/* Available section */}
-          {available.length > 0 && (
+          {split.available.length > 0 && (
             <div>
               <div className="mb-3 flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-white/[0.25]" />
@@ -290,20 +350,25 @@ export function ConnectorsPage() {
                   Available
                 </span>
                 <span className="text-[10px] text-white/[0.25]">
-                  {available.length}
+                  {split.available.length}
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <AnimatePresence mode="popLayout">
-                  {available.map((item) => (
-                    <ConnectorCard key={item.id} item={item} />
+                  {split.available.map(({ item, runtime }) => (
+                    <ConnectorCard
+                      key={item.id}
+                      item={item}
+                      runtime={runtime}
+                      onConnect={connect}
+                    />
                   ))}
                 </AnimatePresence>
               </div>
             </div>
           )}
 
-          {/* Empty state */}
+          {/* Empty state for search */}
           {filtered.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
