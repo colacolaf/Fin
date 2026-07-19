@@ -1,4 +1,6 @@
+import * as React from "react"
 import type { RetirementAccount, RetirementSummary, RetirementChartPoint } from "./types"
+import { getAllSyncedData, type SyncedRetirementData } from "@/lib/connectors/sync-data"
 
 /* ================================================================== */
 /*  EMPTY DEFAULTS — zeroed / empty, ready for real data               */
@@ -117,10 +119,53 @@ export const chartData: RetirementChartPoint[] = [
 /* ================================================================== */
 
 export function useRetirementData() {
-  // TODO: swap for real API fetch when retirement connector is linked
-  return {
-    accounts: emptyAccounts,
+  const [data, setData] = React.useState({
+    accounts: emptyAccounts as RetirementAccount[],
     summary: emptySummary,
     chartData: emptyChartData,
-  }
+  })
+
+  React.useEffect(() => {
+    const all = typeof window !== "undefined" ? getAllSyncedData() : {}
+    let synced: SyncedRetirementData | null = null
+      for (const [, d] of Object.entries(all)) {
+        if (d.category === "retirement") {
+          if (!synced || d.data.lastSynced > synced.lastSynced) {
+            synced = d.data
+          }
+        }
+      }
+      if (!synced) return
+
+      setData({
+        accounts: [
+          {
+            id: "401k", name: synced.connectorName, type: "401k" as const,
+            provider: synced.connectorName, balance: synced.totalBalance,
+            contributionRate: 12, employerMatch: synced.employerMatch,
+            employerMatchMax: Math.round(synced.employerMatch / synced.employerMatchPercent * 100),
+            vestedPercent: Math.round(synced.vestedBalance / synced.totalBalance * 100),
+            color: "#818CF8",
+          },
+        ],
+        summary: {
+          totalSaved: synced.totalBalance,
+          fundedPercentage: Math.min(95, Math.round(synced.totalBalance / synced.projectedAtRetirement * 100)),
+          projectedAnnualIncome: Math.round(synced.projectedAtRetirement * 0.04),
+          targetRetirementAge: 65,
+          currentAge: 43,
+          yearsToRetirement: 22,
+          monthlyGap: Math.round(synced.projectedAtRetirement * 0.04 / 12 - synced.monthlyContribution),
+          neededAtRetirement: synced.projectedAtRetirement,
+          employerMatchCaptured: synced.employerMatch,
+          employerMatchAvailable: Math.round(synced.employerMatch / synced.employerMatchPercent * 100),
+          socialSecurityEstimate: 24000,
+          monthlyContribution: synced.monthlyContribution,
+          annualIncome: synced.monthlyContribution * 12 / 0.15,
+        },
+        chartData: emptyChartData,
+      })
+  }, [])
+
+  return data
 }

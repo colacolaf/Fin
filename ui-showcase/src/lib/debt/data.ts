@@ -1,4 +1,6 @@
+import * as React from "react"
 import type { Debt, DebtSummary, DebtChartPoint, DebtTheme } from "./types"
+import { getAllSyncedData, type SyncedDebtData } from "@/lib/connectors/sync-data"
 
 /* ================================================================== */
 /*  EMPTY DEFAULTS — zeroed / empty, ready for real data               */
@@ -220,10 +222,65 @@ export function getDebtsWithTheme(theme: DebtTheme): Debt[] {
 /* ================================================================== */
 
 export function useDebtData() {
-  // TODO: swap for real API fetch when bank connector is linked
-  return {
-    debts: emptyDebts,
+  const [data, setData] = React.useState({
+    debts: emptyDebts as Debt[],
     summary: emptySummary,
     chartData: emptyChartData,
-  }
+  })
+
+  React.useEffect(() => {
+    const all = typeof window !== "undefined" ? getAllSyncedData() : {}
+    let synced: SyncedDebtData | null = null
+    for (const [, d] of Object.entries(all)) {
+      if (d.category === "credit" || d.category === "loans") {
+        if (!synced || d.data.lastSynced > synced.lastSynced) {
+          synced = d.data
+        }
+      }
+    }
+    if (!synced) return
+
+    const debts: Debt[] = synced.items.map((item, i) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type === "credit-card" ? "credit_card" as const
+        : item.type === "student-loan" ? "student_loan" as const
+        : item.type === "personal-loan" ? "personal" as const
+        : item.type === "mortgage" ? "mortgage" as const
+        : "auto_loan" as const,
+      balance: item.balance,
+      originalBalance: Math.round(item.balance * 1.8),
+      apr: item.apr,
+      minimumPayment: item.minPayment,
+      paymentDay: (i + 1) * 7 % 28 + 1,
+      estimatedPayoff: synced.estimatedDebtFree,
+      interestPaid: Math.round(item.balance * 0.15),
+      totalInterestProjected: Math.round(item.balance * item.apr / 100 * 3),
+      sparkData: Array.from({ length: 12 }, (_unused, j) =>
+        Math.round(item.balance * 1.8 * (1 - j * 0.08))
+      ),
+      color: "",
+    }))
+
+    setData({
+      debts,
+      summary: {
+        totalDebt: synced.totalDebt,
+        monthlyPayment: synced.monthlyPayment,
+        weightedApr: synced.weightedApr,
+        debtCount: synced.items.length,
+        estimatedDebtFree: synced.estimatedDebtFree,
+        totalInterestRemaining: Math.round(synced.totalDebt * synced.weightedApr / 100),
+        monthOverMonthChange: -Math.round(synced.monthlyPayment * 0.85),
+        totalPaidThisMonth: synced.monthlyPayment,
+        totalPaidThisWeek: Math.round(synced.monthlyPayment / 4),
+        totalPaidThisYear: synced.monthlyPayment * 3,
+        percentPaid: 62,
+        totalOriginalDebt: Math.round(synced.totalDebt * 1.8),
+      },
+      chartData: emptyChartData,
+    })
+  }, [])
+
+  return data
 }

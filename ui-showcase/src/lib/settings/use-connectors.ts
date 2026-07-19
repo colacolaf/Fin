@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { useLocalStorage } from "@/lib/use-local-storage"
-import { connectorItems, type ConnectorItem } from "@/lib/connectors/data"
+import { connectorItems, type ConnectorItem, type ConnectorCategory } from "@/lib/connectors/data"
+import { syncAndPersist } from "@/lib/connectors/sync-data"
 
 /* ================================================================== */
 /*  RuntimeConnector — a connector with real localStorage state        */
@@ -153,10 +154,18 @@ export function useConnectors(): ConnectorsState {
   const sync = React.useCallback(
     async (id: string): Promise<void> => {
       setSyncingIds((prev) => new Set(prev).add(id))
-      // Simulate a real sync delay (2-3 seconds)
+
+      // Simulate network latency (1.5–2.5 seconds)
       await new Promise((resolve) =>
-        setTimeout(resolve, 2000 + Math.random() * 1000)
+        setTimeout(resolve, 1500 + Math.random() * 1000)
       )
+
+      // Generate and persist realistic mock data for this connector
+      const item = connectorItems.find((c) => c.id === id)
+      if (item) {
+        syncAndPersist(id, item.name, item.category as ConnectorCategory)
+      }
+
       setSyncingIds((prev) => {
         const next = new Set(prev)
         next.delete(id)
