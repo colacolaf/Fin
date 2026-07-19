@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion } from "motion/react"
-import { Maximize2, TrendingDown, PieChart, Newspaper, Bot } from "lucide-react"
+import { Maximize2, TrendingDown, PieChart, Newspaper, Bot, BellRing } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
 import { LiquidGlassBg } from "@/components/debt/liquid-glass-bg"
@@ -15,6 +15,7 @@ import { NewsCard } from "@/components/news/news-card"
 import { AgentOrbs } from "@/components/agent-orbs"
 import { portfolioSummary, chartData } from "@/lib/portfolio/data"
 import { debtSummary, amberTheme, getDebtsWithTheme } from "@/lib/debt/data"
+import { useDesktopNotifications } from "@/lib/notifications/use-desktop-notifications"
 
 /* ================================================================== */
 /*  FullscreenButton — chromatic expand button for each section         */
@@ -173,6 +174,8 @@ function MiniChart({ data }: { data: { date: string; value: number }[] }) {
 export function DashboardPage() {
   const animatedValue = useAnimatedValue(portfolioSummary.totalValue)
   const debtsWithColor = getDebtsWithTheme(amberTheme)
+  const { notify, permissionGranted, requestPermission } = useDesktopNotifications()
+  const [testMenuOpen, setTestMenuOpen] = React.useState(false)
 
   return (
     <div className="dark relative flex min-h-screen w-full flex-col bg-[#08090C]">
@@ -201,6 +204,53 @@ export function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-3 text-[10px] text-white/[0.35]">
+          {/* Notification test triggers */}
+          {!permissionGranted && (
+            <button
+              type="button"
+              onClick={requestPermission}
+              className="flex items-center gap-1 rounded-md border border-[#818CF8]/25 bg-[#818CF8]/10 px-2 py-1 text-[10px] font-medium text-[#818CF8] hover:bg-[#818CF8]/15 transition-colors"
+            >
+              <BellRing className="h-3 w-3" />
+              Enable notifications
+            </button>
+          )}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setTestMenuOpen((v) => !v)}
+              className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-medium text-white/[0.50] hover:bg-white/[0.06] hover:text-white transition-colors"
+            >
+              <BellRing className="h-3 w-3" />
+              Test
+            </button>
+            {testMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setTestMenuOpen(false)} />
+                <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-lg border border-white/[0.08] bg-[#141418] p-1 shadow-xl backdrop-blur-xl">
+                  {[
+                    { label: "Agent task complete", event: "agent_task_complete" as const, body: "Portfolio Agent finished analyzing your holdings." },
+                    { label: "Debt paid off", event: "debt_paid_off" as const, body: "Credit Card balance fully paid! Redirect freed cash flow to investments." },
+                    { label: "Debt milestone", event: "debt_milestone" as const, body: "You've paid off 50% of your Student Loan. Keep going!" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.event}
+                      type="button"
+                      onClick={() => {
+                        notify(opt.label, opt.body, opt.event)
+                        setTestMenuOpen(false)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[11px] text-white/[0.60] hover:bg-white/[0.06] hover:text-white transition-colors"
+                    >
+                      <BellRing className="h-3 w-3 shrink-0" />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="h-4 w-px bg-white/[0.08]" />
           <span className="flex items-center gap-1.5">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34D399] opacity-60" />
