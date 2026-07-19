@@ -6,6 +6,7 @@ import {
   type SkillContent,
 } from "@/lib/skills/resolver"
 import { firmSteps, type FirmStepKey, type ThinkingMode, type TokenMode } from "./index"
+import { streamModel, type ChatMessage } from "@/lib/models/client"
 
 /* ================================================================== */
 /*  Types                                                              */
@@ -18,9 +19,7 @@ export interface StepStatus {
   label: string
   hint: string
   state: StepState
-  /** Elapsed seconds spent on this step so far */
   elapsed: number
-  /** Streaming text shown while the step is running */
   text: string
 }
 
@@ -28,9 +27,7 @@ export interface AgentMessage {
   id: string
   role: "user" | "agent"
   text: string
-  /** Present on agent messages that went through a thinking trace */
   thinking?: StepStatus[]
-  /** Total elapsed seconds for the thinking trace */
   thinkingElapsed?: number
   createdAt: number
 }
@@ -45,22 +42,15 @@ interface SkillMatch {
   reason: string
 }
 
-/**
- * Analyze a user message and return the best-matching skills.
- * This mirrors the intent→skill mapping in route_skills.md.
- */
 function routeToSkills(userText: string, alreadyLoaded: string[]): SkillMatch[] {
   const lower = userText.toLowerCase()
   const matches: SkillMatch[] = []
 
-  // Skip greetings / small talk — only for very short messages (≤ 3 words)
-  // Removed "good" and "great" — they appear in real questions like "Good portfolio strategy?"
   const greetingPatterns = /^(hi|hey|hello|thanks|thank you|ok|okay|got it|nice)\b/i
   if (greetingPatterns.test(lower.trim()) && lower.trim().split(/\s+/).length <= 3) {
     return []
   }
 
-  /* ── Portfolio domain ── */
   if (/\b(analyze|allocation|diversif|concentrat|holdings|portfolio|positions|exposure|overweight|underweight|sector|tech)\b.*\b(portfolio|my|how|what|too)\b/i.test(lower) ||
       /\b(portfolio|allocation|diversif|concentrat).*(analy|check|review|look|see|assess)\b/i.test(lower) ||
       /\b(too.*(much|heavy|concentrated).*(tech|stock|single)|overweight.*(tech|stock|sector))\b/i.test(lower)) {
@@ -85,7 +75,6 @@ function routeToSkills(userText: string, alreadyLoaded: string[]): SkillMatch[] 
     matches.push({ skillId: "enable_paper_trading", relevance: 10, reason: "paper trading intent detected" })
   }
 
-  /* ── Debt domain ── */
   if (/\b(pay.*off|payoff|debt.*strateg|avalanche|snowball|extra.*payment|how.*long.*debt|debt.*free)\b/i.test(lower) ||
       /\b(debt|credit.*card|student.*loan|car.*loan|mortgage).*(pay|strateg|plan|timeline)\b/i.test(lower)) {
     matches.push({ skillId: "debt_payoff_simulate", relevance: 10, reason: "debt payoff intent detected" })
@@ -96,7 +85,6 @@ function routeToSkills(userText: string, alreadyLoaded: string[]): SkillMatch[] 
     matches.push({ skillId: "debt_vs_invest_analyze", relevance: 10, reason: "debt vs invest intent detected" })
   }
 
-  /* ── Retirement domain ── */
   if (/\b(retire|retirement|on track|readiness|how.*much.*retire|enough.*retire|retire.*age)\b/i.test(lower) ||
       /\b(retirement|retire).*(project|plan|save|enough|need|readiness)\b/i.test(lower)) {
     matches.push({ skillId: "retirement_readiness_score", relevance: 10, reason: "retirement readiness intent detected" })
@@ -107,118 +95,90 @@ function routeToSkills(userText: string, alreadyLoaded: string[]): SkillMatch[] 
     matches.push({ skillId: "match_capture_recommend", relevance: 10, reason: "employer match intent detected" })
   }
 
-  /* ── Universal domain ── */
   if (/\b(current|price|rate|news|recent|today|what.*is.*the|fed|market.*update)\b/i.test(lower)) {
     matches.push({ skillId: "search_web", relevance: 7, reason: "market data intent detected" })
   }
 
-  // Filter: remove already-loaded skills, enforce minimum relevance ≥ 7,
-  // sort by relevance descending, take top 2
   return matches
     .filter((m) => !alreadyLoaded.includes(m.skillId) && m.relevance >= 7)
     .sort((a, b) => b.relevance - a.relevance)
-    .slice(0, 2) // Max 2 auto-loaded skills per message
+    .slice(0, 2)
 }
 
 /* ================================================================== */
-/*  Mock thinking scripts — enriched with skill context                */
+/*  System prompt builder                                               */
 /* ================================================================== */
 
-function buildScripts(
-  activeSkills: SkillContent[],
-  failedSkills: string[],
+function buildSystemPrompt(
+  loadedSkills: SkillContent[],
   autoLoadedSkills: SkillMatch[],
   thinkingMode: ThinkingMode,
-): Record<FirmStepKey, string[]> {
-  const skillNames = activeSkills.map((s) => s.skillId.replace(/_/g, " "))
-  const skillCount = activeSkills.length
-  const isFast = thinkingMode === "fast"
+  tokenMode: TokenMode,
+): string {
+  const base = `You are a world-class institutional finance agent powered by Finance OS. You use the F.I.R.M. reasoning framework (Frame Reality → Inspect Context → Research Gaps → Make the Call) to deliver precise, evidence-based financial analysis.`
 
-  const base: Record<FirmStepKey, string[]> = {
-    frame: isFast
-      ? ["Concentration detected — tech at 41% vs 25% target."]
-      : [
-          "Your tech weight is 41% against a 25% target.",
-          "Drift is +16 percentage points over your threshold.",
-          "The gap is well outside your 5% rebalance band.",
-        ],
-    inspect: isFast
-      ? ["Context loaded. Last rebalance: Mar 2025. Moderate risk, 5yr horizon."]
-      : [
-          "Last rebalance: March 12, 2025.",
-          "You skipped the June review per your memory notes.",
-          `Risk tolerance logged as moderate, 5-year horizon.`,
-        ],
-    research: isFast
-      ? ["QQQ +18.2% YTD vs SPY +11.4% — concentration confirmed."]
-      : [
-          "Confidence on current QQQ drift below 80%.",
-          "Searching SPY vs QQQ YTD performance...",
-          "QQQ up 18.2% YTD, SPY up 11.4% — concentration confirmed.",
-        ],
-    call: isFast
-      ? ["Trim NVDA 6% + AAPL 4% → VOO. Tax ~$1.2k."]
-      : [
-          "Trim NVDA by 6% and AAPL by 4%.",
-          "Redirect into VOO to restore broad-market weight.",
-          "Estimated tax hit: $1,240. Net volatility reduction: 1.3x.",
-        ],
+  const toneInstructions: Record<TokenMode, string> = {
+    normal: "Communicate in clear, professional prose with structured formatting, complete explanations, and teaching layers when helpful.",
+    compressed: "Be concise. Trim filler words. Use caveman-lite prose. ~40% fewer tokens than normal.",
+    ultra: "Use caveman-full prose. Single-sentence explanations. No teaching layer. Minimal formatting. ~65% token reduction.",
+    bare: "Keyword-dense output. No prose. Only raw essential facts and numbers. Maximum density.",
   }
 
-  // If skills were auto-loaded by the router, surface them in the trace
+  const thinkInstructions: Record<ThinkingMode, string> = {
+    full: "Run the complete F.I.R.M. framework with all mental models, validation, and teaching layers.",
+    fast: "Use condensed reasoning. Skip the teaching layer and redundant validation steps. Get to the answer quickly.",
+  }
+
+  let prompt = `${base}\n\n${thinkInstructions[thinkingMode]}\n${toneInstructions[tokenMode]}`
+
+  // Inject skill context
+  if (loadedSkills.length > 0) {
+    const skillContexts = loadedSkills.map((s) => s.content).join("\n\n---\n\n")
+    prompt += `\n\n## Active Institutional Knowledge\n\nThe following expert methodologies and frameworks are loaded and should inform your analysis:\n\n${skillContexts}`
+  }
+
   if (autoLoadedSkills.length > 0) {
-    const lines = autoLoadedSkills.map(
-      (m) => `🎯 Auto-loaded skill: ${m.skillId.replace(/_/g, " ")} (relevance ${m.relevance}/10 — ${m.reason})`
-    )
-    base.inspect = [...lines, ...base.inspect]
+    const skillList = autoLoadedSkills.map((m) => `- ${m.skillId.replace(/_/g, " ")} (relevance: ${m.relevance}/10)`).join("\n")
+    prompt += `\n\n## Auto-Loaded Skills\n${skillList}`
   }
 
-  // If skills are active (manual or auto-loaded), show token budget
-  if (skillCount > 0) {
-    base.inspect = [
-      ...base.inspect,
-      `${skillCount} skill${skillCount > 1 ? "s" : ""} loaded: ${skillNames.join(", ")}.`,
-      `Skill context: ~${activeSkills.reduce((sum, s) => sum + s.tokenEstimate, 0).toLocaleString()} tokens of institutional knowledge available.`,
-    ]
-  }
+  prompt += `\n\n## Response Format\n- Never overstate certainty. Always identify assumptions and risks.\n- When recommending actions, include the math and tradeoffs.\n- If you need more data, say what you need and why.`
 
-  // Surface skill load failures in the thinking trace
-  if (failedSkills.length > 0) {
-    base.inspect = [
-      ...base.inspect,
-      `⚠️ Could not load ${failedSkills.length} skill${failedSkills.length > 1 ? "s" : ""}: ${failedSkills.join(", ")}.`,
-    ]
-  }
-
-  return base
+  return prompt
 }
 
-function buildResponse(activeSkills: SkillContent[], tokenMode: TokenMode): string {
-  if (activeSkills.length === 0) {
-    const base = "Your tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO."
-    const detail = "Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute."
+/* ================================================================== */
+/*  Mock fallback helpers                                               */
+/* ================================================================== */
 
-    switch (tokenMode) {
-      case "normal": return `${base} ${detail}`
-      case "compressed": return `${base} Tax: ~$1.2k. Back in band. Next: authorize trade.`
-      case "ultra": return `Tech conc 1.8x vs S&P. Trim NVDA 6% AAPL 4% → VOO. Tax ~$1.2k. Back in 5% band. Confirm trade + auth key.`
-      case "bare": return `Sell NVDA -6% AAPL -4%, buy VOO. Tax $1.2k. Auth needed.`
-    }
+function mockFrameLines(thinkingMode: ThinkingMode): string[] {
+  return thinkingMode === "fast"
+    ? ["Analyzing your request..."]
+    : ["Framing the financial context...", "Identifying relevant factors and constraints.", "Establishing the gap to your goals."]
+}
+
+function mockInspectLines(
+  loadedSkills: SkillContent[],
+  failedSkills: string[],
+  autoLoadedSkills: SkillMatch[],
+): string[] {
+  const lines: string[] = []
+  if (autoLoadedSkills.length > 0) {
+    lines.push(...autoLoadedSkills.map((m) => `🎯 Auto-loaded: ${m.skillId.replace(/_/g, " ")} (${m.relevance}/10)`))
   }
-
-  const skillName = activeSkills[0].skillId.replace(/_/g, " ")
-  const tokens = activeSkills[0].tokenEstimate.toLocaleString()
-
-  switch (tokenMode) {
-    case "normal":
-      return `[Using ${activeSkills.length} active skill${activeSkills.length > 1 ? "s" : ""}: ${activeSkills.map((s) => s.skillId).join(", ")}]\n\nI've loaded the institutional knowledge for ${skillName} (~${tokens} tokens of methodology, formulas, and validation rules).\n\nYour tech concentration is 1.8x more volatile than the S&P 500. Trim NVDA by 6% and AAPL by 4%, redirect into VOO. Estimated tax impact: $1,240. This brings you back inside your 5% rebalance band.\n\nNext step: confirm the trade and enter your authorization key to execute.`
-    case "compressed":
-      return `[Skills: ${activeSkills.map((s) => s.skillId).join(", ")}] Tech conc 1.8x vs S&P. Trim NVDA 6% AAPL 4% → VOO. Tax ~$1.2k. Back in 5% band. Next: authorize trade.`
-    case "ultra":
-      return `[${skillName}] Tech conc 1.8x. NVDA -6% AAPL -4% → VOO. Tax $1.2k. Confirm + auth.`
-    case "bare":
-      return `Sell NVDA -6% AAPL -4%, buy VOO. Tax $1.2k. Auth.`
+  if (loadedSkills.length > 0) {
+    lines.push(`${loadedSkills.length} skill(s) loaded — institutional knowledge available.`)
   }
+  if (failedSkills.length > 0) {
+    lines.push(`⚠️ Could not load: ${failedSkills.join(", ")}`)
+  }
+  return lines
+}
+
+function mockResearchLines(thinkingMode: ThinkingMode): string[] {
+  return thinkingMode === "fast"
+    ? ["Checking market context..."]
+    : ["Assessing market conditions and recent data.", "Cross-referencing with available research.", "Confidence assessment in progress."]
 }
 
 /* ================================================================== */
@@ -226,37 +186,28 @@ function buildResponse(activeSkills: SkillContent[], tokenMode: TokenMode): stri
 /* ================================================================== */
 
 interface UseAgentThinkingOptions {
-  /** Called when the agent's final reply is ready to be appended */
   onReply?: (message: AgentMessage) => void
-  /** Active skill IDs — their content is loaded and context injected */
   activeSkillIds?: string[]
-  /** Thinking mode — controls reasoning depth */
   thinkingMode?: ThinkingMode
-  /** Token mode — controls output compression level */
   tokenMode?: TokenMode
+  /** Currently selected model ID — if null, falls back to mock */
+  modelId?: string | null
 }
 
 interface UseAgentThinkingReturn {
-  /** True while the agent is thinking + typing */
   isThinking: boolean
-  /** Live step statuses (one per F.I.R.M. step), in order */
   steps: StepStatus[]
-  /** Total elapsed seconds across all steps so far */
   totalElapsed: number
-  /** Submit a user message and start the thinking flow */
   send: (userText: string) => void
-  /** Cancel an in-flight thinking run */
   cancel: () => void
 }
-
-const STEP_DURATIONS_MS = [1400, 1600, 2200, 1200]
-const STREAM_INTERVAL_MS = 120
 
 export function useAgentThinking({
   onReply,
   activeSkillIds = [],
   thinkingMode = "full",
   tokenMode = "normal",
+  modelId = null,
 }: UseAgentThinkingOptions = {}): UseAgentThinkingReturn {
   const [isThinking, setIsThinking] = React.useState(false)
   const [steps, setSteps] = React.useState<StepStatus[]>(() =>
@@ -276,6 +227,7 @@ export function useAgentThinking({
   const onReplyRef = React.useRef(onReply)
   const currentStepIdxRef = React.useRef(-1)
   const accumulatedElapsedRef = React.useRef(0)
+  const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
     onReplyRef.current = onReply
@@ -307,164 +259,226 @@ export function useAgentThinking({
 
   const cancel = React.useCallback(() => {
     clearTimers()
+    abortRef.current?.abort()
     setIsThinking(false)
     resetSteps()
   }, [clearTimers, resetSteps])
 
-  // Cleanup on unmount
-  React.useEffect(() => clearTimers, [clearTimers])
+  React.useEffect(() => cancel, [cancel])
 
   const send = React.useCallback(
     async (userText: string) => {
       if (!userText.trim()) return
       clearTimers()
+      abortRef.current?.abort()
       resetSteps()
       setIsThinking(true)
       accumulatedElapsedRef.current = 0
       currentStepIdxRef.current = -1
 
-      // ── Auto-route to skills based on user intent (before manual skills are loaded) ──
+      // ── Skill routing + loading ──
       const autoMatches = activeSkillIds.length === 0
         ? routeToSkills(userText, activeSkillIds)
         : []
 
-      // Combine manual + auto-suggested skill IDs
-      const allSkillIds = [
-        ...activeSkillIds,
-        ...autoMatches.map((m) => m.skillId),
-      ]
+      const allSkillIds = [...activeSkillIds, ...autoMatches.map((m) => m.skillId)]
 
-      // ── Load skill contents before starting the thinking flow ──
       let loadedSkills: SkillContent[] = []
       const failedSkills: string[] = []
       if (allSkillIds.length > 0) {
         try {
           const skillMap = await fetchSkillContents(allSkillIds)
           loadedSkills = Array.from(skillMap.values())
-          // Track which skills failed to load
           for (const id of allSkillIds) {
             if (!skillMap.has(id)) failedSkills.push(id)
           }
         } catch {
-          console.warn("[useAgentThinking] Failed to load skill contents — proceeding without skills")
+          console.warn("[useAgentThinking] Failed to load skill contents")
           failedSkills.push(...allSkillIds)
         }
       }
 
-      // Build scripts and response with loaded skill context
-      const scripts = buildScripts(loadedSkills, failedSkills, autoMatches, thinkingMode)
-      const responseText = buildResponse(loadedSkills, tokenMode)
+      // ── Build system prompt ──
+      const systemPrompt = buildSystemPrompt(loadedSkills, autoMatches, thinkingMode, tokenMode)
 
-      // For each step: set running, stream text, then mark done
-      STEP_DURATIONS_MS.forEach((durationMs, idx) => {
-        // Hoist script so both the start and finish timers can read it
-        const script = scripts[firmSteps[idx].key]
+      // ── Run F.I.R.M. steps ──
+      const MOCK_STEP_MS = thinkingMode === "fast" ? [400, 300, 500] : [800, 600, 1000]
 
-        // Start this step
-        const startTimer = setTimeout(() => {
-          currentStepIdxRef.current = idx
-          stepStartRef.current = performance.now()
+      // Step 1: Frame
+      const runFrame = () => {
+        const frameLines = mockFrameLines(thinkingMode)
+        currentStepIdxRef.current = 0
+        stepStartRef.current = performance.now()
+        setSteps((prev) => prev.map((s, i) => i === 0 ? { ...s, state: "running", text: frameLines[0] } : s))
+        frameLines.slice(1).forEach((line, i) => {
+          timersRef.current.push(setTimeout(() => {
+            setSteps((prev) => prev.map((s, j) => j === 0 ? { ...s, text: line } : s))
+          }, (i + 1) * 200))
+        })
+        const tick = () => {
+          setSteps((prev) => prev.map((s, i) => i === 0 ? { ...s, elapsed: (performance.now() - stepStartRef.current) / 1000 } : s))
+          if (currentStepIdxRef.current === 0) rafRef.current = requestAnimationFrame(tick)
+        }
+        rafRef.current = requestAnimationFrame(tick)
+        const done = () => {
+          setSteps((prev) => prev.map((s, i) => i === 0 ? { ...s, state: "done", elapsed: MOCK_STEP_MS[0] / 1000, text: frameLines[frameLines.length - 1] } : s))
+          if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+          accumulatedElapsedRef.current += MOCK_STEP_MS[0]
+          runInspect()
+        }
+        timersRef.current.push(setTimeout(done, MOCK_STEP_MS[0]))
+      }
 
+      // Step 2: Inspect
+      const runInspect = () => {
+        const lines = mockInspectLines(loadedSkills, failedSkills, autoMatches)
+        currentStepIdxRef.current = 1
+        stepStartRef.current = performance.now()
+        setSteps((prev) => prev.map((s, i) => i === 1 ? { ...s, state: "running", text: lines[0] ?? "" } : s))
+        lines.slice(1).forEach((line, i) => {
+          timersRef.current.push(setTimeout(() => {
+            setSteps((prev) => prev.map((s, j) => j === 1 ? { ...s, text: line } : s))
+          }, (i + 1) * 200))
+        })
+        const tick = () => {
+          setSteps((prev) => prev.map((s, i) => i === 1 ? { ...s, elapsed: (performance.now() - stepStartRef.current) / 1000 } : s))
+          if (currentStepIdxRef.current === 1) rafRef.current = requestAnimationFrame(tick)
+        }
+        rafRef.current = requestAnimationFrame(tick)
+        const done = () => {
+          setSteps((prev) => prev.map((s, i) => i === 1 ? { ...s, state: "done", elapsed: MOCK_STEP_MS[1] / 1000, text: lines[lines.length - 1] ?? "" } : s))
+          if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+          accumulatedElapsedRef.current += MOCK_STEP_MS[1]
+          runResearch()
+        }
+        timersRef.current.push(setTimeout(done, MOCK_STEP_MS[1]))
+      }
+
+      // Step 3: Research
+      const runResearch = () => {
+        const lines = mockResearchLines(thinkingMode)
+        currentStepIdxRef.current = 2
+        stepStartRef.current = performance.now()
+        setSteps((prev) => prev.map((s, i) => i === 2 ? { ...s, state: "running", text: lines[0] } : s))
+        lines.slice(1).forEach((line, i) => {
+          timersRef.current.push(setTimeout(() => {
+            setSteps((prev) => prev.map((s, j) => j === 2 ? { ...s, text: line } : s))
+          }, (i + 1) * 200))
+        })
+        const tick = () => {
+          setSteps((prev) => prev.map((s, i) => i === 2 ? { ...s, elapsed: (performance.now() - stepStartRef.current) / 1000 } : s))
+          if (currentStepIdxRef.current === 2) rafRef.current = requestAnimationFrame(tick)
+        }
+        rafRef.current = requestAnimationFrame(tick)
+        const done = () => {
+          setSteps((prev) => prev.map((s, i) => i === 2 ? { ...s, state: "done", elapsed: MOCK_STEP_MS[2] / 1000, text: lines[lines.length - 1] } : s))
+          if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
+          accumulatedElapsedRef.current += MOCK_STEP_MS[2]
+          runCall()
+        }
+        timersRef.current.push(setTimeout(done, MOCK_STEP_MS[2]))
+      }
+
+      // Step 4: Call — real API or mock fallback
+      const runCall = async () => {
+        currentStepIdxRef.current = 3
+        stepStartRef.current = performance.now()
+        setSteps((prev) => prev.map((s, i) => i === 3 ? { ...s, state: "running", text: "" } : s))
+
+        const messages: ChatMessage[] = [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userText },
+        ]
+
+        let responseText = ""
+
+        if (!modelId) {
+          // ── Mock fallback — no model configured ──
+          responseText = mockFallbackResponse(loadedSkills, tokenMode, userText)
           setSteps((prev) =>
-            prev.map((s, i) =>
-              i === idx ? { ...s, state: "running", text: "" } : s
-            )
+            prev.map((s, i) => i === 3 ? { ...s, text: responseText } : s)
           )
+          finishCall(responseText)
+          return
+        }
 
-          // Stream the script lines
-          const lines = script
-          let lineIdx = 0
-          const streamOneLine = () => {
-            if (lineIdx >= lines.length) return
-            const line = lines[lineIdx]
-            const lineTimer = setTimeout(() => {
-              setSteps((prev) =>
-                prev.map((s, i) =>
-                  i === idx ? { ...s, text: line } : s
-                )
-              )
-              lineIdx += 1
-              streamOneLine()
-            }, STREAM_INTERVAL_MS)
-            timersRef.current.push(lineTimer)
-          }
-          streamOneLine()
+        // ── Real API call with streaming ──
+        const abortController = new AbortController()
+        abortRef.current = abortController
 
-          // RAF tick to update this step's elapsed seconds
-          const tick = () => {
-            const elapsedSec = (performance.now() - stepStartRef.current) / 1000
+        try {
+          for await (const token of streamModel(modelId, messages, {
+            temperature: 0.4,
+            systemPrompt,
+            signal: abortController.signal,
+          })) {
+            responseText += token
             setSteps((prev) =>
-              prev.map((s, i) =>
-                i === idx ? { ...s, elapsed: elapsedSec } : s
-              )
+              prev.map((s, i) => i === 3 ? { ...s, text: responseText } : s)
             )
-            if (currentStepIdxRef.current === idx) {
-              rafRef.current = requestAnimationFrame(tick)
-            }
           }
-          rafRef.current = requestAnimationFrame(tick)
-        }, accumulatedElapsedRef.current)
-
-        timersRef.current.push(startTimer)
-        accumulatedElapsedRef.current += durationMs
-
-        // Finish this step
-        const finishTimer = setTimeout(() => {
-          const finalElapsed = durationMs / 1000
-          setSteps((prev) =>
-            prev.map((s, i) =>
-              i === idx
-                ? { ...s, state: "done", elapsed: finalElapsed, text: script[script.length - 1] }
-                : s
+        } catch (_err) {
+          if (abortController.signal.aborted) {
+            responseText += "\n\n[Request cancelled.]"
+          } else {
+            responseText = mockFallbackResponse(loadedSkills, tokenMode, userText)
+            setSteps((prev) =>
+              prev.map((s, i) => i === 3 ? { ...s, text: responseText } : s)
             )
+          }
+        }
+
+        finishCall(responseText)
+      }
+
+      const finishCall = (finalText: string) => {
+        const callElapsed = (performance.now() - stepStartRef.current) / 1000
+        setSteps((prev) =>
+          prev.map((s, i) =>
+            i === 3
+              ? { ...s, state: "done", elapsed: callElapsed, text: finalText }
+              : s
           )
-          // Stop the RAF for this step
-          if (currentStepIdxRef.current === idx && rafRef.current) {
-            cancelAnimationFrame(rafRef.current)
-            rafRef.current = null
-          }
-        }, accumulatedElapsedRef.current)
-
-        timersRef.current.push(finishTimer)
-      })
-
-      // After all steps: deliver the reply
-      const replyTimer = setTimeout(() => {
+        )
         if (rafRef.current) {
           cancelAnimationFrame(rafRef.current)
           rafRef.current = null
         }
         setIsThinking(false)
-        const totalElapsed = STEP_DURATIONS_MS.reduce((a, b) => a + b, 0) / 1000
+
+        const totalElapsed = accumulatedElapsedRef.current / 1000 + callElapsed
         const finalSteps = firmSteps.map((s, i) => ({
           key: s.key,
           label: s.label,
           hint: s.hint,
           state: "done" as const,
-          elapsed: STEP_DURATIONS_MS[i] / 1000,
-          text: scripts[s.key][scripts[s.key].length - 1],
+          elapsed: 0,
+          text: "",
         }))
-        const reply: AgentMessage = {
-          id: `agent-${Date.now()}`,
-          role: "agent",
-          text: responseText,
-          thinking: finalSteps,
-          thinkingElapsed: totalElapsed,
-          createdAt: Date.now(),
-        }
-        onReplyRef.current?.(reply)
-        resetSteps()
-      }, accumulatedElapsedRef.current + 200)
+        // Use current steps state via callback
+        setSteps((current) => {
+          const reply: AgentMessage = {
+            id: `agent-${Date.now()}`,
+            role: "agent",
+            text: finalText,
+            thinking: current,
+            thinkingElapsed: totalElapsed,
+            createdAt: Date.now(),
+          }
+          onReplyRef.current?.(reply)
+          return current
+        })
+      }
 
-      timersRef.current.push(replyTimer)
+      // ── Kick off the F.I.R.M. pipeline ──
+      runFrame()
     },
-    [clearTimers, resetSteps, activeSkillIds, thinkingMode, tokenMode]
+    [clearTimers, resetSteps, activeSkillIds, thinkingMode, tokenMode, modelId],
   )
 
-  // Compute total elapsed live from the steps (handles in-flight step)
   const totalElapsed = React.useMemo(
     () => steps.reduce((acc, s) => acc + s.elapsed, 0),
-    [steps]
+    [steps],
   )
 
   return {
@@ -473,5 +487,30 @@ export function useAgentThinking({
     totalElapsed,
     send,
     cancel,
+  }
+}
+
+/* ================================================================== */
+/*  Mock fallback — used when no model is configured                   */
+/* ================================================================== */
+
+function mockFallbackResponse(loadedSkills: SkillContent[], tokenMode: TokenMode, userText: string): string {
+  const skillNote = loadedSkills.length > 0
+    ? `Skills loaded: ${loadedSkills.map((s) => s.skillId).join(", ")}`
+    : "Add an API key in Settings → AI Models"
+  const prefix = `[Mock — no model configured. ${skillNote}]\n\n`
+  const userQuestion = userText.length > 0 ? `You asked: "${userText.slice(0, 200)}${userText.length > 200 ? "..." : ""}"\n\n` : ""
+
+  const base = userQuestion + "I'd analyze this properly with a real model connected. For now, here's what I can tell you:"
+
+  switch (tokenMode) {
+    case "normal":
+      return `${prefix}${base}\n\nBased on general financial principles, I'd recommend reviewing your current positions, checking your allocation against your targets, and considering any rebalancing needs. Connect a model via Settings → AI Models for personalized analysis.`
+    case "compressed":
+      return `${prefix}${base}\nCheck positions vs targets, review allocations, consider rebalancing. Connect a model for specifics.`
+    case "ultra":
+      return `${prefix}${base}\nReview positions + allocations, check rebalance needs. Connect model for details.`
+    case "bare":
+      return `${prefix}${base}\nCheck allocations. Connect model.`
   }
 }

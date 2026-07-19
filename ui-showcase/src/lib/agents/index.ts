@@ -247,6 +247,8 @@ export interface ModelOption {
   contextWindow: string
   /** Key strengths (e.g. ["Reasoning", "Fast", "Long context"]) */
   strengths: string[]
+  /** Actual API model name (if different from id). Used by Anthropic/Google which require versioned names. */
+  apiModelName?: string
 }
 
 /* ── Providers ── */
