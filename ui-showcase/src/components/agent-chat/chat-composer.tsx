@@ -11,14 +11,17 @@ import {
   ChevronDown,
   Check,
   Square,
+  Mic,
+  MicOff,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   availableSkills,
-  connectors,
   type AgentDef,
   type AgentSkill,
 } from "@/lib/agents"
+import { useConnectors } from "@/lib/settings/use-connectors"
 
 /* ------------------------------------------------------------------ */
 /*  SkillsMenu                                                         */
@@ -115,12 +118,13 @@ function SkillsMenu({
 }
 
 /* ------------------------------------------------------------------ */
-/*  ConnectorsButton — popover preview, with link to full page         */
+/*  ConnectorsButton — popover with real connector state               */
 /* ------------------------------------------------------------------ */
 
 function ConnectorsButton({ accentColor }: { accentColor: string }) {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
+  const { connectors: realConnectors, connected } = useConnectors()
 
   const statusDot = (status: string) => {
     if (status === "connected")
@@ -143,6 +147,14 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
         >
           <Plug className="h-3 w-3" style={{ color: accentColor }} />
           <span>Connectors</span>
+          {connected.length > 0 && (
+            <span
+              className="flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-semibold"
+              style={{ backgroundColor: accentColor, color: "#0F1117" }}
+            >
+              {connected.length}
+            </span>
+          )}
           <ChevronDown
             className={cn(
               "h-3 w-3 text-white/[0.40] transition-transform duration-150",
@@ -161,53 +173,84 @@ function ConnectorsButton({ accentColor }: { accentColor: string }) {
             Data connectors
           </span>
           <span className="text-[9px] text-white/[0.30]">
-            {connectors.filter((c) => c.status === "connected").length}/
-            {connectors.length} live
+            {connected.length}/{realConnectors.length} live
           </span>
         </div>
 
-        <div className="space-y-0.5">
-          {connectors.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.03]"
+        {realConnectors.length === 0 ? (
+          <div className="py-4 text-center">
+            <p className="text-[12px] text-white/[0.40]">No connectors configured</p>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                router.push("/connectors")
+              }}
+              className={cn(
+                "mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-1.5",
+                "text-[11px] font-medium text-white transition-all duration-150",
+                "hover:bg-white/[0.08]"
+              )}
             >
-              {statusDot(c.status)}
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-medium text-white">{c.label}</div>
-                <div className="text-[10px] text-white/[0.40] truncate">
-                  {c.detail}
+              <Plug className="h-3 w-3" />
+              Go to Connectors
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-0.5 max-h-[240px] overflow-y-auto">
+              {realConnectors.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.03]"
+                >
+                  {statusDot(c.status)}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] font-medium text-white">{c.name}</div>
+                    <div className="text-[10px] text-white/[0.40] truncate">
+                      {c.status === "connected" && c.lastSync
+                        ? `Synced ${c.lastSync}`
+                        : c.status === "connected"
+                          ? "Connected"
+                          : c.status === "syncing"
+                            ? "Syncing…"
+                            : c.status === "error"
+                              ? "Error"
+                              : c.description}
+                    </div>
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[9px] uppercase tracking-wider",
+                      c.status === "connected" && "text-[#34D399]",
+                      c.status === "syncing" && "text-[#FBBF24]",
+                      c.status === "error" && "text-[#F87171]",
+                      c.status === "disconnected" && "text-white/[0.30]"
+                    )}
+                  >
+                    {c.status}
+                  </span>
                 </div>
-              </div>
-              <span
-                className={cn(
-                  "text-[9px] uppercase tracking-wider",
-                  c.status === "connected" && "text-[#34D399]",
-                  c.status === "syncing" && "text-[#FBBF24]",
-                  c.status === "disconnected" && "text-white/[0.30]"
-                )}
-              >
-                {c.status}
-              </span>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false)
-            router.push("/connectors")
-          }}
-          className={cn(
-            "mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2",
-            "text-[11px] font-medium text-white transition-all duration-150",
-            "hover:bg-white/[0.08] hover:border-white/[0.14] active:scale-[0.98]"
-          )}
-        >
-          <Plug className="h-3 w-3" />
-          Manage connectors
-        </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                router.push("/connectors")
+              }}
+              className={cn(
+                "mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2",
+                "text-[11px] font-medium text-white transition-all duration-150",
+                "hover:bg-white/[0.08] hover:border-white/[0.14] active:scale-[0.98]"
+              )}
+            >
+              <Plug className="h-3 w-3" />
+              Manage connectors
+            </button>
+          </>
+        )}
       </PopoverContent>
     </Popover>
   )
@@ -226,6 +269,8 @@ interface ChatComposerProps {
   /** When the agent is thinking, show a stop button instead of send */
   isThinking?: boolean
   onStop?: () => void
+  /** Whether a model is connected — if false, shows error on submit */
+  modelConnected?: boolean
 }
 
 export function ChatComposer({
@@ -236,9 +281,14 @@ export function ChatComposer({
   disabled = false,
   isThinking = false,
   onStop,
+  modelConnected = true,
 }: ChatComposerProps) {
   const [value, setValue] = React.useState("")
+  const [showModelError, setShowModelError] = React.useState(false)
+  const [isListening, setIsListening] = React.useState(false)
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = React.useRef<any>(null)
 
   // Auto-resize the textarea
   React.useEffect(() => {
@@ -248,10 +298,24 @@ export function ChatComposer({
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`
   }, [value])
 
+  // Cleanup speech recognition on unmount
+  React.useEffect(() => {
+    return () => {
+      try { recognitionRef.current?.abort() } catch { /* already stopped */ }
+    }
+  }, [])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = value.trim()
     if (!trimmed || disabled) return
+
+    if (!modelConnected) {
+      setShowModelError(true)
+      setTimeout(() => setShowModelError(false), 4000)
+      return
+    }
+
     onSend(trimmed)
     setValue("")
   }
@@ -263,6 +327,52 @@ export function ChatComposer({
     }
   }
 
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      recognitionRef.current?.abort()
+      setIsListening(false)
+      return
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any
+    const SpeechRecognitionCtor =
+      win.SpeechRecognition || win.webkitSpeechRecognition
+
+    if (!SpeechRecognitionCtor) {
+      alert("Speech recognition is not supported in this browser. Try Chrome or Edge.")
+      return
+    }
+
+    const recognition = new SpeechRecognitionCtor()
+    recognition.lang = "en-US"
+    recognition.interimResults = true
+    recognition.continuous = false
+
+    recognition.onresult = (event: any) => {
+      let transcript = ""
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setValue((prev) => {
+        const sep = prev ? " " : ""
+        return prev + sep + transcript
+      })
+    }
+
+    recognition.onerror = () => {
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }
+
   return (
     <div className="relative px-6 pb-5 pt-2">
       {/* Ambient glow under composer */}
@@ -272,6 +382,30 @@ export function ChatComposer({
           background: `radial-gradient(ellipse at 50% 100%, ${agent.color} 0%, transparent 70%)`,
         }}
       />
+
+      <AnimatePresence>
+        {showModelError && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="mb-2 flex items-center gap-2 rounded-lg border border-[#F87171]/30 bg-[#F87171]/8 px-3 py-2"
+          >
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[#F87171]" />
+            <span className="text-[11px] text-[#FCA5A5]">
+              No AI model connected. Please select a model in the header or{" "}
+              <button
+                type="button"
+                onClick={() => window.location.href = `/agent/${agent.id}/settings`}
+                className="underline hover:text-[#F87171] transition-colors"
+              >
+                agent settings
+              </button>
+              .
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <form
         onSubmit={handleSubmit}
@@ -313,6 +447,26 @@ export function ChatComposer({
               "placeholder:text-white/[0.25] outline-none border-none py-1.5 px-1"
             )}
           />
+
+          {/* Voice input button */}
+          <button
+            type="button"
+            onClick={toggleVoiceInput}
+            aria-label={isListening ? "Stop listening" : "Start voice input"}
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-150",
+              "active:scale-[0.95]",
+              isListening
+                ? "border-[#F87171]/30 bg-[#F87171]/10 text-[#F87171]"
+                : "border-white/[0.08] bg-white/[0.03] text-white/[0.40] hover:bg-white/[0.06] hover:text-white/[0.6]"
+            )}
+          >
+            {isListening ? (
+              <Mic className="h-4 w-4 animate-pulse" />
+            ) : (
+              <MicOff className="h-4 w-4" />
+            )}
+          </button>
 
           <AnimatePresence mode="wait" initial={false}>
             {isThinking ? (

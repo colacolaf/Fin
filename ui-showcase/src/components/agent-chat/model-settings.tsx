@@ -10,22 +10,49 @@ import {
   Check,
   Zap,
   Cpu,
+  ExternalLink,
+  AlertCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { availableModels, type AgentDef, type ModelOption } from "@/lib/agents"
+import {
+  getAgentModel,
+  getAgentConfig,
+  saveAgentModel,
+  saveAgentConfig,
+} from "@/lib/agent-settings/data"
+import type { AgentId } from "@/lib/agents"
+
+/* ------------------------------------------------------------------ */
+/*  Vendor setup URLs                                                  */
+/* ------------------------------------------------------------------ */
+
+const MODEL_VENDOR_SETUP: Record<string, { label: string; url: string }> = {
+  OpenAI: { label: "Get API key", url: "https://platform.openai.com/api-keys" },
+  Anthropic: { label: "Get API key", url: "https://console.anthropic.com/" },
+  Local: { label: "Download", url: "https://ollama.com/" },
+  Google: { label: "Get API key", url: "https://aistudio.google.com/apikey" },
+  Groq: { label: "Get API key", url: "https://console.groq.com/keys" },
+  Mistral: { label: "Get API key", url: "https://console.mistral.ai/api-keys/" },
+}
 
 /* ------------------------------------------------------------------ */
 /*  ModelPicker                                                        */
 /* ------------------------------------------------------------------ */
 
 function ModelPicker({
-  value,
-  onChange,
+  modelId,
+  onSelect,
 }: {
-  value: ModelOption
-  onChange: (m: ModelOption) => void
+  /** Currently selected model ID from localStorage, or null if none */
+  modelId: string | null
+  onSelect: (m: ModelOption) => void
 }) {
   const [open, setOpen] = React.useState(false)
+
+  const selectedModel = modelId
+    ? availableModels.find((m) => m.id === modelId) ?? null
+    : null
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -33,13 +60,30 @@ function ModelPicker({
         <button
           type="button"
           className={cn(
-            "flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5",
-            "text-[11px] font-medium text-white transition-colors duration-150",
-            "hover:bg-white/[0.06] hover:border-white/[0.12] active:scale-[0.97]"
+            "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5",
+            "text-[11px] font-medium transition-colors duration-150",
+            "hover:bg-white/[0.06] active:scale-[0.97]",
+            selectedModel
+              ? "border-white/[0.08] bg-white/[0.03] text-white"
+              : "border-[#FBBF24]/30 bg-[#FBBF24]/6 text-[#FBBF24]"
           )}
         >
-          <Zap className="h-3 w-3 text-[#67E8F9]" />
-          <span>{value.label}</span>
+          {selectedModel ? (
+            <>
+              <Zap className="h-3 w-3 text-[#67E8F9]" />
+              <span>{selectedModel.label}</span>
+              {selectedModel.vendor && (
+                <span className="text-[9px] text-white/[0.35]">
+                  · {selectedModel.vendor}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-3 w-3" />
+              <span>No model</span>
+            </>
+          )}
           <ChevronDown
             className={cn(
               "h-3 w-3 text-white/[0.40] transition-transform duration-150",
@@ -51,45 +95,75 @@ function ModelPicker({
       <PopoverContent
         align="end"
         sideOffset={6}
-        className="z-50 w-[240px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-1.5 shadow-2xl backdrop-blur-xl"
+        className="z-50 w-[280px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-1.5 shadow-2xl backdrop-blur-xl"
       >
         <div className="mb-1.5 px-2 pt-1 text-[9px] font-medium uppercase tracking-[0.14em] text-white/[0.35]">
-          Model
+          Select model
         </div>
+
         {availableModels.map((m) => {
-          const isActive = m.id === value.id
+          const isActive = m.id === modelId
+          const setup = MODEL_VENDOR_SETUP[m.vendor]
           return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => {
-                onChange(m)
-                setOpen(false)
-              }}
-              className={cn(
-                "flex w-full items-start gap-2.5 rounded-md px-2 py-2 text-left transition-colors duration-100",
-                isActive ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"
+            <div key={m.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect(m)
+                  setOpen(false)
+                }}
+                className={cn(
+                  "flex w-full items-start gap-2.5 rounded-md px-2 py-2 text-left transition-colors duration-100",
+                  isActive ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"
+                )}
+              >
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/[0.04]">
+                  <Cpu className="h-3 w-3 text-white/[0.55]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[12px] font-medium text-white">
+                      {m.label}
+                    </span>
+                    {isActive && <Check className="h-3 w-3 text-[#67E8F9]" />}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] uppercase tracking-wider text-white/[0.30]">
+                      {m.vendor}
+                    </span>
+                    <span className="text-[9px] text-white/[0.25]">·</span>
+                    <span className="text-[10px] text-white/[0.40]">
+                      {m.description}
+                    </span>
+                  </div>
+                </div>
+              </button>
+              {setup && (
+                <a
+                  href={setup.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-10 mb-1 inline-flex items-center gap-1 text-[10px] text-[#67E8F9]/70 hover:text-[#67E8F9] transition-colors"
+                >
+                  <ExternalLink className="h-2.5 w-2.5" />
+                  {setup.label}
+                </a>
               )}
-            >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/[0.04]">
-                <Cpu className="h-3 w-3 text-white/[0.55]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[12px] font-medium text-white">{m.label}</span>
-                  {isActive && <Check className="h-3 w-3 text-[#67E8F9]" />}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] uppercase tracking-wider text-white/[0.30]">
-                    {m.vendor}
-                  </span>
-                  <span className="text-[9px] text-white/[0.25]">·</span>
-                  <span className="text-[10px] text-white/[0.40]">{m.description}</span>
-                </div>
-              </div>
-            </button>
+            </div>
           )
         })}
+
+        <div className="mt-1.5 border-t border-white/[0.06] pt-1.5 px-2">
+          <p className="text-[10px] text-white/[0.30] leading-relaxed">
+            Paste your API key in{" "}
+            <a
+              href="/settings"
+              className="text-[#67E8F9]/70 hover:text-[#67E8F9] underline underline-offset-2"
+            >
+              Settings → AI Models
+            </a>
+          </p>
+        </div>
       </PopoverContent>
     </Popover>
   )
@@ -225,7 +299,9 @@ function SettingsGear({
         {/* Temperature slider */}
         <div className="mb-3 rounded-md px-1 py-1.5">
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[12px] font-medium text-white">Temperature</span>
+            <span className="text-[12px] font-medium text-white">
+              Temperature
+            </span>
             <span className="font-mono text-[11px] tabular-nums text-white/[0.55]">
               {state.temperature.toFixed(1)}
             </span>
@@ -277,44 +353,112 @@ function SettingsGear({
 }
 
 /* ------------------------------------------------------------------ */
-/*  ModelSettings — composed cluster                                   */
+/*  ModelSettings — composed cluster, localStorage-backed              */
 /* ------------------------------------------------------------------ */
 
 export interface ModelSettingsState {
+  /** The currently selected model ID (or null if none) */
+  modelId: string | null
   model: ModelOption
   voice: boolean
   settings: SettingsState
+}
+
+export interface ModelSettingsProps {
+  agent: AgentDef
+  state: ModelSettingsState
+  onChange: (s: ModelSettingsState) => void
 }
 
 export function ModelSettings({
   agent,
   state,
   onChange,
-}: {
-  agent: AgentDef
-  state: ModelSettingsState
-  onChange: (s: ModelSettingsState) => void
-}) {
+}: ModelSettingsProps) {
+  // Persist model selection to localStorage whenever it changes
+  const handleModelSelect = React.useCallback(
+    (m: ModelOption) => {
+      saveAgentModel(agent.id as AgentId, m.id)
+      onChange({ ...state, modelId: m.id, model: m })
+    },
+    [agent.id, state, onChange],
+  )
+
+  // Persist settings to localStorage whenever they change
+  const handleSettingsChange = React.useCallback(
+    (s: SettingsState) => {
+      saveAgentConfig(agent.id as AgentId, {
+        temperature: s.temperature,
+        streamThinking: s.streamThinking,
+        citations: s.citations,
+        autoExecute: s.autoExecute,
+        voiceInput: state.voice,
+      })
+      onChange({ ...state, settings: s })
+    },
+    [agent.id, state, onChange],
+  )
+
+  const handleVoiceToggle = React.useCallback(
+    (v: boolean) => {
+      saveAgentConfig(agent.id as AgentId, {
+        temperature: state.settings.temperature,
+        streamThinking: state.settings.streamThinking,
+        citations: state.settings.citations,
+        autoExecute: state.settings.autoExecute,
+        voiceInput: v,
+      })
+      onChange({ ...state, voice: v })
+    },
+    [agent.id, state, onChange],
+  )
+
   return (
     <div className="flex items-center gap-2">
       <ModelPicker
-        value={state.model}
-        onChange={(m) => onChange({ ...state, model: m })}
+        modelId={state.modelId}
+        onSelect={handleModelSelect}
       />
       <VoiceToggle
         enabled={state.voice}
-        onToggle={(v) => onChange({ ...state, voice: v })}
+        onToggle={handleVoiceToggle}
       />
       <SettingsGear
         agent={agent}
         state={state.settings}
-        onChange={(s) => onChange({ ...state, settings: s })}
+        onChange={handleSettingsChange}
       />
     </div>
   )
 }
 
+/** Build default model settings from localStorage for a given agent */
+export function buildDefaultModelSettingsState(
+  agentId: string,
+): ModelSettingsState {
+  const storedModelId = getAgentModel(agentId as AgentId)
+  const storedConfig = getAgentConfig(agentId as AgentId)
+  const model =
+    storedModelId
+      ? availableModels.find((m) => m.id === storedModelId) ?? availableModels[0]
+      : availableModels[0]
+
+  return {
+    modelId: storedModelId,
+    model,
+    voice: storedConfig.voiceInput,
+    settings: {
+      temperature: storedConfig.temperature,
+      streamThinking: storedConfig.streamThinking,
+      autoExecute: storedConfig.autoExecute,
+      citations: storedConfig.citations,
+    },
+  }
+}
+
+/** Legacy default for non-agent-specific contexts */
 export const defaultModelSettingsState: ModelSettingsState = {
+  modelId: availableModels[0].id,
   model: availableModels[0],
   voice: false,
   settings: {

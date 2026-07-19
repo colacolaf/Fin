@@ -4,10 +4,14 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
+import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover"
 import {
   ArrowLeft,
-  ChevronRight,
   Plug,
+  Globe,
+  Settings,
+  ChevronDown,
+  ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getAgent, type AgentDef, type AgentId } from "@/lib/agents"
@@ -17,9 +21,10 @@ import { Timer } from "@/components/ui/timer"
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
 import {
   ModelSettings,
-  defaultModelSettingsState,
+  buildDefaultModelSettingsState,
   type ModelSettingsState,
 } from "./model-settings"
+import { useConnectors } from "@/lib/settings/use-connectors"
 import { ChatMessage, ChatEmptyState } from "./chat-message"
 import { ChatComposer } from "./chat-composer"
 import { ThinkingCard } from "./thinking-card"
@@ -38,22 +43,142 @@ function getDefaultCategoryForAgent(agentId: string): string {
 }
 
 /* ================================================================== */
+/*  SettingsPopover — web search, skills, connectors quick-access      */
+/* ================================================================== */
+
+function SettingsPopover({
+  agent,
+  accentColor,
+}: {
+  agent: AgentDef
+  accentColor: string
+}) {
+  const router = useRouter()
+  const [open, setOpen] = React.useState(false)
+  const [webSearch, setWebSearch] = React.useState(() => {
+    try {
+      return localStorage.getItem("fo-web-search") === "true"
+    } catch {
+      return true
+    }
+  })
+
+  const toggleWebSearch = () => {
+    const next = !webSearch
+    setWebSearch(next)
+    try { localStorage.setItem("fo-web-search", String(next)) } catch { /* noop */ }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Quick settings"
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03]",
+            "text-white/[0.40] transition-all duration-150",
+            "hover:bg-white/[0.06] hover:text-white/[0.6] active:scale-[0.97]",
+            open && "bg-white/[0.06] text-white/[0.7]"
+          )}
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={6}
+        className="z-50 w-[260px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-3 shadow-2xl backdrop-blur-xl"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-white/[0.40]">
+            Quick settings
+          </span>
+          <span
+            className="text-[9px] font-medium"
+            style={{ color: accentColor }}
+          >
+            {agent.shortLabel}
+          </span>
+        </div>
+
+        {/* Web search toggle */}
+        <button
+          type="button"
+          onClick={toggleWebSearch}
+          className="flex w-full items-center justify-between gap-3 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+        >
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Globe className="h-3 w-3 text-white/[0.45]" />
+              <span className="text-[12px] font-medium text-white">Web search</span>
+            </div>
+            <div className="text-[10px] text-white/[0.35]">
+              Let the agent search the web for current data
+            </div>
+          </div>
+          <span
+            className={cn(
+              "relative h-4 w-7 shrink-0 rounded-full transition-colors duration-150",
+              webSearch ? "bg-white/[0.20]" : "bg-white/[0.08]"
+            )}
+            style={webSearch ? { backgroundColor: accentColor } : undefined}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-150",
+                webSearch ? "translate-x-3.5" : "translate-x-0.5"
+              )}
+            />
+          </span>
+        </button>
+
+        <div className="h-px bg-white/[0.06] my-1.5" />
+
+        {/* Quick nav links */}
+        <button
+          type="button"
+          onClick={() => { setOpen(false); router.push(`/agent/${agent.id}/settings`) }}
+          className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+        >
+          <span className="text-[12px] font-medium text-white">Agent settings</span>
+          <span className="text-[10px] text-white/[0.35]">Constraints, learning, model</span>
+          <ExternalLink className="ml-auto h-3 w-3 text-white/[0.25]" />
+        </button>
+        <button
+          type="button"
+          onClick={() => { setOpen(false); router.push("/connectors") }}
+          className="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
+        >
+          <span className="text-[12px] font-medium text-white">Connectors</span>
+          <span className="text-[10px] text-white/[0.35]">Data sources & API keys</span>
+          <ExternalLink className="ml-auto h-3 w-3 text-white/[0.25]" />
+        </button>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/* ================================================================== */
 /*  AgentChatHeader                                                    */
 /* ================================================================== */
 
 function AgentChatHeader({
   agent,
   isThinking,
+  hasStartedChat,
   modelState,
   onModelChange,
 }: {
   agent: AgentDef
   isThinking: boolean
+  hasStartedChat: boolean
   modelState: ModelSettingsState
   onModelChange: (s: ModelSettingsState) => void
 }) {
   const router = useRouter()
   const Icon = agent.icon
+  const { connected } = useConnectors()
 
   return (
     <header
@@ -117,14 +242,15 @@ function AgentChatHeader({
         </div>
       </div>
 
-      {/* Right: timer + model + connectors */}
-      <div className="flex shrink-0 items-center gap-3">
-        {/* Timer — runs while thinking, shows last elapsed when idle */}
+      {/* Right: timer + model + settings + connectors */}
+      <div className="flex shrink-0 items-center gap-2.5">
+        {/* Session timer — starts on first chat, keeps running */}
         <Timer
-          loading={isThinking}
+          loading={hasStartedChat}
           format="MM:SS"
           variant="outline"
           size="sm"
+          resetOnLoadingChange={false}
           className="border-white/[0.10] text-white/70"
         />
 
@@ -136,18 +262,78 @@ function AgentChatHeader({
           onChange={onModelChange}
         />
 
-        <Link
-          href="/connectors"
-          className={cn(
-            "flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5",
-            "text-[11px] font-medium text-white/[0.65] transition-all duration-150",
-            "hover:bg-white/[0.06] hover:border-white/[0.12] hover:text-white active:scale-[0.97]"
-          )}
-        >
-          <Plug className="h-3 w-3" />
-          <span>Connectors</span>
-          <ChevronRight className="h-3 w-3 text-white/[0.30]" />
-        </Link>
+        <SettingsPopover agent={agent} accentColor={agent.color} />
+
+        {/* Connectors — quick popover with real state */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5",
+                "text-[11px] font-medium text-white/[0.65] transition-all duration-150",
+                "hover:bg-white/[0.06] hover:border-white/[0.12] hover:text-white active:scale-[0.97]"
+              )}
+            >
+              <Plug className="h-3 w-3" />
+              <span>Connectors</span>
+              {connected.length > 0 && (
+                <span
+                  className="flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-semibold"
+                  style={{ backgroundColor: agent.color, color: "#0F1117" }}
+                >
+                  {connected.length}
+                </span>
+              )}
+              <ChevronDown className="h-3 w-3 text-white/[0.30]" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            sideOffset={6}
+            className="z-50 w-[260px] rounded-lg border border-white/[0.08] bg-[#0F1117]/95 p-2 shadow-2xl backdrop-blur-xl"
+          >
+            <div className="mb-1.5 px-1 pt-1 text-[9px] font-medium uppercase tracking-[0.14em] text-white/[0.40]">
+              Connectors
+            </div>
+            {connected.length === 0 ? (
+              <div className="py-3 text-center">
+                <p className="text-[12px] text-white/[0.40]">No connectors connected</p>
+                <Link
+                  href="/connectors"
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-white/[0.08] transition-colors"
+                >
+                  <Plug className="h-3 w-3" />
+                  Go to Connectors
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-0.5 max-h-[180px] overflow-y-auto">
+                  {connected.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#34D399] shrink-0" />
+                      <span className="text-[12px] font-medium text-white">{c.name}</span>
+                      <span className="ml-auto text-[9px] uppercase tracking-wider text-[#34D399]">
+                        live
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/connectors"
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[11px] font-medium text-white hover:bg-white/[0.08] transition-colors"
+                >
+                  <Plug className="h-3 w-3" />
+                  Manage connectors
+                </Link>
+              </>
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
     </header>
   )
@@ -166,8 +352,11 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
 
   const [messages, setMessages] = React.useState<AgentMessage[]>([])
   const [activeSkills, setActiveSkills] = React.useState<Set<string>>(new Set())
-  const [modelState, setModelState] = React.useState<ModelSettingsState>(
-    defaultModelSettingsState
+  const [hasStartedChat, setHasStartedChat] = React.useState(false)
+
+  // Read model + config from localStorage on mount
+  const [modelState, setModelState] = React.useState<ModelSettingsState>(() =>
+    buildDefaultModelSettingsState(agentId)
   )
 
   // Record analytics on mount — increment session count and update last-used
@@ -236,13 +425,12 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
   }, [messages, agentId])
 
   // Auto-scroll to bottom on new messages and when thinking starts/stops.
-  // Deliberately NOT depending on `steps` — that updates every RAF frame
-  // and would call scrollIntoView ~60x/sec, causing jank.
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [messages, isThinking])
 
   const handleSend = (text: string) => {
+    if (!hasStartedChat) setHasStartedChat(true)
     const userMsg: AgentMessage = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -279,7 +467,27 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
     )
   }
 
-  return <AgentChatFullInner agent={agent} messages={messages} isThinking={isThinking} steps={steps} totalElapsed={totalElapsed} onSend={handleSend} onStop={cancel} activeSkills={activeSkills} onToggleSkill={handleToggleSkill} modelState={modelState} onModelChange={setModelState} scrollRef={scrollRef} bottomRef={bottomRef} />
+  const isModelConnected = !!modelState.modelId
+
+  return (
+    <AgentChatFullInner
+      agent={agent}
+      messages={messages}
+      isThinking={isThinking}
+      steps={steps}
+      totalElapsed={totalElapsed}
+      onSend={handleSend}
+      onStop={cancel}
+      activeSkills={activeSkills}
+      onToggleSkill={handleToggleSkill}
+      modelState={modelState}
+      onModelChange={setModelState}
+      scrollRef={scrollRef}
+      bottomRef={bottomRef}
+      hasStartedChat={hasStartedChat}
+      isModelConnected={isModelConnected}
+    />
+  )
 }
 
 /* ================================================================== */
@@ -300,6 +508,8 @@ interface AgentChatFullInnerProps {
   onModelChange: (s: ModelSettingsState) => void
   scrollRef: React.RefObject<HTMLDivElement | null>
   bottomRef: React.RefObject<HTMLDivElement | null>
+  hasStartedChat: boolean
+  isModelConnected: boolean
 }
 
 function AgentChatFullInner({
@@ -316,6 +526,8 @@ function AgentChatFullInner({
   onModelChange,
   scrollRef,
   bottomRef,
+  hasStartedChat,
+  isModelConnected,
 }: AgentChatFullInnerProps) {
   const hasMessages = messages.length > 0
   const lastMessage = messages[messages.length - 1]
@@ -362,6 +574,7 @@ function AgentChatFullInner({
         <AgentChatHeader
           agent={agent}
           isThinking={isThinking}
+          hasStartedChat={hasStartedChat}
           modelState={modelState}
           onModelChange={onModelChange}
         />
@@ -431,6 +644,7 @@ function AgentChatFullInner({
           disabled={isThinking}
           isThinking={isThinking}
           onStop={onStop}
+          modelConnected={isModelConnected}
         />
       </main>
     </div>
