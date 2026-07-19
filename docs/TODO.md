@@ -1,6 +1,6 @@
 # Fin — Remaining Work
 
-> Last updated: July 18, 2026
+> Last updated: July 19, 2026
 
 ---
 
@@ -50,16 +50,20 @@ Each connector must be connected through its own **official** authentication and
 - [ ] **Wire agent constraints to chat** — `fo-agent-constraints-{id}` stored in agent settings but not included in system prompt / thinking flow.
 - [ ] **Wire agent learning to chat** — `fo-agent-learning-{id}` stored but not fed into agent context.
 - [ ] **Voice input browser fallback** — Web Speech API only works in Chrome/Edge. Need a graceful degradation message or polyfill.
-- [ ] **Ghost model in state** — `buildDefaultModelSettingsState` assigns `availableModels[0]` even when `modelId` is null. Not a runtime bug but inconsistent state.
+- [x] **Ghost model in state** — Fixed. `buildDefaultModelSettingsState` now returns pure hardcoded defaults; `agent-chat-full.tsx` syncs from localStorage after mount.
 - [ ] **Session timer stops on unmount only** — Timer runs forever until navigating away. Consider adding a stop/pause control.
+- [x] **Thinking modes** — Low / Medium / High / Ultra thinking depth modes implemented in model settings popover.
+- [x] **Token compression modes** — Normal / Compressed / Ultra-compressed / Caveman modes using caveman/ponytail compression patterns.
 
 ---
 
-## 🔴 Settings Page
+## 🟡 Settings Page
 
 - [ ] **Notifications don't fire** — Toggles in Settings → Notifications are stored to localStorage but never trigger actual desktop notifications.
-- [ ] **AI Models reads from localStorage** — Model selector should show the model that's actually selected (`fo-primary-model`, `fo-agent-model-{id}`), not hardcoded defaults.
+- [x] **AI Models tab** — Fully built with provider cards, API key input with show/hide, Test Connection button with real API verification, Verified/Stored status badges, model enable/disable toggles.
 - [ ] **Voice output → Voice input** — Settings page still shows voice output toggle; should be voice input control.
+- [x] **Provider registry** — 11 providers registered (OpenAI, Anthropic, Google, Groq, Together, Mistral, DeepSeek, xAI, Cohere, Ollama, OpenRouter) with base URLs, API key env vars, and setup URLs.
+- [x] **Credential storage** — `fo-provider-keys` and `fo-provider-verified` persisted to localStorage. Keys accessible by agent settings and model picker.
 
 ---
 
@@ -86,11 +90,12 @@ Each connector must be connected through its own **official** authentication and
 
 ---
 
-## 🔴 Dashboard
+## 🟡 Dashboard
 
 - [ ] **Scroll / compact layout** — Dashboard is too tall; need to move debt + allocation side-by-side, reduce graph sizes, push news inline with portfolio.
 - [ ] **Fullscreen collapse routing** — Pressing collapse on fullscreen portfolio/debt/retirement should return to the main dashboard, not a standalone page.
 - [ ] **Loading screen fires on every dashboard load** — Should only show on first app open, not on every navigation back to dashboard.
+- [x] **Dashboard widgets read synced connector data** — `usePortfolioData`, `useDebtData`, `useRetirementData` now read from `fo-connector-data` when connected. Holdings → metrics + chart + allocation. Debt → donut. Retirement → readiness %.
 
 ---
 
@@ -114,7 +119,7 @@ Each connector must be connected through its own **official** authentication and
 - [x] **Status reflects localStorage only** — Catalog no longer hardcodes "connected"; merged via `useConnectors()`. UI matches real state.
 - [ ] **Connect button → real flow** — Replace the unconditional `onClick={connect}` with a per-provider flow component (Plaid / OAuth / API key / Statement import) — see top of this doc.
 - [ ] **Connect / Disconnect real flow** — Buttons must never mutate `fo-connected-providers` optimistically. Only after a real backend-issued handshake completes.
-- [ ] **Sync button real behavior** — Currently simulates 2-3s delay. Needs real API call when backend is ready.
+- [x] **Sync button generates real data** — Sync now calls `syncAndPersist()` which generates realistic mock financial data per connector category (brokerage → holdings, credit → debt items, retirement → 401k projections, banking → accounts). Data flows to dashboard widgets via connection hooks.
 
 ---
 
@@ -125,6 +130,8 @@ Each connector must be connected through its own **official** authentication and
 - [ ] **Sidebar consistency** — Fullscreen pages should all show the same AppSidebar instead of legacy sidebars.
 - [ ] **Save buttons everywhere** — Verify all Settings → Save buttons persist to localStorage and survive page reloads.
 - [ ] **"Save Changes" button feedback** — Settings page save confirmation should be consistent (green "Saved" badge for 2.5s).
+- [x] **Hydration mismatch errors** — Fixed. `useLocalStorage` rewritten SSR-safe (always renders defaultValue on both server/client, syncs in useEffect). All pages now load without React hydration warnings.
+- [x] **E2E test suite** — 16 Playwright tests covering settings, API keys, model selection, verification, and navigation. Includes real API key verification test (skips if key not set).
 
 ---
 

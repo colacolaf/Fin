@@ -93,9 +93,44 @@ A simple setup wizard requires the user to complete necessary tasks before acces
 
 After setup, agents ask follow-up questions during chat to refine goals and preferences.
 
+## Current Features (UI Showcase)
+
+A working Next.js UI showcase lives in `ui-showcase/` with:
+
+### Agent Chat
+- Three specialized agents: Portfolio, Debt, Retirement
+- Real-time chat with thinking indicators (reasoning steps shown inline)
+- **Thinking modes**: Low / Medium / High / Ultra — controls reasoning depth
+- **Token compression modes**: Normal / Compressed / Ultra-compressed / Caveman — reduces token usage using caveman-style compression
+- Per-agent model selection + configurable settings
+
+### AI Model Management
+- **11 providers** registered: OpenAI, Anthropic, Google, Groq, Together, Mistral, DeepSeek, xAI, Cohere, Ollama, OpenRouter
+- **API key storage** per provider in Settings → AI Model tab
+- **Test Connection** button — real API key verification against each provider's endpoint
+- Provider cards with expand/collapse, show/hide key, Stored/Verified status badges
+- Models from configured providers automatically appear in agent model pickers
+
+### Connectors & Sync
+- **30+ financial connectors** cataloged (banks, brokerages, credit cards, loans, retirement, crypto)
+- **Sync buttons** generate realistic mock financial data that flows into dashboards
+- Portfolio → holdings, chart, allocation | Debt → donut, payoff plan | Retirement → readiness %, projections
+- Locked states when disconnected (no mock fallback)
+
+### Dashboard
+- Glassmorphic design language throughout
+- Portfolio metrics, sparklines, allocation cards
+- Debt donut with legend, debt-vs-invest modal
+- Retirement widget with piggy bank icon + readiness meter
+- News cards, analytics, skills registry
+
+### E2E Test Suite
+- **16 Playwright tests** covering settings, API keys, model selection, verification, and navigation
+- Real API key verification test (skips gracefully when no key is set)
+
 ## Status
 
-This project is in the design and context-definition phase. The next step is to finalize the agent system prompts, user context schema, and design specifications.
+UI showcase is functional at `http://localhost:3000`. Backend integrations (real Plaid/OAuth flows, trade execution, desktop notifications) are documented in [`docs/TODO.md`](docs/TODO.md).
 
 ## License
 
