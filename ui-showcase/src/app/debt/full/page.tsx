@@ -487,7 +487,7 @@ export default function DebtFullPage() {
 
                   {/* Week bars */}
                   <div className="space-y-2.5">
-                    {displaySummary.totalPaidThisMonth > 0 ? [
+                    {(displaySummary.totalPaidThisMonth > 0 ? [
                       { label: "W1", value: displaySummary.totalPaidThisMonth * 0.22, max: displaySummary.totalPaidThisMonth },
                       { label: "W2", value: displaySummary.totalPaidThisMonth * 0.27, max: displaySummary.totalPaidThisMonth },
                       { label: "W3", value: displaySummary.totalPaidThisMonth * 0.18, max: displaySummary.totalPaidThisMonth },
@@ -497,7 +497,7 @@ export default function DebtFullPage() {
                       { label: "W2", value: 0, max: 1 },
                       { label: "W3", value: 0, max: 1 },
                       { label: "W4", value: 0, max: 1 },
-                    ].map((w) => (
+                    ]).map((w) => (
                       <div key={w.label} className="flex items-center gap-3">
                         <span className="text-[10px] text-white/[0.25] w-5">{w.label}</span>
                         <div className="flex-1 h-2 rounded-full bg-white/[0.04]">
