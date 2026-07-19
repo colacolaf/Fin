@@ -10,7 +10,7 @@ import {
   Plug,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getAgent, type AgentDef } from "@/lib/agents"
+import { getAgent, type AgentDef, type AgentId } from "@/lib/agents"
 import { useAgentThinking, type AgentMessage } from "@/lib/agents/use-agent-thinking"
 import { Timer } from "@/components/ui/timer"
 import { AppSidebar } from "@/components/app-sidebar/app-sidebar"
@@ -155,6 +155,41 @@ export function AgentChatFull({ agentId }: AgentChatFullProps) {
   const [modelState, setModelState] = React.useState<ModelSettingsState>(
     defaultModelSettingsState
   )
+
+  // Record analytics on mount — increment session count and update last-used
+  React.useEffect(() => {
+    if (!agent) return
+    const id = agent.id
+    const now = Date.now()
+
+    const defaults = {
+      sessions: { portfolio: 0, debt: 0, retirement: 0 } as Record<string, number>,
+      lastUsed: { portfolio: null, debt: null, retirement: null } as Record<string, number | null>,
+      categories: {
+        portfolio: "Rebalancing",
+        debt: "Payoff Strategy",
+        retirement: "Contribution Strategy",
+      } as Record<string, string>,
+    }
+
+    try {
+      // Increment session counter
+      const sessions = { ...defaults.sessions, ...JSON.parse(localStorage.getItem("fo-agent-sessions") || "null") }
+      sessions[id] = (sessions[id] ?? 0) + 1
+      localStorage.setItem("fo-agent-sessions", JSON.stringify(sessions))
+
+      // Update last-used timestamp
+      const lastUsed = { ...defaults.lastUsed, ...JSON.parse(localStorage.getItem("fo-agent-last-used") || "null") }
+      lastUsed[id] = now
+      localStorage.setItem("fo-agent-last-used", JSON.stringify(lastUsed))
+
+      // Set last session category
+      const categories = { ...defaults.categories, ...JSON.parse(localStorage.getItem("fo-agent-last-category") || "null") }
+      localStorage.setItem("fo-agent-last-category", JSON.stringify(categories))
+    } catch {
+      // localStorage unavailable — analytics won't persist this session
+    }
+  }, [agent])
 
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const bottomRef = React.useRef<HTMLDivElement>(null)
